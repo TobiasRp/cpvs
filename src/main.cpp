@@ -8,13 +8,41 @@ using namespace std;
 #include "ShaderProgram.h"
 #include "Camera.h"
 
-#include "AssimpRenderer.h"
+#include "AssimpScene.h"
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
 	glViewport(0, 0, width, height);
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+	switch(key) {
+	case GLFW_KEY_W:
+		cam.walk(1);
+		break;
+	case GLFW_KEY_S:
+		cam.walk(-1);
+		break;
+	case GLFW_KEY_A:
+		cam.strafe(-1);
+		break;
+	case GLFW_KEY_D:
+		cam.strafe(1);
+		break;
+	case GLFW_KEY_Q:
+		cam.rotate(5.0f, 0, 0);
+		break;
+	case GLFW_KEY_E:
+		cam.rotate(-5.0f, 0, 0);
+		break;
+	case GLFW_KEY_Z:
+		cam.lift(1);
+		break;
+	case GLFW_KEY_X:
+		cam.lift(-1);
+	}
 }
 
 GLFWwindow* initAndCreateWindow() {
@@ -28,7 +56,7 @@ GLFWwindow* initAndCreateWindow() {
 	}
 
 	glfwSetWindowSizeCallback(window, resize);
-
+	glfwSetKeyCallback(window, keyCallback);
 	glfwMakeContextCurrent(window);
 	return window;
 }
@@ -55,6 +83,23 @@ unique_ptr<ShaderProgram> loadForwardShader() {
 	return forward;
 }
 
+unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
+	string file;
+	if (argc <= 1)
+		file = "../../Sponza/sponza.obj";
+	else
+		file = argv[1];
+
+	try {
+		auto ptr = make_unique<AssimpScene>(file);
+		return ptr;
+	} catch (FileNotFound& exc) {
+		cout << "Specified scene file not found!\n";
+		glfwTerminate();
+		std::terminate();
+	}
+}
+
 int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
@@ -62,18 +107,19 @@ int main(int argc, char **argv) {
 	auto forward = loadForwardShader();
 	forward->bind();
 
-	AssimpRenderer sponza("../../Sponza/sponza.obj");
+	auto scene = loadSceneFromArguments(argc, argv);
 
+	cam.setSpeed(4.0f);
 	cam.setPosition(vec3(0, 0, -5));
 
 	glEnable(GL_DEPTH_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		RenderProperties properties(forward.get(), cam.getView(), cam.getProjection());
-		sponza.render(properties);
+		scene->render(properties);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

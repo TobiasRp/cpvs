@@ -5,8 +5,10 @@ in VARYINGS {
 	vec3 normal;
 } fs_in;
 
+uniform vec3 diffuse_color;
+
 out vec4 fs_output;
 
 void main() {
-	fs_output = vec4(0.4, 0.4, 0.4, 1.0);
+	fs_output = vec4(diffuse_color, 1.0);
 }
