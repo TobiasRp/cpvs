@@ -57,12 +57,12 @@ std::string ShaderProgram::log() const
 	return std::string(&errorLog[0], length + 1);
 }
 
-void ShaderProgram::bind()
+void ShaderProgram::bind() const
 {
 	glUseProgram(m_id);
 }
 
-void ShaderProgram::release()
+void ShaderProgram::release() const
 {
 	glUseProgram(0);
 }

@@ -39,9 +39,9 @@ public:
 
 	std::string log() const;
 
-	void bind();
+	void bind() const;
 
-	void release();
+	void release() const;
 
 	/** This is not done by the destructor, because it would result in errors if the
 	 *  object is declared static/global
