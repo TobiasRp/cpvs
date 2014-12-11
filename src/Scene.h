@@ -2,6 +2,7 @@
 #define SCENE_H
 
 #include "RenderProperties.h"
+#include "Light.h"
 
 class Scene {
 public:

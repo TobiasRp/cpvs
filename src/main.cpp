@@ -107,13 +107,17 @@ int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
 
-	renderSystem = make_unique<DeferredRenderer>(WINDOW_WIDTH, WINDOW_HEIGHT);
+	vec3 lightDir = glm::normalize(vec3(1, -0.5, 0.1));
+	DirectionalLight light(vec3(0.5, 0.5, 0.5), lightDir);
+
+	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 	auto scene = loadSceneFromArguments(argc, argv);
 
 	cam.setSpeed(4.0f);
 	cam.setPosition(vec3(0, 0, -5));
 
 //	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glEnable(GL_CULL_FACE);
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());

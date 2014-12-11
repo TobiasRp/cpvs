@@ -6,17 +6,22 @@
 #include "ShaderProgram.h"
 #include "Quad.h"
 #include "Fbo.h"
+#include "Light.h"
 
 class Scene;
 
 class DeferredRenderer {
 public:
-	DeferredRenderer(int width, int height);
+	DeferredRenderer(const DirectionalLight& light, int width, int height);
 	~DeferredRenderer() = default;
 
 	void resize(int width, int height);
 
 	void render(RenderProperties& properties, const Scene* scene);
+
+	const DirectionalLight& getLight() {
+		return m_dirLight;
+	}
 
 private:
 	void loadShaders();
@@ -30,6 +35,7 @@ private:
 	ShaderProgram m_geometry, m_useDS;
 	Fbo m_gBuffer;
 	Quad m_fullscreenQuad;
+	const DirectionalLight m_dirLight;
 };
 
 #endif

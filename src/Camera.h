@@ -5,7 +5,7 @@
 
 class Camera {
 public:
-	Camera(float fieldOfView, int width, int height, float znear = 0.1f, float zfar = 1000.0f)
+	Camera(float fieldOfView, int width, int height, float znear = 0.1f, float zfar = 10000.0f)
 		: m_fov(fieldOfView), m_znear(znear), m_zfar(zfar), m_changedView(false),
 		m_yaw(0), m_pitch(0), m_roll(0)
 	{
@@ -85,7 +85,7 @@ protected:
 class FreeCamera : public Camera {
 public:
 
-	FreeCamera(float fieldOfView, int width, int height, float n = 0.1f, float f = 1000.0f)
+	FreeCamera(float fieldOfView, int width, int height, float n = 0.1f, float f = 10000.0f)
 		: Camera(fieldOfView, width, height, n, f), m_speed(1.0f)
 	{
 		m_look = glm::vec3(0, 0, 1);

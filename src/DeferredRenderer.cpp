@@ -5,8 +5,8 @@
 #include <iostream>
 using namespace std;
 
-DeferredRenderer::DeferredRenderer(int width, int height) 
-	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)), m_gBuffer(width, height, true)
+DeferredRenderer::DeferredRenderer(const DirectionalLight& light, int width, int height) 
+	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)), m_gBuffer(width, height, true), m_dirLight(light)
 {
 	loadShaders();
 	initFbos();
@@ -65,8 +65,6 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 	};
 	glDrawBuffers(3, buffers);
 
-	/*TODO Set LIGHT */
-
 	scene->render(properties);
 
 	m_geometry.release();
@@ -79,6 +77,9 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	m_useDS.bind();
+
+	m_useDS.setUniform3fv("light.color", glm::value_ptr(m_dirLight.color));
+	m_useDS.setUniform3fv("light.direction", glm::value_ptr(m_dirLight.direction));
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
