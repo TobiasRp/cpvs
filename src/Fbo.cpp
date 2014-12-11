@@ -15,7 +15,7 @@ void createTex(GLuint *tex, GLuint width, GLuint height, GLint format)
 }
 
 Fbo::Fbo(GLuint width, GLuint height, bool renderbuffer)
-	: m_isBound(false), m_hasRenderbuffer(renderbuffer), m_width(width), m_height(height)
+	: m_hasRenderbuffer(renderbuffer), m_width(width), m_height(height)
 {
 	glGenFramebuffers(1, &m_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
@@ -52,17 +52,14 @@ Fbo::~Fbo()
 }
 
 void Fbo::clear() {
-	assert(m_isBound);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Fbo::bind() {
-	m_isBound = true;
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 }
 
 void Fbo::release() {
-	m_isBound = false;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -95,14 +92,6 @@ GLuint Fbo::getTexture(unsigned int index) {
 
 void Fbo::addTexture(GLint format)
 {
-	bool release;
-	if (m_isBound)
-		release = false;
-	else {
-		bind();
-		release = true;
-	}
-
 	TexTarget tgt;
 	tgt.format = format;
 	createTex(&tgt.id, m_width, m_height, format);
@@ -111,9 +100,6 @@ void Fbo::addTexture(GLint format)
 	GLuint attachment = textures.size() - 1;
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment,
 		GL_TEXTURE_2D, tgt.id, 0);
-
-	if (release)
-		this->release();
 }
 
 void Fbo::bindTexture(GLuint index, GLuint offset)

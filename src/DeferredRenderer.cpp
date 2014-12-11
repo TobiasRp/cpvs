@@ -13,12 +13,14 @@ DeferredRenderer::DeferredRenderer(int width, int height)
 
 void DeferredRenderer::loadShaders() {
 	try {
-		m_createDS.addShaderFromFile(GL_VERTEX_SHADER, "../shader/createDS.vert");
-		m_createDS.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/createDS.frag");
-		m_createDS.link();
+		m_geometry.addShaderFromFile(GL_VERTEX_SHADER, "../shader/geometry.vert");
+		m_geometry.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/geometry.frag");
+		//m_geometry.addShaderFromFile(GL_VERTEX_SHADER, "../shader/forward.vert");
+		//m_geometry.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/forward.frag");
+		m_geometry.link();
 
-		m_useDS.addShaderFromFile(GL_VERTEX_SHADER, "../shader/useDS.vert");
-		m_useDS.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/useDS.frag");
+		m_useDS.addShaderFromFile(GL_VERTEX_SHADER, "../shader/shade.vert");
+		m_useDS.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/shade.frag");
 		m_useDS.link();
 	} catch (ShaderException& exc) {
 		cout << exc.what() << endl;
@@ -43,6 +45,7 @@ void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	renderScene(properties, scene);
+
 	doAllShading(properties, scene);
 }
 
@@ -54,17 +57,19 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 
 	glEnable(GL_DEPTH_TEST);
 	
-	m_createDS.bind();
+	properties.setShaderProgram(&m_geometry);
+	m_geometry.bind();
 
 	GLenum buffers[] = {
 		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2
 	};
 	glDrawBuffers(3, buffers);
 
+	/*TODO Set LIGHT */
+
 	scene->render(properties);
 
-	m_createDS.release();
-
+	m_geometry.release();
 	m_gBuffer.release();
 	GL_CHECK_ERROR("DeferredRenderer::renderScene - end");
 }
@@ -72,6 +77,7 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* scene) {
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - begin");
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	m_useDS.bind();
 
 	glDisable(GL_DEPTH_TEST);

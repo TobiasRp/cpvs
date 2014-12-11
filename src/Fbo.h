@@ -36,7 +36,6 @@ public:
 	void setTextureFiltering(unsigned int index, GLint min, GLint max, GLuint offset = 0);
 
 private:
-	bool m_isBound;
 	bool m_hasRenderbuffer;
 	GLuint m_width, m_height;
 	GLuint m_fbo;

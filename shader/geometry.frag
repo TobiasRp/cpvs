@@ -7,7 +7,7 @@ in VARYINGS {
 
 struct MaterialParameter {
 	vec3 diffuse_color;
-	float shininess;
+	int shininess;
 };
 
 uniform MaterialParameter material;

@@ -7,10 +7,15 @@
 
 class RenderProperties {
 public:
-	RenderProperties(const ShaderProgram *shader, const mat4 &matV, const mat4 &matP)
-		: m_shader(shader), V(matV), P(matP) {
+	RenderProperties(const mat4 &matV, const mat4 &matP)
+		: V(matV), P(matP)
+	{
 			m_stack = std::make_unique<MatrixStack>(mat4(1.0f));
-		}
+	}
+
+	void setShaderProgram(const ShaderProgram *shader) {
+		m_shader = shader;
+	}
 
 	const ShaderProgram* getShaderProgram() const noexcept {
 		return m_shader;
@@ -31,7 +36,7 @@ public:
 	const mat4 V, P;
 
 private:
-	const ShaderProgram *m_shader;
+	const ShaderProgram* m_shader;
 	std::unique_ptr<MatrixStack> m_stack;
 };
 

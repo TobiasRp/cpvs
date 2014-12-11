@@ -107,21 +107,16 @@ int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
 
-	auto forward = loadForwardShader();
-	forward->bind();
-
-	auto scene = loadSceneFromArguments(argc, argv);
-
 	renderSystem = make_unique<DeferredRenderer>(WINDOW_WIDTH, WINDOW_HEIGHT);
+	auto scene = loadSceneFromArguments(argc, argv);
 
 	cam.setSpeed(4.0f);
 	cam.setPosition(vec3(0, 0, -5));
 
-	glEnable(GL_DEPTH_TEST);
 //	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	while (!glfwWindowShouldClose(window)) {
-		RenderProperties properties(forward.get(), cam.getView(), cam.getProjection());
+		RenderProperties properties(cam.getView(), cam.getProjection());
 		renderSystem->render(properties, scene.get());
 		
 		glfwSwapBuffers(window);

@@ -12,9 +12,8 @@ struct Light {
 };
 
 uniform Light light;
-
 uniform vec3 cameraPosition;
 
 void main(void) {
-	fragColor = vec4(texture2D(positionBuffer, position).xyz, 1.0);
+	fragColor = vec4(0.0, 0, 0, 1) + texture(diffuseBuffer, position);
 }

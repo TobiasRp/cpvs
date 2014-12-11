@@ -12,6 +12,7 @@ struct AssimpMesh {
 	GLuint vao;
 	GLuint numFaces;
 	vec3 color;
+	int shininess;
 };
 
 class AssimpScene : public Scene {

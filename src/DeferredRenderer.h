@@ -27,7 +27,7 @@ private:
 	void doAllShading(RenderProperties& properties, const Scene* scene);
 
 private:
-	ShaderProgram m_createDS, m_useDS;
+	ShaderProgram m_geometry, m_useDS;
 	Fbo m_gBuffer;
 	Quad m_fullscreenQuad;
 };

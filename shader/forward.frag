@@ -5,10 +5,16 @@ in VARYINGS {
 	vec3 normal;
 } fs_in;
 
-uniform vec3 diffuse_color;
+
+struct MaterialParameter {
+	vec3 diffuse_color;
+	int shininess;
+};
+
+uniform MaterialParameter material;
 
 out vec4 fs_output;
 
 void main() {
-	fs_output = vec4(diffuse_color, 1.0);
+	fs_output = vec4(material.diffuse_color, 1.0);
 }

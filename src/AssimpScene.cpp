@@ -31,6 +31,14 @@ AssimpScene::AssimpScene(const std::string file) {
 	cout << "Finished moving the data to the GPU" << endl;
 }
 
+void setMaterial(AssimpMesh& mesh, const aiMaterial* mat) {
+	aiColor3D diffColor;
+	mat->Get(AI_MATKEY_COLOR_DIFFUSE, diffColor);
+	mesh.color = vec3(diffColor.r, diffColor.g, diffColor.b);
+
+	mat->Get(AI_MATKEY_SHININESS, mesh.shininess);
+}
+
 void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
 	GLuint buffer;
 	AssimpMesh mesh;
@@ -40,9 +48,7 @@ void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
 		aiMesh *aimesh = scene->mMeshes[n];
 
 		auto mat = scene->mMaterials[aimesh->mMaterialIndex];
-		aiColor3D diffColor;
-		mat->Get(AI_MATKEY_COLOR_DIFFUSE, diffColor);
-		mesh.color = vec3(diffColor.r, diffColor.g, diffColor.b);
+		setMaterial(mesh, mat);
 
 		glGenVertexArrays(1, &(mesh.vao));
 		glBindVertexArray(mesh.vao);
@@ -113,12 +119,14 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 
 	for (unsigned n = 0; n < node->mNumMeshes; ++n) {
 		auto index = node->mMeshes[n];
+		auto mesh = m_meshes[index];
 		glBindVertexArray(m_meshes[index].vao);
 
-		/* set diffuse color */
-		program->setUniform3fv("diffuse_color", glm::value_ptr(m_meshes[index].color));
+		/* set material */
+		program->setUniform3fv("material.diffuse_color", glm::value_ptr(mesh.color));
+		program->setUniform1i("material.shininess", mesh.shininess);
 
-		glDrawElements(GL_TRIANGLES, m_meshes[index].numFaces * 3, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, mesh.numFaces * 3, GL_UNSIGNED_INT, 0);
 	}
 
 	for (unsigned n = 0; n < node->mNumChildren; ++n) {
