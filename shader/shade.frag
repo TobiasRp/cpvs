@@ -13,7 +13,8 @@ struct Light {
 };
 
 uniform Light light;
-uniform vec3 cameraPosition;
+
+vec3 ambient_color = vec3(0.15, 0.15, 0.15);
 
 void main(void) {
 	vec4 positionTex = texture(positionBuffer, position);
@@ -27,5 +28,7 @@ void main(void) {
 	vec4 diffuse_color = texture(diffuseBuffer, position);
 	float diffuse = max(0.0, dot(N, light.direction));
 
-	fragColor = vec4(light.color * diffuse * diffuse_color.rgb, diffuse_color.a);
+	vec3 scatteredLight = ambient_color + light.color * diffuse;
+
+	fragColor = vec4(scatteredLight * diffuse_color.rgb, diffuse_color.a);
 }
