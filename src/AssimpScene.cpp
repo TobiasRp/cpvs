@@ -93,7 +93,7 @@ void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
 	}
 }
 
-void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, const aiNode *node) {
+void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, const aiNode *node) const noexcept {
 	aiMatrix4x4 mat = node->mTransformation;
 	mat.Transpose(); // OpenGL has column major matrices
 
@@ -106,7 +106,8 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 	mat4 MVP = props.getMVP();
 	auto program = props.getShaderProgram();
 	program->bind();
-	program->setUniformMatrix4f("MVP", glm::value_ptr(MVP));
+	program->setUniformMatrix4fv("MVP", glm::value_ptr(MVP));
+	program->setUniformMatrix3fv("NormalMatrix", glm::value_ptr(props.getNormalMatrix()));
 
 	GL_CHECK_ERROR("recursiveRender: ");
 
@@ -129,7 +130,7 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 	stack->pop();
 }
 
-void AssimpScene::render(RenderProperties &props) {
+void AssimpScene::render(RenderProperties &props) const noexcept {
 	auto scene = m_importer.GetScene();
 
 	recursiveRender(props, scene, scene->mRootNode);

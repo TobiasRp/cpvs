@@ -2,7 +2,7 @@
 #define ASSIMP_RENDERER_H
 
 #include "cpvs.h"
-#include "RenderProperties.h"
+#include "Scene.h"
 #include <assimp/Importer.hpp>
 #include <unordered_map>
 
@@ -14,8 +14,7 @@ struct AssimpMesh {
 	vec3 color;
 };
 
-
-class AssimpScene {
+class AssimpScene : public Scene {
 protected:
 	enum AttributeLog {
 		vPosLoc = 0,
@@ -25,14 +24,14 @@ protected:
 
 public:
 	AssimpScene(const string file);	
-	~AssimpScene() { }
+	virtual ~AssimpScene() = default;
 
-	void render(RenderProperties &props);
+	virtual void render(RenderProperties &props) const noexcept override;
 
 protected:
 	void genVAOsAndUniformBuffer(const aiScene *scene);
 
-	void recursiveRender(RenderProperties &props, const aiScene *scene, const aiNode *node);
+	void recursiveRender(RenderProperties &props, const aiScene *scene, const aiNode *node) const noexcept;
 
 private:
 	Assimp::Importer m_importer;

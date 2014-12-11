@@ -76,14 +76,24 @@ GLint ShaderProgram::getUniformLocation(const char *name) const {
 	return glGetUniformLocation(m_id, name);
 }
 
-void ShaderProgram::setUniformMatrix4f(GLuint location, const GLfloat *values) const
+void ShaderProgram::setUniformMatrix4fv(GLuint location, const GLfloat *values) const
 {
 	glUniformMatrix4fv(location, 1, GL_FALSE, values);
 }
 
-void ShaderProgram::setUniformMatrix4f(const char *name, const GLfloat *values) const
+void ShaderProgram::setUniformMatrix4fv(const char *name, const GLfloat *values) const
 {
-	setUniformMatrix4f(getUniformLocation(name), values);
+	setUniformMatrix4fv(getUniformLocation(name), values);
+}
+
+void ShaderProgram::setUniformMatrix3fv(GLuint location, const GLfloat *values) const
+{
+	glUniformMatrix3fv(location, 1, GL_FALSE, values);
+}
+
+void ShaderProgram::setUniformMatrix3fv(const char *name, const GLfloat *values) const
+{
+	setUniformMatrix3fv(getUniformLocation(name), values);
 }
 
 void ShaderProgram::setUniform4f(GLuint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const

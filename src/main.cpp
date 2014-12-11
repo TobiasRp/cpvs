@@ -7,14 +7,17 @@ using namespace std;
 #include "cpvs.h"
 #include "ShaderProgram.h"
 #include "Camera.h"
+#include "DeferredRenderer.h"
 
 #include "AssimpScene.h"
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+unique_ptr<DeferredRenderer> renderSystem;
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
 	glViewport(0, 0, width, height);
+	renderSystem->resize(width, height);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -85,11 +88,11 @@ unique_ptr<ShaderProgram> loadForwardShader() {
 
 unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 	string file;
-	if (argc <= 1)
-		file = "../../Sponza/sponza.obj";
-	else
+	if (argc <= 1) {
+		file = "../scenes/Desert_City/desert city.obj";
+	} else {
 		file = argv[1];
-
+	}
 	try {
 		auto ptr = make_unique<AssimpScene>(file);
 		return ptr;
@@ -109,6 +112,8 @@ int main(int argc, char **argv) {
 
 	auto scene = loadSceneFromArguments(argc, argv);
 
+	renderSystem = make_unique<DeferredRenderer>(WINDOW_WIDTH, WINDOW_HEIGHT);
+
 	cam.setSpeed(4.0f);
 	cam.setPosition(vec3(0, 0, -5));
 
@@ -116,11 +121,9 @@ int main(int argc, char **argv) {
 //	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	while (!glfwWindowShouldClose(window)) {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		RenderProperties properties(forward.get(), cam.getView(), cam.getProjection());
-		scene->render(properties);
-
+		renderSystem->render(properties, scene.get());
+		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}

@@ -20,21 +20,12 @@ public:
 		return m_stack.get();
 	}
 
-	void setMatricesUBO(GLuint bo) {
-		m_matricesUBO = bo;
-	}
-
-	void setModelInUniformBuffer() const {
-		constexpr GLuint modelMatrixSlot = 2;
-		const auto M = m_stack->top();
-
-		glBindBuffer(GL_UNIFORM_BUFFER, m_matricesUBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, modelMatrixSlot,  sizeof(float) * 16, glm::value_ptr(M));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	}
-
 	mat4 getMVP() const {
 		return P * V * m_stack->top();
+	}
+
+	mat4 getNormalMatrix() const {
+		return glm::transpose(glm::inverse(getMVP()));
 	}
 
 	const mat4 V, P;
@@ -42,8 +33,6 @@ public:
 private:
 	const ShaderProgram *m_shader;
 	std::unique_ptr<MatrixStack> m_stack;
-
-	GLuint m_matricesUBO;
 };
 
 #endif

@@ -62,8 +62,11 @@ public:
 	*/
 	GLint getUniformLocation(const char *name) const;
 
-	void setUniformMatrix4f(GLuint location, const GLfloat* values) const;
-	void setUniformMatrix4f(const char *name, const GLfloat* values) const;
+	void setUniformMatrix4fv(GLuint location, const GLfloat* values) const;
+	void setUniformMatrix4fv(const char *name, const GLfloat* values) const;
+
+	void setUniformMatrix3fv(GLuint location, const GLfloat* values) const;
+	void setUniformMatrix3fv(const char *name, const GLfloat* values) const;
 
 	void setUniform4f(GLuint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const;
 	void setUniform4f(const char *name, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const;
