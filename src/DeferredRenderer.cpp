@@ -9,6 +9,7 @@ DeferredRenderer::DeferredRenderer(int width, int height)
 	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)), m_gBuffer(width, height, true)
 {
 	loadShaders();
+	initFbos();
 }
 
 void DeferredRenderer::loadShaders() {
@@ -45,7 +46,6 @@ void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	renderScene(properties, scene);
-
 	doAllShading(properties, scene);
 }
 

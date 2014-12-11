@@ -33,6 +33,10 @@ public:
 
 	void bindTextures(GLuint offset = 0);
 
+	size_t getNumTextures() const {
+		return textures.size();
+	}
+
 	void setTextureFiltering(unsigned int index, GLint min, GLint max, GLuint offset = 0);
 
 private:
