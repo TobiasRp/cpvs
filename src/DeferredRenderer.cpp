@@ -16,17 +16,24 @@ void DeferredRenderer::loadShaders() {
 	try {
 		m_geometry.addShaderFromFile(GL_VERTEX_SHADER, "../shader/geometry.vert");
 		m_geometry.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/geometry.frag");
-		//m_geometry.addShaderFromFile(GL_VERTEX_SHADER, "../shader/forward.vert");
-		//m_geometry.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/forward.frag");
 		m_geometry.link();
 
-		m_useDS.addShaderFromFile(GL_VERTEX_SHADER, "../shader/shade.vert");
-		m_useDS.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/shade.frag");
-		m_useDS.link();
+		m_shade.addShaderFromFile(GL_VERTEX_SHADER, "../shader/shade.vert");
+		m_shade.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/shade.frag");
+		m_shade.link();
 	} catch (ShaderException& exc) {
 		cout << exc.what() << endl;
 		std::terminate();
 	}
+
+	/* Add uniforms to the shader */
+	m_geometry.addUniform("MVP");
+	m_geometry.addUniform("NormalMatrix");
+	m_geometry.addUniform("material.shininess");
+	m_geometry.addUniform("material.diffuse_color");
+
+	m_shade.addUniform("light.color");
+	m_shade.addUniform("light.direction");
 }
 
 void DeferredRenderer::initFbos() {
@@ -76,10 +83,10 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - begin");
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	m_useDS.bind();
+	m_shade.bind();
 
-	m_useDS.setUniform3fv("light.color", glm::value_ptr(m_dirLight.color));
-	m_useDS.setUniform3fv("light.direction", glm::value_ptr(m_dirLight.direction));
+	glUniform3fv(m_shade["light.color"], 1, glm::value_ptr(m_dirLight.color));
+	glUniform3fv(m_shade["light.direction"], 1, glm::value_ptr(m_dirLight.direction));
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
@@ -88,6 +95,6 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 
 	m_fullscreenQuad.draw();
 
-	m_useDS.release();
+	m_shade.release();
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - end");
 }

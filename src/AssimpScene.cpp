@@ -111,11 +111,11 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 
 	mat4 MVP = props.getMVP();
 	auto program = props.getShaderProgram();
-	program->bind();
-	program->setUniformMatrix4fv("MVP", glm::value_ptr(MVP));
-	program->setUniformMatrix3fv("NormalMatrix", glm::value_ptr(props.getNormalMatrix()));
 
-	GL_CHECK_ERROR("recursiveRender: ");
+	glUniformMatrix4fv((*program)["MVP"], 1, false, glm::value_ptr(MVP));
+
+	auto normalMat = props.getNormalMatrix();
+	glUniformMatrix3fv((*program)["NormalMatrix"], 1, false, glm::value_ptr(normalMat));
 
 	for (unsigned n = 0; n < node->mNumMeshes; ++n) {
 		auto index = node->mMeshes[n];
@@ -123,8 +123,9 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 		glBindVertexArray(m_meshes[index].vao);
 
 		/* set material */
-		program->setUniform3fv("material.diffuse_color", glm::value_ptr(mesh.color));
-		program->setUniform1i("material.shininess", mesh.shininess);
+		glUniform3fv((*program)["material.diffuse_color"], 1, glm::value_ptr(mesh.color));
+
+		glUniform1i((*program)["material.shininess"], mesh.shininess);
 
 		glDrawElements(GL_TRIANGLES, mesh.numFaces * 3, GL_UNSIGNED_INT, 0);
 	}

@@ -5,7 +5,9 @@
 #ifndef AW_SHADERPROGRAM_H
 #define AW_SHADERPROGRAM_H
 
+#include "cpvs.h"
 #include "Shader.h"
+#include <unordered_map>
 
 /**
  * @brief The ShaderProgram class encapsulates a GLSL program.
@@ -43,50 +45,27 @@ public:
 
 	void release() const;
 
-	/** This is not done by the destructor, because it would result in errors if the
-	 *  object is declared static/global
-	 */
-	void deleteProgram();
+	GLint getAttribLocation(const string& attribute) const;
 
-	GLint getAttribLocation(const char *name) const;
+	/** Adds an uniform name to the program, so it's location can be accessed.
+	 * Use operator[] to access the location.
+	 */ 
+	void addUniform(const string& uniform);
 
-	/**
-	* @brief getUniformLocation Returns the index of the uniform variable 'name',
-	* associated with this shader program.
-	*
-	* @param name A null-terminated character string with no spaces.
-	* @return The index or a value of minus one, if 'name' does not correspond to
-	* a uniform variable in this shader program.
-	*
-	* @note The returned value will not change unless the shader program is relinked.
-	*/
-	GLint getUniformLocation(const char *name) const;
+	/** Returns the location of the specified uniform */
+	GLint operator[](const string& uniform) {
+		return m_uniformLocations[uniform];
+	}
 
-	void setUniformMatrix4fv(GLuint location, const GLfloat* values) const;
-	void setUniformMatrix4fv(const char *name, const GLfloat* values) const;
-
-	void setUniformMatrix3fv(GLuint location, const GLfloat* values) const;
-	void setUniformMatrix3fv(const char *name, const GLfloat* values) const;
-
-	void setUniform4f(GLuint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const;
-	void setUniform4f(const char *name, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const;
-
-	void setUniform3fv(GLuint location, const GLfloat* values) const;
-	void setUniform3fv(const char *name, const GLfloat* values) const;
-
-	void setUniform3f(GLuint location, GLfloat x, GLfloat y, GLfloat z) const;
-	void setUniform3f(const char *name, GLfloat x, GLfloat y, GLfloat z) const;
-
-	void setUniform2f(GLuint location, GLfloat x, GLfloat y) const;
-	void setUniform2f(const char *name, GLfloat x, GLfloat y) const;
-
-	void setUniform1i(GLuint location, GLint x) const;
-	void setUniform1i(const char *name, GLint x) const;
-
-	void setUniform1f(GLuint location, GLfloat x) const;
-	void setUniform1f(const char *name, GLfloat x) const;
+	/** operator[] for rvalue types */
+	GLint operator[](string&& uniform) {
+		return m_uniformLocations[std::move(uniform)];
+	}
 
 private:
+	using StringMap = std::unordered_map<string, GLint>;
+
+	StringMap m_uniformLocations;
 	GLuint m_id;
 };
 #endif // SHADERPROGRAM_H

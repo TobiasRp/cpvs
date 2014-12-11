@@ -13,11 +13,11 @@ public:
 			m_stack = std::make_unique<MatrixStack>(mat4(1.0f));
 	}
 
-	void setShaderProgram(const ShaderProgram *shader) {
+	void setShaderProgram(ShaderProgram *shader) {
 		m_shader = shader;
 	}
 
-	const ShaderProgram* getShaderProgram() const noexcept {
+	ShaderProgram* getShaderProgram() const noexcept {
 		return m_shader;
 	}
 
@@ -36,7 +36,7 @@ public:
 	const mat4 V, P;
 
 private:
-	const ShaderProgram* m_shader;
+	ShaderProgram* m_shader;
 	std::unique_ptr<MatrixStack> m_stack;
 };
 

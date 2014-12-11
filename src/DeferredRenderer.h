@@ -32,7 +32,7 @@ private:
 	void doAllShading(RenderProperties& properties, const Scene* scene);
 
 private:
-	ShaderProgram m_geometry, m_useDS;
+	ShaderProgram m_geometry, m_shade;
 	Fbo m_gBuffer;
 	Quad m_fullscreenQuad;
 	const DirectionalLight m_dirLight;
