@@ -30,8 +30,12 @@ public:
 		return P * V * m_stack->top();
 	}
 
+	mat4 getMV() const {
+		return V * m_stack->top();
+	}
+
 	mat4 getNormalMatrix() const {
-		return glm::transpose(glm::inverse(getMVP()));
+		return glm::transpose(glm::inverse(getMV()));
 	}
 
 	mat4 V, P;

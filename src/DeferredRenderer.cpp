@@ -39,8 +39,6 @@ void DeferredRenderer::loadShaders() {
 	m_geometry.addUniform("material.shininess");
 	m_geometry.addUniform("material.diffuse_color");
 
-	m_shade.addUniform("shadowMode");
-	m_shade.addUniform("lightVP");
 	m_shade.addUniform("light.color");
 	m_shade.addUniform("light.direction");
 
@@ -154,9 +152,6 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 
 	m_shade.bind();
 
-	auto lightVP = m_dirLight.getLightProj() * m_dirLight.getLightView();
-	glUniformMatrix4fv(m_shade["lightVP"], 1, GL_FALSE, glm::value_ptr(lightVP));
-	glUniform1i(m_shade["shadowMode"], m_dirLight.getShadowModeID());
 	glUniform3fv(m_shade["light.color"], 1, glm::value_ptr(m_dirLight.color));
 	glUniform3fv(m_shade["light.direction"], 1, glm::value_ptr(m_dirLight.direction));
 
@@ -164,7 +159,6 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	glEnable(GL_TEXTURE_2D);
 
 	m_gBuffer.bindTextures();
-	m_shadowMap.bindTextures(m_gBuffer.getNumTextures());
 
 	m_fullscreenQuad.draw();
 
