@@ -14,6 +14,8 @@ layout(binding=3) uniform sampler2D shadowMap;
  * 1 - shadow mapping
  */
 uniform int shadowMode;
+float simpleBias = 2.0;
+uniform mat4 lightVP;
 
 struct Light {
 	vec3 color;
@@ -29,6 +31,16 @@ void main(void) {
 	vec3 pos = positionTex.xyz;
 	float depth = positionTex.w;
 
+	float lit = 1.0;
+	if (shadowMode == 1) {
+		vec4 shadowCoord = lightVP * vec4(pos, 1.0);
+		shadowCoord = shadowCoord / shadowCoord.w;
+		float shadow = texture(shadowMap, shadowCoord.xy).x;
+
+		if (depth > shadow + simpleBias)
+			lit = 0.0;
+	}
+
 	vec4 normalTex = texture(normalBuffer, position);
 	vec3 N = normalTex.xyz;
 	//float shininess = normalTex.w;
@@ -36,7 +48,7 @@ void main(void) {
 	vec4 diffuse_color = texture(diffuseBuffer, position);
 	float diffuse = max(0.0, dot(N, light.direction));
 
-	vec3 scatteredLight = ambient_color + light.color * diffuse;
+	vec3 scatteredLight = ambient_color + lit * light.color * diffuse;
 
 	fragColor = vec4(scatteredLight * diffuse_color.rgb, diffuse_color.a);
 }

@@ -113,6 +113,10 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 	glUniformMatrix4fv(mvp, 1, false, glm::value_ptr(MVP));
 
 	try {
+		auto M = props.getModelStack()->top();
+		auto mLoc = program->getUniformLoc("M");
+		glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(M));
+
 		auto normalMat = props.getNormalMatrix();
 		auto nm = program->getUniformLoc("NormalMatrix");
 		glUniformMatrix3fv(nm, 1, false, glm::value_ptr(normalMat));
