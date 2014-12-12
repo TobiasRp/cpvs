@@ -42,6 +42,8 @@ void DeferredRenderer::initFbos() {
 	m_gBuffer.addTexture(GL_RGBA32F);
 	m_gBuffer.addTexture(GL_RGBA8);
 	m_gBuffer.addTexture(GL_RGBA8);
+
+	glDrawBuffers(3, m_gBuffer.getColorAttachments().data());
 	m_gBuffer.release();
 }
 
@@ -62,15 +64,11 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 	m_gBuffer.bind();
 	m_gBuffer.clear();
 
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	
 	properties.setShaderProgram(&m_geometry);
 	m_geometry.bind();
-
-	GLenum buffers[] = {
-		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2
-	};
-	glDrawBuffers(3, buffers);
 
 	scene->render(properties);
 

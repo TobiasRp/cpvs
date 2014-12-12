@@ -37,6 +37,10 @@ public:
 		return textures.size();
 	}
 
+	const vector<GLenum>& getColorAttachments() const {
+		return m_colorAttachments;
+	}
+
 	void setTextureFiltering(unsigned int index, GLint min, GLint max, GLuint offset = 0);
 
 private:
@@ -45,7 +49,8 @@ private:
 	GLuint m_fbo;
 	GLuint m_depth;
 
-	std::vector<TexTarget> textures;
+	vector<GLenum> m_colorAttachments;
+	vector<TexTarget> textures;
 };
 
 #endif // FBO_H

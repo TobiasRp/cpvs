@@ -24,11 +24,7 @@ AssimpScene::AssimpScene(const std::string file) {
 		throw LoadFileException("Assimp couldn't load file");
 	}
 
-	cout << "Assimp has read the file" << endl;
-
 	genVAOsAndUniformBuffer(scene);
-
-	cout << "Finished moving the data to the GPU" << endl;
 }
 
 void setMaterial(AssimpMesh& mesh, const aiMaterial* mat) {

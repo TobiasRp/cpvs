@@ -11,8 +11,13 @@ using namespace std;
 
 #include "AssimpScene.h"
 
+/* Settings and globals */
+const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
+
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+
 unique_ptr<DeferredRenderer> renderSystem;
+
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
@@ -65,31 +70,20 @@ GLFWwindow* initAndCreateWindow() {
 }
 
 void initExtensions() {
-	cout << "Initializing OpenGL extensions..." << endl;
 	GLenum err = glewInit();
 	if (err != GLEW_OK) {
 		cerr << "Error: " << glewGetErrorString(err) << endl;
 	}
 }
 
-unique_ptr<ShaderProgram> loadForwardShader() {
-	unique_ptr<ShaderProgram> forward = make_unique<ShaderProgram>();
-	try {
-		forward->addShaderFromFile(GL_VERTEX_SHADER, "../shader/forward.vert");
-		forward->addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/forward.frag");
-	} catch (ShaderException &exc) {
-		cout << exc.what() << endl;
-		glfwTerminate();
-		std::terminate();
-	}
-	forward->link();
-	return forward;
-}
-
+/**
+ * If the process was started with an argument, this is assumed to be the scene name,
+ * or else the default scene will be loaded
+ */
 unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 	string file;
 	if (argc <= 1) {
-		file = "../scenes/Desert_City/desert city.obj";
+		file = defaultSceneFile;
 	} else {
 		file = argv[1];
 	}
@@ -97,7 +91,7 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 		auto ptr = make_unique<AssimpScene>(file);
 		return ptr;
 	} catch (FileNotFound& exc) {
-		cout << "Specified scene file not found!\n";
+		cerr << "Specified scene file not found!\n";
 		glfwTerminate();
 		std::terminate();
 	}
@@ -111,13 +105,13 @@ int main(int argc, char **argv) {
 	DirectionalLight light(vec3(0.5, 0.5, 0.5), lightDir);
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	cout << "Loading scene... ";
 	auto scene = loadSceneFromArguments(argc, argv);
+	cout << "finished." << endl;
 
 	cam.setSpeed(4.0f);
 	cam.setPosition(vec3(0, 0, -5));
-
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glEnable(GL_CULL_FACE);
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());

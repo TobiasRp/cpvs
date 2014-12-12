@@ -100,6 +100,8 @@ void Fbo::addTexture(GLint format)
 	GLuint attachment = textures.size() - 1;
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment,
 		GL_TEXTURE_2D, tgt.id, 0);
+
+	m_colorAttachments.push_back(GL_COLOR_ATTACHMENT0 + m_colorAttachments.size());
 }
 
 void Fbo::bindTexture(GLuint index, GLuint offset)
