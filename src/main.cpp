@@ -8,6 +8,7 @@ using namespace std;
 #include "ShaderProgram.h"
 #include "Camera.h"
 #include "DeferredRenderer.h"
+#include "PostProcess.h"
 
 #include "AssimpScene.h"
 
@@ -17,7 +18,6 @@ const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 unique_ptr<DeferredRenderer> renderSystem;
-
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
@@ -50,6 +50,20 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 		break;
 	case GLFW_KEY_X:
 		cam.lift(-1);
+		break;
+	case GLFW_KEY_F1:
+		{
+			/* Creates a new FXAA effect. */
+			auto fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
+			renderSystem->setPostProcess(std::move(fxaa));
+			break;
+		}
+	case GLFW_KEY_F2:
+		/* Disables post process (if one exists) */
+		renderSystem->removePostProcess();
+		break;
+	case GLFW_KEY_ESCAPE:
+		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
 }
 
@@ -106,12 +120,15 @@ int main(int argc, char **argv) {
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 
+	auto fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
+	renderSystem->setPostProcess(std::move(fxaa));
+
 	cout << "Loading scene... ";
 	auto scene = loadSceneFromArguments(argc, argv);
 	cout << "finished." << endl;
 
 	cam.setSpeed(4.0f);
-	cam.setPosition(vec3(0, 0, -5));
+	cam.setPosition(vec3(0, 3, -5));
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());

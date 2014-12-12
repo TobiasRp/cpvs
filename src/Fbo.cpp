@@ -55,11 +55,11 @@ void Fbo::clear() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Fbo::bind() {
+void Fbo::bind() const {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 }
 
-void Fbo::release() {
+void Fbo::release() const {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -85,13 +85,12 @@ void Fbo::resize(int width, int height)
 	GL_CHECK_ERROR("Fbo::resize() - ERROR: ");
 }
 
-GLuint Fbo::getTexture(unsigned int index) {
+GLuint Fbo::getTexture(unsigned int index) const {
 	assert(index < textures.size());
 	return textures[index].id;
 }
 
-void Fbo::addTexture(GLint format)
-{
+void Fbo::addTexture(GLint format) {
 	TexTarget tgt;
 	tgt.format = format;
 	createTex(&tgt.id, m_width, m_height, format);
@@ -104,24 +103,21 @@ void Fbo::addTexture(GLint format)
 	m_colorAttachments.push_back(GL_COLOR_ATTACHMENT0 + m_colorAttachments.size());
 }
 
-void Fbo::bindTexture(GLuint index, GLuint offset)
-{
+void Fbo::bindTexture(GLuint index, GLuint offset) const {
 	assert(index < textures.size());
 
 	glActiveTexture(GL_TEXTURE0 + offset);
 	glBindTexture(GL_TEXTURE_2D, textures[index].id);
 }
 
-void Fbo::bindTextures(GLuint offset)
-{
+void Fbo::bindTextures(GLuint offset) const {
 	for (unsigned int i = 0; i < textures.size(); ++i) {
 		glActiveTexture(GL_TEXTURE0 + offset + i);
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
 }
 
-void Fbo::setTextureFiltering(unsigned int index, GLint min, GLint max, GLuint offset)
-{
+void Fbo::setTextureFiltering(unsigned int index, GLint min, GLint max, GLuint offset) {
 	bindTexture(index + offset);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, max);

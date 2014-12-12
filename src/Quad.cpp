@@ -14,8 +14,7 @@ Quad::~Quad() {
 	glDeleteVertexArrays(1, &m_vao);
 }
 
-void Quad::resize(vec2 pmin, vec2 pmax)
-{
+void Quad::resize(vec2 pmin, vec2 pmax) {
 	assert(m_min != m_max);
 	m_min = pmin;
 	m_max = pmax;
@@ -24,15 +23,13 @@ void Quad::resize(vec2 pmin, vec2 pmax)
 	createBuffers();
 }
 
-void Quad::setTextureCoords(vec2 min, vec2 max)
-{
+void Quad::setTextureCoords(vec2 min, vec2 max) {
 	assert(m_min != m_max);
 	m_texMin = min;
 	m_texMax = max;
 }
 
-void Quad::draw()
-{
+void Quad::draw() const {
 	GL_CHECK_ERROR("Quad::draw() - begin");
 	glBindVertexArray(m_vao);
 

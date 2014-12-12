@@ -7,6 +7,7 @@
 #include "Quad.h"
 #include "Fbo.h"
 #include "Light.h"
+#include "PostProcess.h"
 
 class Scene;
 
@@ -23,6 +24,14 @@ public:
 		return m_dirLight;
 	}
 
+	void setPostProcess(unique_ptr<PostProcess>&& pp) {
+		m_postProcess = std::move(pp);
+	}
+
+	void removePostProcess() {
+		m_postProcess.reset();
+	}
+
 private:
 	void loadShaders();
 	void initFbos();
@@ -34,8 +43,12 @@ private:
 private:
 	ShaderProgram m_geometry, m_shade;
 	Fbo m_gBuffer;
-	Quad m_fullscreenQuad;
+	Fbo m_imgBuffer;
+
+	const Quad m_fullscreenQuad;
 	const DirectionalLight m_dirLight;
+
+	unique_ptr<PostProcess> m_postProcess;
 };
 
 #endif

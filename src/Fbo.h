@@ -19,19 +19,19 @@ public:
 
 	void clear();
 
-	void bind();
+	void bind() const;
 
-	void release();
+	void release() const;
 
 	void resize(int width, int height);
 
-	GLuint getTexture(unsigned int index);
+	GLuint getTexture(unsigned int index) const;
 
 	void addTexture(GLint format);
 
-	void bindTexture(GLuint index, GLuint offset = 0);
+	void bindTexture(GLuint index, GLuint offset = 0) const;
 
-	void bindTextures(GLuint offset = 0);
+	void bindTextures(GLuint offset = 0) const;
 
 	size_t getNumTextures() const {
 		return textures.size();

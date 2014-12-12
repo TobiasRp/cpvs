@@ -6,10 +6,13 @@
 using namespace std;
 
 DeferredRenderer::DeferredRenderer(const DirectionalLight& light, int width, int height) 
-	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)), m_gBuffer(width, height, true), m_dirLight(light)
+	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)), m_gBuffer(width, height, true), 
+	m_imgBuffer(width, height, false), m_dirLight(light)
 {
 	loadShaders();
 	initFbos();
+
+	m_postProcess.reset();
 }
 
 void DeferredRenderer::loadShaders() {
@@ -45,10 +48,18 @@ void DeferredRenderer::initFbos() {
 
 	glDrawBuffers(3, m_gBuffer.getColorAttachments().data());
 	m_gBuffer.release();
+
+	m_imgBuffer.bind();
+	m_imgBuffer.addTexture(GL_RGBA32F);
+	m_imgBuffer.release();
 }
 
 void DeferredRenderer::resize(int width, int height) {
 	m_gBuffer.resize(width, height);
+	m_imgBuffer.resize(width, height);
+
+	if (m_postProcess.get() != nullptr)
+		m_postProcess->resize(width, height);
 }
 
 void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) {
@@ -56,6 +67,11 @@ void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) 
 
 	renderScene(properties, scene);
 	doAllShading(properties, scene);
+
+	if (m_postProcess.get() != nullptr) {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		m_postProcess->render(m_gBuffer, m_imgBuffer, m_fullscreenQuad);
+	}
 }
 
 
@@ -79,7 +95,13 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 
 void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* scene) {
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - begin");
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	/* Either write to screen or to image for further post processing */
+	if (m_postProcess.get() == nullptr)
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	else
+		m_imgBuffer.bind();
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	m_shade.bind();
 

@@ -28,7 +28,7 @@ public:
 
 	void setTextureCoords(vec2 min, vec2 max);
 	
-	void draw();
+	void draw() const;
 
 private:
 	void createBuffers();
