@@ -38,17 +38,20 @@ private:
 
 	void renderScene(RenderProperties& properties, const Scene* scene);
 
+	void renderShadowMap(const Scene* scene);
+
 	void doAllShading(RenderProperties& properties, const Scene* scene);
 
 private:
-	ShaderProgram m_geometry, m_shade;
+	ShaderProgram m_geometry, m_shade, m_create_sm;
 	Fbo m_gBuffer;
 	Fbo m_imgBuffer;
+	Fbo m_shadowMap;
 
 	const Quad m_fullscreenQuad;
-	const DirectionalLight m_dirLight;
-
 	unique_ptr<PostProcess> m_postProcess;
+
+	const DirectionalLight m_dirLight;
 };
 
 #endif

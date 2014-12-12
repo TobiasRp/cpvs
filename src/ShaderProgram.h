@@ -9,6 +9,15 @@
 #include "Shader.h"
 #include <unordered_map>
 
+class UniformNotFound : std::exception {
+public:
+	UniformNotFound() noexcept { }
+	virtual const char* what() const noexcept override {
+		return "Searched uniform does not exist";
+	}
+};
+
+
 /**
  * @brief The ShaderProgram class encapsulates a GLSL program.
  */
@@ -52,7 +61,15 @@ public:
 	 */ 
 	void addUniform(const string& uniform);
 
-	/** Returns the location of the specified uniform */
+	GLint getUniformLoc(const string& uniform) {
+		auto it = m_uniformLocations.find(uniform);
+		if (it == m_uniformLocations.end())
+			throw UniformNotFound{};
+		return it->second;
+	}
+
+	/** Returns the location of the specified uniform. Will NOT generate an error if
+	 * the uniform does not exist. (consider using getUniformLoc) */
 	GLint operator[](const string& uniform) {
 		return m_uniformLocations[uniform];
 	}

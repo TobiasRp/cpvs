@@ -4,6 +4,7 @@
 #include "common.h"
 #include "MatrixStack.h"
 #include "ShaderProgram.h"
+#include "Light.h"
 
 class RenderProperties {
 public:
@@ -33,7 +34,9 @@ public:
 		return glm::transpose(glm::inverse(getMVP()));
 	}
 
-	const mat4 V, P;
+	mat4 V, P;
+
+	DirectionalLight light;
 
 private:
 	ShaderProgram* m_shader;

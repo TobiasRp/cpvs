@@ -1,4 +1,4 @@
-#version 440
+#version 440 core
 
 in vec2 position;
 out vec4 fragColor;
@@ -6,6 +6,14 @@ out vec4 fragColor;
 layout(binding=0) uniform sampler2D positionBuffer;
 layout(binding=1) uniform sampler2D normalBuffer;
 layout(binding=2) uniform sampler2D diffuseBuffer;
+
+layout(binding=3) uniform sampler2D shadowMap;
+
+/* Determines if and how shadow is rendered.
+ * 0 - no shadow
+ * 1 - shadow mapping
+ */
+uniform int shadowMode;
 
 struct Light {
 	vec3 color;

@@ -14,8 +14,13 @@ private:
 
 public:
 	Fbo(GLuint width, GLuint height, bool renderbuffer);
-
 	~Fbo();
+
+	Fbo(const Fbo&) = delete;
+	Fbo& operator=(const Fbo&) = delete;
+
+	Fbo(Fbo&&) = default;
+	Fbo& operator=(Fbo&&) = default;
 
 	void clear();
 
