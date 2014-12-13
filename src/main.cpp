@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
 	renderSystem->setPostProcess(fxaa);
 
 	cout << "Loading scene... ";
+	cout.flush();
 	auto scene = loadSceneFromArguments(argc, argv);
 	cout << "finished." << endl;
 

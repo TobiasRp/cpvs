@@ -8,8 +8,8 @@
  */
 class DirectionalLight {
 public:
-	DirectionalLight() = default;
-	DirectionalLight(vec3 col, vec3 dir) : color(col), direction(dir) { }
+	DirectionalLight(vec3 col, vec3 dir)
+	   	: color(col), direction(dir), position(vec3(10, 50, 10)) { }
 	~DirectionalLight() = default;
 
 	mat4 getLightView() const;
@@ -19,6 +19,7 @@ public:
 public:
 	vec3 color;
 	vec3 direction;
+	vec3 position;
 };
 
 #endif

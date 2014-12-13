@@ -2,7 +2,7 @@
 
 in VARYINGS {
 	in vec3 position;
-	in vec3 normal;
+	smooth in vec3 normal;
 } fs_in;
 
 struct MaterialParameter {

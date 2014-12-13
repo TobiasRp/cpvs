@@ -25,11 +25,11 @@ void main(void) {
 	vec3 N = normalTex.xyz;
 	//float shininess = normalTex.w;
 
+	vec3 L = - light.direction;
 	vec4 diffuse_color = texture(diffuseBuffer, position);
-	float diffuse = max(0.0, dot(N, light.direction));
+	float diffuse = max(0.0, dot(N, L));
 
 	vec3 scatteredLight = ambient_color + light.color * diffuse;
 
 	fragColor = vec4(scatteredLight * diffuse_color.rgb, diffuse_color.a);
-	//fragColor = vec4(N, 1.0);
 }

@@ -5,7 +5,7 @@ layout (location = 1) in vec3 normal;
 
 out VARYINGS {
 	out vec3 position;
-	out vec3 normal;
+	smooth out vec3 normal;
 } vs_out;
 
 uniform mat4 M;
