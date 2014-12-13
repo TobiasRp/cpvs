@@ -68,6 +68,10 @@ public:
 		return it->second;
 	}
 
+	bool hasUniform(const string& uniform) {
+		return m_uniformLocations.find(uniform) != m_uniformLocations.end();
+	}
+
 	/** Returns the location of the specified uniform. Will NOT generate an error if
 	 * the uniform does not exist. (consider using getUniformLoc) */
 	GLint operator[](const string& uniform) {

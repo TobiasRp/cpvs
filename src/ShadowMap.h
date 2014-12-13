@@ -10,6 +10,10 @@ public:
 	ShadowMap(shared_ptr<Texture2D> tex);
 	~ShadowMap() = default;
 
+	shared_ptr<Texture2D> getTexture() const {
+		return m_texture;
+	}
+
 private:
 	shared_ptr<Texture2D> m_texture;
 };

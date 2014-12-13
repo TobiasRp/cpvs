@@ -1,7 +1,7 @@
 #ifndef MATRIX_STACK_H
 #define MATRIX_STACK_H
 
-#include "common.h"
+#include "cpvs.h"
 #include <stack>
 
 class MatrixStack {

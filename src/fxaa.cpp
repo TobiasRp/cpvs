@@ -7,7 +7,7 @@
 
 void FXAA::initialize(int width, int height) {
 	try {
-		m_prog.addShaderFromFile(GL_VERTEX_SHADER, "../shader/shade.vert");
+		m_prog.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
 		m_prog.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/FXAA.frag");
 		m_prog.link();
 	} catch (ShaderException& exc) {
@@ -36,8 +36,6 @@ void FXAA::render(const Fbo& gBuffer, Fbo& inBuffer, const Quad& fullScreen) {
     m_prog.bind();
 
     inBuffer.bindTexture(0);
-	auto tex = inBuffer.getTexture(0);
-	tex->setMinMagFiltering(GL_LINEAR, GL_LINEAR);
 
     fullScreen.draw();
 

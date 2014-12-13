@@ -108,20 +108,19 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 	mat4 MVP = props.getMVP();
 	auto program = props.getShaderProgram();
 
-	// could throw! We assume that MVP is always needed
 	auto mvp = program->getUniformLoc("MVP");
 	glUniformMatrix4fv(mvp, 1, false, glm::value_ptr(MVP));
 
-	try {
-		auto M = props.getModelStack()->top();
+	if (program->hasUniform("M")) {
+		auto M = props.getM();
 		auto mLoc = program->getUniformLoc("M");
 		glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(M));
+	}
 
+	if (program->hasUniform("NormalMatrix")) {
 		auto normalMat = props.getNormalMatrix();
 		auto nm = program->getUniformLoc("NormalMatrix");
 		glUniformMatrix3fv(nm, 1, false, glm::value_ptr(normalMat));
-	} catch (UniformNotFound& exc) {
-		/* shader does not contain one of the wanted uniforms. That's not a problem! */
 	}
 
 	for (unsigned n = 0; n < node->mNumMeshes; ++n) {
@@ -129,16 +128,13 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 		auto mesh = m_meshes[index];
 		glBindVertexArray(m_meshes[index].vao);
 
-		try {
+		if (props.renderMaterials()) {
 			auto diffCol = program->getUniformLoc("material.diffuse_color");
 			glUniform3fv(diffCol, 1, glm::value_ptr(mesh.color));
 
 			auto sh = program->getUniformLoc("material.shininess");
 			glUniform1i(sh, mesh.shininess);
-		} catch (UniformNotFound& exc) {
-			// see above
 		}
-
 		glDrawElements(GL_TRIANGLES, mesh.numFaces * 3, GL_UNSIGNED_INT, 0);
 		GL_CHECK_ERROR("recursiveRender after draw: ");
 	}

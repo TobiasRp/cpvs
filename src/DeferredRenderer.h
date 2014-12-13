@@ -21,14 +21,16 @@ public:
 
 	void render(RenderProperties& properties, const Scene* scene);
 
-	const DirectionalLight& getLight() {
+	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int width, int height);
+
+	void renderTexture(shared_ptr<Texture2D> tex);
+
+	const DirectionalLight& getLight() const {
 		return m_dirLight;
 	}
 
-	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int width, int height);
-
-	void setPostProcess(unique_ptr<PostProcess>&& pp) {
-		m_postProcess = std::move(pp);
+	void setPostProcess(shared_ptr<PostProcess> pp) {
+		m_postProcess = pp;
 	}
 
 	void removePostProcess() {
@@ -44,12 +46,12 @@ private:
 	void doAllShading(RenderProperties& properties, const Scene* scene);
 
 private:
-	ShaderProgram m_geometry, m_shade, m_create_sm;
+	ShaderProgram m_geometry, m_shade, m_create_sm, m_writeImg;
 	Fbo m_gBuffer;
 	Fbo m_imgBuffer;
 
 	const Quad m_fullscreenQuad;
-	unique_ptr<PostProcess> m_postProcess;
+	shared_ptr<PostProcess> m_postProcess;
 
 	const DirectionalLight m_dirLight;
 };

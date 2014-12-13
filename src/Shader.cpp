@@ -33,7 +33,7 @@ void Shader::compileFile(const char *file)
 	string code;
 	ifstream stream(file, std::ios::in);
 	if (!stream.is_open())
-		throw new FileNotFoundException();
+		throw FileNotFound(file);
 
 	string line;
 	while (getline(stream, line))

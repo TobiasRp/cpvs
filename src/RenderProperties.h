@@ -1,7 +1,7 @@
 #ifndef RENDER_PROPERTIES_H
 #define RENDER_PROPERTIES_H
 
-#include "common.h"
+#include "cpvs.h"
 #include "MatrixStack.h"
 #include "ShaderProgram.h"
 #include "Light.h"
@@ -9,7 +9,7 @@
 class RenderProperties {
 public:
 	RenderProperties(const mat4 &matV, const mat4 &matP)
-		: V(matV), P(matP)
+		: V(matV), P(matP), m_renderMaterials(false)
 	{
 			m_stack = std::make_unique<MatrixStack>(mat4(1.0f));
 	}
@@ -33,18 +33,29 @@ public:
 	mat4 getMV() const {
 		return V * m_stack->top();
 	}
+	
+	mat4 getM() const {
+		return m_stack->top();
+	}
 
 	mat4 getNormalMatrix() const {
 		return glm::transpose(glm::inverse(getMV()));
 	}
 
+	void setRenderingOfMaterials(bool value) {
+		m_renderMaterials = value;
+	}
+
+	bool renderMaterials() const {
+		return m_renderMaterials;
+	}
+
 	mat4 V, P;
-
-	DirectionalLight light;
-
 private:
 	ShaderProgram* m_shader;
 	std::unique_ptr<MatrixStack> m_stack;
+
+	bool m_renderMaterials;
 };
 
 #endif

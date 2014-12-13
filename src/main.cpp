@@ -15,9 +15,14 @@ using namespace std;
 /* Settings and globals */
 const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
 
-FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+const int WINDOW_WIDTH = 640;
+const int WINDOW_HEIGHT = 480;
 
+FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 unique_ptr<DeferredRenderer> renderSystem;
+shared_ptr<PostProcess> fxaa;
+
+bool renderShadowMap;
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
@@ -52,15 +57,16 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 		cam.lift(-1);
 		break;
 	case GLFW_KEY_F1:
-		{
-			/* Creates a new FXAA effect. */
-			auto fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
-			renderSystem->setPostProcess(std::move(fxaa));
+			renderSystem->setPostProcess(fxaa);
 			break;
-		}
 	case GLFW_KEY_F2:
 		/* Disables post process (if one exists) */
 		renderSystem->removePostProcess();
+		break;
+	case GLFW_KEY_F3:
+		/* Toggle rendering of scene / shadow map */
+		if (action == GLFW_PRESS)
+			renderShadowMap = !renderShadowMap;
 		break;
 	case GLFW_KEY_ESCAPE:
 		glfwSetWindowShouldClose(window, GL_TRUE);
@@ -120,8 +126,8 @@ int main(int argc, char **argv) {
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-	auto fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
-	//renderSystem->setPostProcess(std::move(fxaa));
+	fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
+	renderSystem->setPostProcess(fxaa);
 
 	cout << "Loading scene... ";
 	auto scene = loadSceneFromArguments(argc, argv);
@@ -130,9 +136,16 @@ int main(int argc, char **argv) {
 	cam.setSpeed(4.0f);
 	cam.setPosition(vec3(0, 3, -5));
 
+	/* Render ShadowMap */
+	auto sm = renderSystem->renderShadowMap(scene.get(), WINDOW_WIDTH, WINDOW_HEIGHT);
+
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());
-		renderSystem->render(properties, scene.get());
+
+		if (renderShadowMap)
+			renderSystem->renderTexture(sm->getTexture());
+		else
+			renderSystem->render(properties, scene.get());
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();

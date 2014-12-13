@@ -5,8 +5,7 @@
 #ifndef AW_SHADER_H
 #define AW_SHADER_H
 
-#include <GL/glew.h>
-#include <string>
+#include "cpvs.h"
 
 class ShaderException {
 public:
@@ -19,9 +18,6 @@ public:
 
 private:
 	std::string m_msg;
-};
-
-class FileNotFoundException {
 };
 
 class Shader

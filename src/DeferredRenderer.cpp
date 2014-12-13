@@ -21,14 +21,21 @@ void DeferredRenderer::loadShaders() {
 		m_geometry.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/geometry.frag");
 		m_geometry.link();
 
-		m_shade.addShaderFromFile(GL_VERTEX_SHADER, "../shader/shade.vert");
+		m_shade.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
 		m_shade.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/shade.frag");
 		m_shade.link();
 
 		m_create_sm.addShaderFromFile(GL_VERTEX_SHADER, "../shader/create_sm.vert");
 		m_create_sm.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/create_sm.frag");
 		m_create_sm.link();
+
+		m_writeImg.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
+		m_writeImg.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeImg.frag");
+		m_writeImg.link();
 	} catch (ShaderException& exc) {
+		cout << exc.what() << endl;
+		std::terminate();
+	} catch (FileNotFound& exc) {
 		cout << exc.what() << endl;
 		std::terminate();
 	}
@@ -61,6 +68,7 @@ void DeferredRenderer::initFbos() {
 	/* Image with 4x32bit FP */
 	m_imgBuffer.bind();
 	m_imgBuffer.addTexture(GL_RGBA32F, GL_RGBA, GL_FLOAT);
+	m_imgBuffer.getTexture(0)->setMinMagFiltering(GL_LINEAR, GL_LINEAR);
 
 	auto imgBuffers = m_imgBuffer.getColorAttachments();
 	glDrawBuffers(imgBuffers.size(), imgBuffers.data());
@@ -103,13 +111,31 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 
 	m_create_sm.release();
 
-	return make_unique<ShadowMap>(width, height, shadowFbo.getTexture(0));
+	return make_unique<ShadowMap>(shadowFbo.getTexture(0));
 }
 
+void DeferredRenderer::renderTexture(shared_ptr<Texture2D> tex) {
+	GL_CHECK_ERROR("DeferredRenderer::renderTexture - begin: ");
+	tex->bindAt(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	m_writeImg.bind();
+
+	glEnable(GL_TEXTURE_2D);
+	glDisable(GL_DEPTH_TEST);
+
+	m_fullscreenQuad.draw();
+
+	m_writeImg.release();
+
+	GL_CHECK_ERROR("DeferredRenderer::renderTexture - end: ");
+}
 
 void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	properties.setRenderingOfMaterials(true);
 	renderScene(properties, scene);
 
 	doAllShading(properties, scene);
