@@ -2,16 +2,11 @@
 #define FBO_H
 
 #include "cpvs.h"
+#include "Texture.h"
 
 /** Represents a framebuffer object */
 class Fbo
 {
-private:
-	struct TexTarget {
-		GLuint id;
-		GLint format;
-	};
-
 public:
 	Fbo(GLuint width, GLuint height, bool renderbuffer);
 	~Fbo();
@@ -30,23 +25,21 @@ public:
 
 	void resize(int width, int height);
 
-	GLuint getTexture(unsigned int index) const;
+	shared_ptr<Texture2D> getTexture(unsigned int index) const;
 
-	void addTexture(GLint format);
+	void addTexture(GLint internalFormat, GLenum format, GLenum type);
 
 	void bindTexture(GLuint index, GLuint offset = 0) const;
 
 	void bindTextures(GLuint offset = 0) const;
 
 	size_t getNumTextures() const {
-		return textures.size();
+		return m_textures.size();
 	}
 
 	const vector<GLenum>& getColorAttachments() const {
 		return m_colorAttachments;
 	}
-
-	void setTextureFiltering(unsigned int index, GLint min, GLint max, GLuint offset = 0);
 
 private:
 	bool m_hasRenderbuffer;
@@ -55,7 +48,7 @@ private:
 	GLuint m_depth;
 
 	vector<GLenum> m_colorAttachments;
-	vector<TexTarget> textures;
+	vector<shared_ptr<Texture2D>> m_textures;
 };
 
 #endif // FBO_H

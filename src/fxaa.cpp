@@ -36,7 +36,8 @@ void FXAA::render(const Fbo& gBuffer, Fbo& inBuffer, const Quad& fullScreen) {
     m_prog.bind();
 
     inBuffer.bindTexture(0);
-    inBuffer.setTextureFiltering(0, GL_LINEAR, GL_LINEAR);
+	auto tex = inBuffer.getTexture(0);
+	tex->setMinMagFiltering(GL_LINEAR, GL_LINEAR);
 
     fullScreen.draw();
 

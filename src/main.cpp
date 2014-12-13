@@ -117,7 +117,6 @@ int main(int argc, char **argv) {
 
 	vec3 lightDir = glm::normalize(vec3(1, -0.5, 0.1));
 	DirectionalLight light(vec3(0.5, 0.5, 0.5), lightDir);
-	light.setShadowMode(DirectionalLight::ShadowMapping);
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 

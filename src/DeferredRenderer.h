@@ -7,6 +7,7 @@
 #include "Quad.h"
 #include "Fbo.h"
 #include "Light.h"
+#include "ShadowMap.h"
 #include "PostProcess.h"
 
 class Scene;
@@ -24,6 +25,8 @@ public:
 		return m_dirLight;
 	}
 
+	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int width, int height);
+
 	void setPostProcess(unique_ptr<PostProcess>&& pp) {
 		m_postProcess = std::move(pp);
 	}
@@ -38,15 +41,12 @@ private:
 
 	void renderScene(RenderProperties& properties, const Scene* scene);
 
-	void renderShadowMap(const Scene* scene);
-
 	void doAllShading(RenderProperties& properties, const Scene* scene);
 
 private:
 	ShaderProgram m_geometry, m_shade, m_create_sm;
 	Fbo m_gBuffer;
 	Fbo m_imgBuffer;
-	Fbo m_shadowMap;
 
 	const Quad m_fullscreenQuad;
 	unique_ptr<PostProcess> m_postProcess;

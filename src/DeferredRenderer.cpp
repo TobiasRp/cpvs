@@ -7,8 +7,9 @@
 using namespace std;
 
 DeferredRenderer::DeferredRenderer(const DirectionalLight& light, int width, int height) 
-	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)), m_gBuffer(width, height, true), 
-	m_imgBuffer(width, height, false), m_shadowMap(width, height, false), m_dirLight(light)
+	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)),
+	m_gBuffer(width, height, true), m_imgBuffer(width, height, false),
+	m_dirLight(light)
 {
 	loadShaders();
 	initFbos();
@@ -48,9 +49,10 @@ void DeferredRenderer::loadShaders() {
 void DeferredRenderer::initFbos() {
 	/* init gBuffer with FP texture for position + depth, and 8-bit textures for normal and color */
 	m_gBuffer.bind();
-	m_gBuffer.addTexture(GL_RGBA32F);
-	m_gBuffer.addTexture(GL_RGBA8);
-	m_gBuffer.addTexture(GL_RGBA8);
+	GL_CHECK_ERROR("bound gBuffer: ");
+	m_gBuffer.addTexture(GL_RGBA32F, GL_RGBA, GL_FLOAT);
+	m_gBuffer.addTexture(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+	m_gBuffer.addTexture(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
 
 	auto gBuffers = m_gBuffer.getColorAttachments();
 	glDrawBuffers(gBuffers.size(), gBuffers.data());
@@ -58,19 +60,11 @@ void DeferredRenderer::initFbos() {
 
 	/* Image with 4x32bit FP */
 	m_imgBuffer.bind();
-	m_imgBuffer.addTexture(GL_RGBA32F);
+	m_imgBuffer.addTexture(GL_RGBA32F, GL_RGBA, GL_FLOAT);
 
 	auto imgBuffers = m_imgBuffer.getColorAttachments();
 	glDrawBuffers(imgBuffers.size(), imgBuffers.data());
 	m_imgBuffer.release();
-
-	/* Shadow map with 32bit fp */
-	m_shadowMap.bind();
-	m_shadowMap.addTexture(GL_R32F);
-
-	auto smBuffers = m_shadowMap.getColorAttachments();
-	glDrawBuffers(smBuffers.size(), smBuffers.data());
-	m_shadowMap.release();
 }
 
 void DeferredRenderer::resize(int width, int height) {
@@ -81,14 +75,42 @@ void DeferredRenderer::resize(int width, int height) {
 		m_postProcess->resize(width, height);
 }
 
+unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int width, int height) {
+	/* Init Fbo to render shadow map into */
+	Fbo shadowFbo(width, height, false);
+	shadowFbo.bind();
+	shadowFbo.addTexture(GL_R32F, GL_RED, GL_FLOAT);
+	glDrawBuffers(1, shadowFbo.getColorAttachments().data());
+
+	shadowFbo.clear();
+
+	mat4 lightView = m_dirLight.getLightView();
+	mat4 lightProj = m_dirLight.getLightProj();
+
+	RenderProperties props(lightView, lightProj);
+	props.setShaderProgram(&m_create_sm);
+	m_create_sm.bind();
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(2.0f, 4.0f);
+
+	scene->render(props);
+
+	glDisable(GL_POLYGON_OFFSET_FILL);
+
+	m_create_sm.release();
+
+	return make_unique<ShadowMap>(width, height, shadowFbo.getTexture(0));
+}
+
+
 void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	renderScene(properties, scene);
-
-	if (m_dirLight.shouldRenderShadowMap()) {
-		renderShadowMap(scene);
-	}
 
 	doAllShading(properties, scene);
 
@@ -114,31 +136,6 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 	m_geometry.release();
 	m_gBuffer.release();
 	GL_CHECK_ERROR("DeferredRenderer::renderScene - end");
-}
-
-void DeferredRenderer::renderShadowMap(const Scene* scene) {
-	m_shadowMap.bind();
-	m_shadowMap.clear();
-
-	mat4 lightView = m_dirLight.getLightView();
-	mat4 lightProj = m_dirLight.getLightProj();
-
-	RenderProperties props(lightView, lightProj);
-	props.setShaderProgram(&m_create_sm);
-	m_create_sm.bind();
-
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(2.0f, 4.0f);
-
-	scene->render(props);
-
-	glDisable(GL_POLYGON_OFFSET_FILL);
-
-	m_create_sm.release();
-	m_shadowMap.release();
 }
 
 void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* scene) {
