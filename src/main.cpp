@@ -15,8 +15,11 @@ using namespace std;
 /* Settings and globals */
 const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
 
-const int WINDOW_WIDTH = 640;
-const int WINDOW_HEIGHT = 480;
+const int WINDOW_WIDTH = 512;
+const int WINDOW_HEIGHT = 512;
+
+const int SM_WIDTH = 512;
+const int SM_HEIGHT = 512;
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 unique_ptr<DeferredRenderer> renderSystem;
@@ -129,16 +132,17 @@ int main(int argc, char **argv) {
 	fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
 	renderSystem->setPostProcess(fxaa);
 
-	cout << "Loading scene... ";
-	cout.flush();
+	cout << "Loading scene... "; cout.flush();
+
 	auto scene = loadSceneFromArguments(argc, argv);
 	cout << "finished." << endl;
 
-	cam.setSpeed(4.0f);
-	cam.setPosition(vec3(0, 3, -5));
+	cam.setSpeed(3.0f);
+	cam.setPosition(vec3(10, 10, 10));
+	cam.rotate(180, -10, 0);
 
-	/* Render ShadowMap */
-	auto sm = renderSystem->renderShadowMap(scene.get(), WINDOW_WIDTH, WINDOW_HEIGHT);
+	/* Render shadow map */
+	auto sm = renderSystem->renderShadowMap(scene.get(), SM_WIDTH, SM_HEIGHT);
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());

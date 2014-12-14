@@ -95,8 +95,8 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	mat4 lightView = m_dirLight.getLightView();
 	mat4 lightProj = m_dirLight.getLightProj();
 
-	RenderProperties props(lightView, lightProj);
-	props.setShaderProgram(&m_create_sm);
+	RenderProperties smProps(lightView, lightProj);
+	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -105,7 +105,7 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(2.0f, 4.0f);
 
-	scene->render(props);
+	scene->render(smProps);
 
 	glDisable(GL_POLYGON_OFFSET_FILL);
 

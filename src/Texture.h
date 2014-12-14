@@ -2,6 +2,7 @@
 #define TEXTURE_H
 
 #include "cpvs.h"
+#include "Image.h"
 
 class Texture2D {
 public:
@@ -14,7 +15,6 @@ public:
 	Texture2D(Texture2D&&) = default;
 	Texture2D& operator=(Texture2D&&) = default;
 
-
 	inline GLint getTextureId() const {
 		return m_id;
 	}
@@ -24,6 +24,26 @@ public:
 	void bindAt(GLint index) const;
 
 	void setMinMagFiltering(GLint min, GLint max) const;
+
+	inline int getWidth() const {
+		return m_width;
+	}
+
+	inline int getHeight() const {
+		return m_height;
+	}
+
+	inline GLint getInternalFormat() const {
+		return m_internalFormat;
+	}
+
+	inline GLenum getFormat() const {
+		return m_format;
+	}
+
+	inline GLenum getType() const {
+		return m_type;
+	}
 
 private:
 	GLuint m_id;

@@ -28,3 +28,15 @@ target_link_libraries(cpvs ${OPENGL_LIBRARIES})
 target_link_libraries(cpvs ${GLEW_LIBRARIES})
 target_link_libraries(cpvs ${GLFW_STATIC_LIBRARIES})
 target_link_libraries(cpvs ${ASSIMP_LIBRARIES})
+
+# Testing with GTest
+ADD_SUBDIRECTORY(gtest-1.7.0)
+enable_testing()
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories("src/")
+
+# Unit Tests
+add_executable(runUnitTests test/ImageTest.cpp)
+target_link_libraries(runUnitTests gtest gtest_main)
+add_test(runUnitTests runUnitTests)
+
