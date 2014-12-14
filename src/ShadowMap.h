@@ -23,7 +23,7 @@ public:
 	/**
 	 * Copies the shadow map to an image in the host memory.
 	 */
-	unique_ptr<ImageF> createImageF() const;
+	ImageF createImageF() const;
 
 private:
 	shared_ptr<Texture2D> m_texture;

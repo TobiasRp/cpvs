@@ -24,7 +24,11 @@ public:
 		m_values.assign(ptr, ptr + size);
 	}
 
-	T get(int x, int y, int channel) {
+	void setAll(const vector<T> vec) {
+		m_values.assign(vec.begin(), vec.end());
+	}
+
+	T get(int x, int y, int channel) const {
 		return m_values[(y * m_width + x) * m_numChannels + channel];
 	}
 
@@ -34,6 +38,14 @@ public:
 	
 	T* data() {
 		return m_values.data();
+	}
+
+	inline int getWidth() const {
+		return m_width;
+	}
+
+	inline int getHeight() const {
+		return m_height;
 	}
 
 private:

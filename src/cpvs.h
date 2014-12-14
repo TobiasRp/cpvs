@@ -38,9 +38,14 @@ using vec4 = glm::vec4;
 /* Checks for OpenGL errors and outputs an error string */
 extern void checkGLErrors(const std::string &str);
 
-inline bool isPowerOfTwo(int x) {
+inline constexpr bool isPowerOfTwo(int x) {
 	return !(x & (x - 1));
 }
+
+inline double log2(const double x){
+	return log(x) * 1.44269504088896340736; //log(x) * log2(e)
+}
+
 
 /* Some exception types */
 

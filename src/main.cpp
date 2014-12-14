@@ -12,13 +12,16 @@ using namespace std;
 
 #include "AssimpScene.h"
 
+#include "MinMaxHierarchy.h"
+#include <chrono>
+
 /* Settings and globals */
 const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
 
 const int WINDOW_WIDTH = 512;
 const int WINDOW_HEIGHT = 512;
 
-const int SM_SIZE = 512;
+const int SM_SIZE = 8192;
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 unique_ptr<DeferredRenderer> renderSystem;
@@ -140,9 +143,15 @@ int main(int argc, char **argv) {
 	cam.setPosition(vec3(10, 10, 10));
 	cam.rotate(180, -10, 0);
 
-	/* Render shadow map */
+	/* Render shadow map and create min-max hierarchy*/
 	auto sm = renderSystem->renderShadowMap(scene.get(), SM_SIZE);
 	auto smImg = sm->createImageF();
+	cout << "Loading min-max hierarchy..."; cout.flush();
+	auto t0 = chrono::high_resolution_clock::now();
+	MinMaxHierarchy mm(smImg);
+	auto t1 = chrono::high_resolution_clock::now();
+	cout << " finished after ";
+	cout << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << "msec\n";
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());

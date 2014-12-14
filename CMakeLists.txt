@@ -21,8 +21,12 @@ include_directories(${ASSIMP_INCLUDE_DIRS})
 include_directories("../glm/")
 
 file(GLOB SRC_DIR_FILES "src/*.h" "src/*.cpp")
+file(GLOB TEST_CPP_FILES "test/*.cpp")
 
 add_executable(cpvs ${SRC_DIR_FILES})
+
+#library for testing
+add_library(cpvs_lib STATIC ${SRC_DIR_FILES})
 
 target_link_libraries(cpvs ${OPENGL_LIBRARIES})
 target_link_libraries(cpvs ${GLEW_LIBRARIES})
@@ -36,7 +40,7 @@ include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 include_directories("src/")
 
 # Unit Tests
-add_executable(runUnitTests test/ImageTest.cpp)
-target_link_libraries(runUnitTests gtest gtest_main)
+add_executable(runUnitTests ${TEST_CPP_FILES})
+target_link_libraries(runUnitTests gtest gtest_main cpvs_lib )
 add_test(runUnitTests runUnitTests)
 
