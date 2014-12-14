@@ -4,9 +4,9 @@ ShadowMap::ShadowMap(shared_ptr<Texture2D> tex)
 	: m_texture(tex)
 {
 	assert(isPowerOfTwo(tex->getWidth()));
-	assert(isPowerOfTwo(tex->getHeight()));
+	assert(tex->getWidth() == tex->getHeight());
 
-	assert(tex->getInternalFormat() == GL_R32F);
+	assert(tex->getFormat() == GL_DEPTH_COMPONENT);
 }
 
 unique_ptr<ImageF> ShadowMap::createImageF() const {

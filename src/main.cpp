@@ -18,8 +18,7 @@ const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
 const int WINDOW_WIDTH = 512;
 const int WINDOW_HEIGHT = 512;
 
-const int SM_WIDTH = 512;
-const int SM_HEIGHT = 512;
+const int SM_SIZE = 512;
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 unique_ptr<DeferredRenderer> renderSystem;
@@ -142,7 +141,8 @@ int main(int argc, char **argv) {
 	cam.rotate(180, -10, 0);
 
 	/* Render shadow map */
-	auto sm = renderSystem->renderShadowMap(scene.get(), SM_WIDTH, SM_HEIGHT);
+	auto sm = renderSystem->renderShadowMap(scene.get(), SM_SIZE);
+	auto smImg = sm->createImageF();
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());

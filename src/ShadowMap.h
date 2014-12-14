@@ -11,7 +11,7 @@ public:
 	/**
 	 * Creates a Shadow Map from a Texture 2D.
 	 *
-	 * @note The width and height of the texture must be a power of two!
+	 * @note The width must be equal to the height and both must be a power of two!
 	 */
 	ShadowMap(shared_ptr<Texture2D> tex);
 	~ShadowMap() = default;

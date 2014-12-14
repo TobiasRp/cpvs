@@ -30,7 +30,7 @@ void DeferredRenderer::loadShaders() {
 		m_create_sm.link();
 
 		m_writeImg.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
-		m_writeImg.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeImg.frag");
+		m_writeImg.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeSM.frag");
 		m_writeImg.link();
 	} catch (ShaderException& exc) {
 		cout << exc.what() << endl;
@@ -83,14 +83,16 @@ void DeferredRenderer::resize(int width, int height) {
 		m_postProcess->resize(width, height);
 }
 
-unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int width, int height) {
-	/* Init Fbo to render shadow map into */
-	Fbo shadowFbo(width, height, false);
-	shadowFbo.bind();
-	shadowFbo.addTexture(GL_R32F, GL_RED, GL_FLOAT);
-	glDrawBuffers(1, shadowFbo.getColorAttachments().data());
+unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int size) {
+	assert(isPowerOfTwo(size));
 
-	shadowFbo.clear();
+	/* Init Fbo to render shadow map into */
+	Fbo shadowFbo(size, size, false);
+	shadowFbo.bind();
+	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
+	glDrawBuffer(GL_NONE);
+
+	glViewport(0, 0, size, size);
 
 	mat4 lightView = m_dirLight.getLightView();
 	mat4 lightProj = m_dirLight.getLightProj();
@@ -99,6 +101,7 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
+	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -111,7 +114,7 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 
 	m_create_sm.release();
 
-	return make_unique<ShadowMap>(shadowFbo.getTexture(0));
+	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
 void DeferredRenderer::renderTexture(shared_ptr<Texture2D> tex) {
@@ -133,6 +136,8 @@ void DeferredRenderer::renderTexture(shared_ptr<Texture2D> tex) {
 }
 
 void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) {
+	glViewport(0, 0, m_gBuffer.getWidth(), m_gBuffer.getHeight());
+	glClearDepth(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	properties.setRenderingOfMaterials(true);

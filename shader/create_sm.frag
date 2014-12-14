@@ -1,7 +1,7 @@
 #version 440 core
 
-layout (location = 0) out float frag;
+layout (location = 0) out vec4 frag;
 
 void main(void) {
-	frag = gl_FragCoord.z;
+	frag = vec4(1.0);
 }

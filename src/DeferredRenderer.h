@@ -21,7 +21,11 @@ public:
 
 	void render(RenderProperties& properties, const Scene* scene);
 
-	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int width, int height);
+	/**
+	 * Renders a shadow map for the directional light source.
+	 * @param size Must be a power of two.
+	 */
+	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int size);
 
 	void renderTexture(shared_ptr<Texture2D> tex);
 

@@ -45,6 +45,10 @@ public:
 		return m_type;
 	}
 
+	inline bool isDepthTexture() const {
+		return m_format == GL_DEPTH_COMPONENT;
+	}
+
 private:
 	GLuint m_id;
 	GLint m_internalFormat;
