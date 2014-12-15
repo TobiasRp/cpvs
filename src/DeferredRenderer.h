@@ -14,10 +14,10 @@ class Scene;
 
 class DeferredRenderer {
 public:
-	DeferredRenderer(const DirectionalLight& light, int width, int height);
+	DeferredRenderer(const DirectionalLight& light, GLuint width, GLuint height);
 	~DeferredRenderer() = default;
 
-	void resize(int width, int height);
+	void resize(GLuint width, GLuint height);
 
 	void render(RenderProperties& properties, const Scene* scene);
 

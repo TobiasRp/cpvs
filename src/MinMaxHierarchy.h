@@ -28,13 +28,13 @@ public:
 	 * Returns the minimum at (x, y) of the given level.
 	 * @note For level 0 min == max
 	 */
-	float getMin(int level, int x, int y) const;
+	float getMin(size_t level, size_t x, size_t y) const;
 
 	/**
 	 * Returns the maximum at (x, y) of the given level.
 	 * @note For level 0 min == max
 	 */
-	float getMax(int level, int x, int y) const;
+	float getMax(size_t level, size_t x, size_t y) const;
 
 	/**
 	 * Returns the number of levels the hierarchy has (including the original image)
@@ -46,7 +46,7 @@ public:
 	/**
 	 * Returns a level of the hierarchy.
 	 */
-	inline const ImageF& getLevel(int level) {
+	inline const ImageF& getLevel(size_t level) {
 		if (level == 0)
 			return m_root;
 		else

@@ -10,17 +10,17 @@ MinMaxHierarchy::MinMaxHierarchy(const ImageF& orig)
 	: m_root(orig)
 {
 	assert(orig.getWidth() == orig.getHeight());
-	const int size = orig.getWidth();
+	const size_t size = orig.getWidth();
 	assert(isPowerOfTwo(size));
 
 	// num of levels (without root)
-	const int numLevels = std::ceil(log2(size));
+	const size_t numLevels = std::ceil(log2(size));
 	m_levels.reserve(numLevels);
 
 	ImageF level1 = constructLevelFromRoot(orig);
 	m_levels.push_back(std::move(level1));
 
-	for (unsigned i = 0; i < numLevels - 1; ++i) {
+	for (size_t i = 0; i < numLevels - 1; ++i) {
 		ImageF newLevel = constructLevel(m_levels[i]);
 		m_levels.push_back(std::move(newLevel));
 	}
@@ -32,7 +32,7 @@ inline float find(float a, float b, float c, float d, std::function<float(float,
 	return pred(abRes, cdRes);
 }
 
-void setRow(const ImageF& in, ImageF& out, int row, int channel, int outChannel, std::function<float(float, float)> pred) {
+void setRow(const ImageF& in, ImageF& out, size_t row, size_t channel, size_t outChannel, std::function<float(float, float)> pred) {
 	for (int x = 0; x < in.getWidth(); x += 2) {
 		float val = find(in.get(x, row, channel), in.get(x + 1, row, channel),
 				in.get(x, row + 1, channel), in.get(x + 1, row + 1, channel), pred);
@@ -41,7 +41,7 @@ void setRow(const ImageF& in, ImageF& out, int row, int channel, int outChannel,
 	}
 }
 
-void constructRange(const ImageF& in, ImageF& out, int begin, int end, int minInChannel, int maxInChannel) {
+void constructRange(const ImageF& in, ImageF& out, size_t begin, size_t end, size_t minInChannel, size_t maxInChannel) {
 	for (int y = begin; y < end; y += 2) {
 		setRow(in, out, y, minInChannel, 0,std::min<float>);
 		setRow(in, out, y, maxInChannel, 1, std::max<float>);
@@ -49,12 +49,12 @@ void constructRange(const ImageF& in, ImageF& out, int begin, int end, int minIn
 }
 
 ImageF MinMaxHierarchy::constructLevel(const ImageF& in) const {
-	const int inSize = in.getWidth();
-	const int newSize = inSize / 2;
+	const size_t inSize = in.getWidth();
+	const size_t newSize = inSize / 2;
 	ImageF res(newSize, newSize, 2);
 
 	if (inSize >= PARALLEL_THRESHOLD) {
-		const int perThreadWork = inSize / 4;
+		const size_t perThreadWork = inSize / 4;
 
 		std::thread task1{constructRange, std::cref(in), std::ref(res), 0, perThreadWork, MIN_CH, MAX_CH};
 		std::thread task2{constructRange, std::cref(in), std::ref(res), perThreadWork, 2 * perThreadWork, MIN_CH, MAX_CH};
@@ -72,11 +72,11 @@ ImageF MinMaxHierarchy::constructLevel(const ImageF& in) const {
 }
 
 ImageF MinMaxHierarchy::constructLevelFromRoot(const ImageF& in) const {
-	const int inSize = in.getWidth();
-	const int newSize = inSize / 2;
+	const size_t inSize = in.getWidth();
+	const size_t newSize = inSize / 2;
 	ImageF res(newSize, newSize, 2);
 
-	const int perThreadWork = inSize / 4;
+	const size_t perThreadWork = inSize / 4;
 
 	std::thread task1{constructRange, std::cref(in), std::ref(res), 0, perThreadWork, 0, 0};
 	std::thread task2{constructRange, std::cref(in), std::ref(res), perThreadWork, 2 * perThreadWork, 0, 0};
@@ -90,13 +90,13 @@ ImageF MinMaxHierarchy::constructLevelFromRoot(const ImageF& in) const {
 	return res;
 }
 
-float MinMaxHierarchy::getMin(int level, int x, int y) const {
+float MinMaxHierarchy::getMin(size_t level, size_t x, size_t y) const {
 	if (level == 0)
 		return m_root.get(x, y, 0);
 	return m_levels[level - 1].get(x, y, MIN_CH);
 }
 
-float MinMaxHierarchy::getMax(int level, int x, int y) const {
+float MinMaxHierarchy::getMax(size_t level, size_t x, size_t y) const {
 	if (level == 0)
 		return m_root.get(x, y, 0);
 	return m_levels[level - 1].get(x, y, MAX_CH);

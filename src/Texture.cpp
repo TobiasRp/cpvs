@@ -1,6 +1,6 @@
 #include "Texture.h"
 
-Texture2D::Texture2D(int width, int height, GLint internalFormat, GLenum format, GLenum type) 
+Texture2D::Texture2D(GLuint width, GLuint height, GLint internalFormat, GLenum format, GLenum type) 
 	: m_internalFormat(internalFormat), m_format(format), m_type(type), m_width(width), m_height(height)
 {
 	glGenTextures(1, &m_id);
@@ -52,7 +52,7 @@ Texture2D::~Texture2D() {
 	glDeleteTextures(1, &m_id);
 }
 
-void Texture2D::resize(int width, int height) {
+void Texture2D::resize(GLuint width, GLuint height) {
 	m_width = width;
 	m_height = height;
 

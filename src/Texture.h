@@ -6,7 +6,7 @@
 
 class Texture2D {
 public:
-	Texture2D(int width, int height, GLint internalFormat, GLenum format, GLenum type);
+	Texture2D(GLuint width, GLuint height, GLint internalFormat, GLenum format, GLenum type);
 
 	/**
 	 * Create a 32-bit floating points texture with one to four channels,
@@ -30,7 +30,7 @@ public:
 	 * Changes the size of the texture.
 	 * Be aware that this deletes and recreates the texture! All data is lost.
 	 */
-	void resize(int width, int height);
+	void resize(GLuint width, GLuint height);
 
 	/**
 	 * Binds the texture to the specified texture unit
@@ -45,11 +45,11 @@ public:
 	
 	void setData(const ImageF& img);
 
-	inline int getWidth() const {
+	inline GLuint getWidth() const {
 		return m_width;
 	}
 
-	inline int getHeight() const {
+	inline GLuint getHeight() const {
 		return m_height;
 	}
 
@@ -75,7 +75,7 @@ private:
 	GLenum m_format;
 	GLenum m_type;
 
-	int m_width, m_height;
+	GLuint m_width, m_height;
 };
 
 #endif

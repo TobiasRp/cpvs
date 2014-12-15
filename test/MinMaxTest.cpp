@@ -29,13 +29,10 @@ protected:
 	ImageF img;
 };
 
-TEST_F(MinMaxTest, create) {
-	MinMaxHierarchy mm(img);
-	ASSERT_EQ(4, mm.getNumLevels());
-}
-
 TEST_F(MinMaxTest, get) {
 	MinMaxHierarchy mm(img);
+	ASSERT_EQ(4, mm.getNumLevels());
+
 	ASSERT_EQ(0.0f, mm.getMin(0, 0, 0));
 	ASSERT_EQ(0.0f, mm.getMax(0, 0, 0));
 	ASSERT_EQ(0.0f, mm.getMin(1, 0, 0));

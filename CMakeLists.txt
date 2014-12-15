@@ -41,6 +41,6 @@ include_directories("src/")
 
 # Unit Tests
 add_executable(runUnitTests ${TEST_CPP_FILES})
-target_link_libraries(runUnitTests gtest gtest_main cpvs_lib )
+target_link_libraries(runUnitTests gtest gtest_main cpvs_lib ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} )
 add_test(runUnitTests runUnitTests)
 

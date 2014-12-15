@@ -18,10 +18,10 @@ using namespace std;
 /* Settings and globals */
 const string defaultSceneFile = "../scenes/sibenik/sibenik.obj";
 
-const int WINDOW_WIDTH = 512;
-const int WINDOW_HEIGHT = 512;
+const GLuint WINDOW_WIDTH = 512;
+const GLuint WINDOW_HEIGHT = 512;
 
-const int SM_SIZE = 8192;
+const GLuint SM_SIZE = 8192;
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
 unique_ptr<DeferredRenderer> renderSystem;

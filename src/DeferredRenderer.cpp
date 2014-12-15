@@ -6,7 +6,7 @@
 #include <iostream>
 using namespace std;
 
-DeferredRenderer::DeferredRenderer(const DirectionalLight& light, int width, int height) 
+DeferredRenderer::DeferredRenderer(const DirectionalLight& light, GLuint width, GLuint height) 
 	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)),
 	m_gBuffer(width, height, true), m_imgBuffer(width, height, false),
 	m_dirLight(light)
@@ -75,7 +75,7 @@ void DeferredRenderer::initFbos() {
 	m_imgBuffer.release();
 }
 
-void DeferredRenderer::resize(int width, int height) {
+void DeferredRenderer::resize(GLuint width, GLuint height) {
 	m_gBuffer.resize(width, height);
 	m_imgBuffer.resize(width, height);
 

@@ -9,7 +9,7 @@
 template<typename T>
 class Image {
 public:
-	Image(int width, int height, int numChannels)
+	Image(size_t width, size_t height, size_t numChannels)
 		: m_width(width), m_height(height), m_numChannels(numChannels) {
 		m_values = vector<T>(width * height * numChannels);
 	}
@@ -32,10 +32,10 @@ public:
 		m_values.assign(begin, end);
 	}
 
-	T get(int x, int y, int channel) const {
+	T get(size_t x, size_t y, size_t channel) const {
 		return m_values[(y * m_width + x) * m_numChannels + channel];
 	}
-	void set(int x, int y, int channel, T val) {
+	void set(size_t x, size_t y, size_t channel, T val) {
 		m_values[(y * m_width + x) * m_numChannels + channel] = val;
 	}
 
@@ -47,20 +47,20 @@ public:
 		return m_values.data();
 	}
 
-	inline int getNumChannels() const {
+	inline size_t getNumChannels() const {
 		return m_numChannels;
 	}
 
-	inline int getWidth() const {
+	inline size_t getWidth() const {
 		return m_width;
 	}
 
-	inline int getHeight() const {
+	inline size_t getHeight() const {
 		return m_height;
 	}
 
 private:
-	int m_width, m_height;
+	size_t m_width, m_height;
 	int m_numChannels;
 
 	vector<T> m_values;
