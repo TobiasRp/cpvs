@@ -16,7 +16,7 @@ using namespace std;
 #include <chrono>
 
 /* Settings and globals */
-const string defaultSceneFile = "../scenes/Desert_City/desert city.obj";
+const string defaultSceneFile = "../scenes/sibenik/sibenik.obj";
 
 const int WINDOW_WIDTH = 512;
 const int WINDOW_HEIGHT = 512;
