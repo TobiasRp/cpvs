@@ -11,11 +11,14 @@ Use CMake!
 Needed libraries:
 	GLEW, GLFW3, Assimp
 
-CMake should find them
+-> CMake should find them
+
+Furthermore, GLM is needed. Since GLM is header-only CMake looks for it above the cpvs directory.
 
 For unit testing GTest is included in the repository
 
 /// Running CPVS ///
+
 3D-models/scene files are not included in the repo!
 
 Simply specify the scene to use as an argument.
