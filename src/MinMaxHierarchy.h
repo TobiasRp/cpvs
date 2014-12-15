@@ -36,8 +36,21 @@ public:
 	 */
 	float getMax(int level, int x, int y) const;
 
+	/**
+	 * Returns the number of levels the hierarchy has (including the original image)
+	 */
 	int getNumLevels() const {
 		return m_levels.size() + 1;
+	}
+
+	/**
+	 * Returns a level of the hierarchy.
+	 */
+	inline const ImageF& getLevel(int level) {
+		if (level == 0)
+			return m_root;
+		else
+			return m_levels[level-1];
 	}
 
 private:
@@ -47,7 +60,7 @@ private:
 	ImageF constructLevel(const ImageF& in) const;
 
 	/**
-	 * The first level 0 only contains 1 channel, therefore it needs to be processed different.
+	 * The first level 0 only contains 1 channel, therefore it needs to be processed differently.
 	 */
 	ImageF constructLevelFromRoot(const ImageF& in) const;
 

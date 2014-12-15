@@ -14,7 +14,7 @@ public:
 		m_values = vector<T>(width * height * numChannels);
 	}
 
-	~Image() { }
+	~Image() = default;
 
 	/**
 	 * Set image from pointer to values which must be at least width * height * numChannels.
@@ -24,20 +24,31 @@ public:
 		m_values.assign(ptr, ptr + size);
 	}
 
-	void setAll(const vector<T> vec) {
+	void setAll(const vector<T>& vec) {
 		m_values.assign(vec.begin(), vec.end());
+	}
+
+	void setAll(typename vector<T>::iterator begin, typename vector<T>::iterator end) {
+		m_values.assign(begin, end);
 	}
 
 	T get(int x, int y, int channel) const {
 		return m_values[(y * m_width + x) * m_numChannels + channel];
 	}
-
 	void set(int x, int y, int channel, T val) {
 		m_values[(y * m_width + x) * m_numChannels + channel] = val;
 	}
-	
+
+	const T* data() const {
+		return m_values.data();
+	}
+
 	T* data() {
 		return m_values.data();
+	}
+
+	inline int getNumChannels() const {
+		return m_numChannels;
 	}
 
 	inline int getWidth() const {

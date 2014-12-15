@@ -7,6 +7,13 @@
 class Texture2D {
 public:
 	Texture2D(int width, int height, GLint internalFormat, GLenum format, GLenum type);
+
+	/**
+	 * Create a 32-bit floating points texture with one to four channels,
+	 * according to the specified image.
+	 */
+	Texture2D(const ImageF& img);
+
 	~Texture2D();
 
 	Texture2D(const Texture2D&) = delete;
@@ -19,11 +26,24 @@ public:
 		return m_id;
 	}
 
+	/**
+	 * Changes the size of the texture.
+	 * Be aware that this deletes and recreates the texture! All data is lost.
+	 */
 	void resize(int width, int height);
 
+	/**
+	 * Binds the texture to the specified texture unit
+	 */
 	void bindAt(GLint index) const;
 
-	void setMinMagFiltering(GLint min, GLint max) const;
+	void setMinMagFiltering(GLint min, GLint max);
+
+	void setWrap(GLint wrapS, GLint wrapT);
+
+	void setData(const void* data);
+	
+	void setData(const ImageF& img);
 
 	inline int getWidth() const {
 		return m_width;
