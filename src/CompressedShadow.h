@@ -6,7 +6,10 @@
 class MinMaxHierarchy;
 class ShadowMap;
 
-class AABB;
+namespace cs {
+	struct AABB;
+	struct Node;
+};
 
 /**
  * This entral datastructure of the CPVS represents the DAG of voxels
@@ -64,7 +67,7 @@ public:
 	static unique_ptr<CompressedShadow> create(const ShadowMap& shadowMap);
 
 public:
-	/* Public member functions */
+	/* Public methods */
 
 	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position
@@ -73,6 +76,14 @@ public:
 	 * @note Useful for testing purposes!
 	 */
 	NodeVisibility traverse(vec3 position);
+
+	/**
+	 * Given the number of levels in the octree, this calculates the resolution.
+	 */
+	inline static size_t getResolution(size_t numLevels) {
+		return 1 << (numLevels - 1);
+	}
+
 
 private:
 	/* Private member and helper functions */
@@ -89,26 +100,23 @@ private:
 	}
 
 	/**
-	 * Given the number of levels in the octree, this calculates the resolution.
-	 */
-	inline static size_t getResolution(size_t numLevels) {
-		return 1 << (numLevels - 1);
-	}
-
-	/**
 	 * During the construction of the SVO/DAG each node will have 8 pointers to it's children.
 	 * This function will compress this structure 'm_dag' by removing all unnecessary pointers.
 	 */
 	void compressDAG();
 
 
-	void constructSvoLevel(const MinMaxHierarchy& minMax, size_t level, const AABB& parentNode);
+	void constructSvoSubtree(const MinMaxHierarchy& minMax, size_t level, cs::Node* top);
 
 private:
 	/* Private class members */
 	size_t m_numLevels;
 
 	vector<uint> m_dag;
+
+
+	//TODO: delete, this is only for debugging
+	cs::Node* m_root;
 };
 
 #endif

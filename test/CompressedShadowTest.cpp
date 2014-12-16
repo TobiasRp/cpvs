@@ -35,8 +35,6 @@ TEST_F(CompressedShadowTest, create) {
 	MinMaxHierarchy mm(img);
 	auto csPtr = CompressedShadow::create(mm);
 
-	ASSERT_EQ(0.0, mm.getMin(3, 0, 0));
-
-	//ASSERT_EQ(CompressedShadow::VISIBLE, csPtr->traverse(vec3(-1.0f, -1.0f, -1.0f)));
+	ASSERT_EQ(CompressedShadow::VISIBLE, csPtr->traverse(vec3(-1.0f, -1.0f, -1.0f)));
 }
 
