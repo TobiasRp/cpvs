@@ -90,14 +90,25 @@ ImageF MinMaxHierarchy::constructLevelFromRoot(const ImageF& in) const {
 	return res;
 }
 
+bool checkBounds(const ImageF& img, size_t x, size_t y) {
+	return x < img.getWidth() && y < img.getHeight();
+}
+
 float MinMaxHierarchy::getMin(size_t level, size_t x, size_t y) const {
-	if (level == 0)
+	if (level == 0) {
+		assert(checkBounds(m_root, x, y));
 		return m_root.get(x, y, 0);
+	}
+	assert(checkBounds(m_levels[level - 1], x, y));
 	return m_levels[level - 1].get(x, y, MIN_CH);
 }
 
 float MinMaxHierarchy::getMax(size_t level, size_t x, size_t y) const {
-	if (level == 0)
+	if (level == 0) {
+		assert(checkBounds(m_root, x, y));
 		return m_root.get(x, y, 0);
+	}
+
+	assert(checkBounds(m_levels[level - 1], x, y));
 	return m_levels[level - 1].get(x, y, MAX_CH);
 }

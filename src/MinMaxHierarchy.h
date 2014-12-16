@@ -46,11 +46,11 @@ public:
 	/**
 	 * Returns a level of the hierarchy.
 	 */
-	inline const ImageF& getLevel(size_t level) {
+	inline const ImageF* getLevel(size_t level) const {
 		if (level == 0)
-			return m_root;
+			return &m_root;
 		else
-			return m_levels[level-1];
+			return &m_levels[level-1];
 	}
 
 private:

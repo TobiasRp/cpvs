@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
 	cout << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << "msec\n";
 
 	auto level1 = mm.getLevel(5);
-	auto texLevel1 = std::make_shared<Texture2D>(level1);
+	auto texLevel1 = std::make_shared<Texture2D>(*level1);
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());
