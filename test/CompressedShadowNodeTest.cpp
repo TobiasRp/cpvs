@@ -22,32 +22,6 @@ protected:
 protected:
 };
 
-TEST_F(CompressedShadowNodeTest, testIsPartial) {
-	AABB bb(ivec3(0, 0, 0), ivec3(10, 10, 10));
-	Node n1(bb);
-
-	n1.childmask = 0xAAAA;
-	ASSERT_TRUE(n1.isPartial(Node::FRONT_LOWER_LEFT));
-	ASSERT_FALSE(n1.isShadowed(Node::FRONT_LOWER_LEFT));
-	ASSERT_FALSE(n1.isVisible(Node::FRONT_LOWER_LEFT));
-
-	ASSERT_TRUE(n1.isPartial(Node::BACK_LOWER_RIGHT));
-
-	n1.childmask = 0x0011;
-	ASSERT_FALSE(n1.isPartial(Node::FRONT_LOWER_LEFT));
-}
-
-TEST_F(CompressedShadowNodeTest, testVisible) {
-	AABB bb(ivec3(0, 0, 0), ivec3(10, 10, 10));
-	Node n1(bb);
-
-	n1.childmask = 0x1101;
-	ASSERT_TRUE(n1.isVisible(Node::FRONT_LOWER_LEFT));
-	ASSERT_FALSE(n1.isShadowed(Node::FRONT_LOWER_LEFT));
-
-	ASSERT_TRUE(n1.isVisible(Node::FRONT_UPPER_RIGHT));
-}
-
 TEST_F(CompressedShadowNodeTest, testCreatingChildren) {
 	ImageF img(4, 4, 1);
 	img.setAll(std::vector<float>{

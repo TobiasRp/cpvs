@@ -113,10 +113,6 @@ private:
 	size_t m_numLevels;
 
 	vector<uint> m_dag;
-
-
-	//TODO: delete, this is only for debugging
-	cs::Node* m_root;
 };
 
 #endif

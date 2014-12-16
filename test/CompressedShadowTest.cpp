@@ -34,7 +34,7 @@ protected:
 TEST_F(CompressedShadowTest, create) {
 	MinMaxHierarchy mm(img);
 	auto csPtr = CompressedShadow::create(mm);
-
-	ASSERT_EQ(CompressedShadow::VISIBLE, csPtr->traverse(vec3(-1.0f, -1.0f, -1.0f)));
+	
+	//TODO Traversal tests
 }
 

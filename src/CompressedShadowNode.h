@@ -64,13 +64,12 @@ namespace cs {
 		/** Makes it easier to identify certain child nodes */
 		enum NodeNumber {
 			FRONT_LOWER_LEFT  = 0,
-			BACK_LOWER_LEFT   = 1,
+			FRONT_LOWER_RIGHT = 1,
 			FRONT_UPPER_LEFT  = 2,
-			BACK_UPPER_LEFT   = 3,
-
-			FRONT_LOWER_RIGHT = 4,
+			FRONT_UPPER_RIGHT = 3,
+			BACK_LOWER_LEFT   = 4,
 			BACK_LOWER_RIGHT  = 5,
-			FRONT_UPPER_RIGHT = 6,
+			BACK_UPPER_LEFT   = 6,
 			BACK_UPPER_RIGHT  = 7
 		};
 
