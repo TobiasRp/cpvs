@@ -1,6 +1,9 @@
 #include "MinMaxHierarchy.h"
 #include "gtest/gtest.h"
 
+#include <iostream>
+using namespace std;
+
 class MinMaxTest : public ::testing::Test {
 protected:
 	MinMaxTest() 
@@ -45,3 +48,18 @@ TEST_F(MinMaxTest, get) {
 	ASSERT_EQ(0.0f, mm.getMin(3, 0, 0));
 }
 
+TEST_F(MinMaxTest, create4x4) {
+	ImageF img4x4(4, 4, 1);
+	img4x4.setAll(std::vector<float>{
+				0.0, 0.0, 1, 1,
+				0.0, 0.0, 1, 1,
+				0.75, 0.75, 0.25, 0.25,
+				0.6, 0.8, 0.1, 0.3
+			});
+
+	MinMaxHierarchy mm(img4x4);
+
+	ASSERT_EQ(0.0, mm.getMin(1, 0, 0));
+	ASSERT_EQ(0.0, mm.getMax(1, 0, 0));
+	ASSERT_EQ(1.0, mm.getMax(1, 1, 0));
+}

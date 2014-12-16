@@ -43,7 +43,7 @@ void setRow(const ImageF& in, ImageF& out, size_t row, size_t channel, size_t ou
 
 void constructRange(const ImageF& in, ImageF& out, size_t begin, size_t end, size_t minInChannel, size_t maxInChannel) {
 	for (int y = begin; y < end; y += 2) {
-		setRow(in, out, y, minInChannel, 0,std::min<float>);
+		setRow(in, out, y, minInChannel, 0, std::min<float>);
 		setRow(in, out, y, maxInChannel, 1, std::max<float>);
 	}
 }
@@ -55,6 +55,7 @@ ImageF MinMaxHierarchy::constructLevel(const ImageF& in) const {
 
 	if (inSize >= PARALLEL_THRESHOLD) {
 		const size_t perThreadWork = inSize / 4;
+		assert(perThreadWork >= 2);
 
 		std::thread task1{constructRange, std::cref(in), std::ref(res), 0, perThreadWork, MIN_CH, MAX_CH};
 		std::thread task2{constructRange, std::cref(in), std::ref(res), perThreadWork, 2 * perThreadWork, MIN_CH, MAX_CH};
@@ -76,16 +77,21 @@ ImageF MinMaxHierarchy::constructLevelFromRoot(const ImageF& in) const {
 	const size_t newSize = inSize / 2;
 	ImageF res(newSize, newSize, 2);
 
-	const size_t perThreadWork = inSize / 4;
+	if (inSize >= PARALLEL_THRESHOLD) {
+		const size_t perThreadWork = inSize / 4;
+		assert(perThreadWork >= 2);
 
-	std::thread task1{constructRange, std::cref(in), std::ref(res), 0, perThreadWork, 0, 0};
-	std::thread task2{constructRange, std::cref(in), std::ref(res), perThreadWork, 2 * perThreadWork, 0, 0};
-	std::thread task3{constructRange, std::cref(in), std::ref(res), 2 * perThreadWork, 3 * perThreadWork, 0, 0};
-	constructRange(in, res, 3 * perThreadWork, inSize, 0, 0);
+		std::thread task1{constructRange, std::cref(in), std::ref(res), 0, perThreadWork, 0, 0};
+		std::thread task2{constructRange, std::cref(in), std::ref(res), perThreadWork, 2 * perThreadWork, 0, 0};
+		std::thread task3{constructRange, std::cref(in), std::ref(res), 2 * perThreadWork, 3 * perThreadWork, 0,0};
+		constructRange(in, res, 3 * perThreadWork, inSize, 0, 0);
 
-	task1.join();
-	task2.join();
-	task3.join();
+		task1.join();
+		task2.join();
+		task3.join();
+	} else {
+		constructRange(in, res, 0, inSize, 0, 0);
+	}
 
 	return res;
 }
