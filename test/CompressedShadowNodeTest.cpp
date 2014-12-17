@@ -1,4 +1,5 @@
 #include "CompressedShadowNode.h"
+#include "TestImages.h"
 #include "gtest/gtest.h"
 #include <iostream>
 using namespace std;
@@ -33,12 +34,9 @@ TEST_F(CompressedShadowNodeTest, testCreatingChildren) {
 
 	MinMaxHierarchy mm(img);
 
-	AABB root(ivec3(0, 0, 0), ivec3(4, 4, 4));
-	auto children = root.findChildren();
+	Node rootNode(ivec3(0, 0, 0), 2);
 
-	Node rootNode(std::move(root));
-
-	rootNode.calcChildmask(mm, children, mm.getNumLevels() - 2, 0, 0);
+	rootNode.addChildren(mm, mm.getNumLevels() - 2);
 
 	// Test the childmask for correctness
 	ASSERT_TRUE(rootNode.isVisible(Node::FRONT_LOWER_LEFT));
@@ -53,9 +51,23 @@ TEST_F(CompressedShadowNodeTest, testCreatingChildren) {
 	ASSERT_TRUE(rootNode.isVisible(Node::FRONT_UPPER_RIGHT));
 	ASSERT_TRUE(rootNode.isVisible(Node::BACK_UPPER_RIGHT));
 
-	rootNode.addNewChildren(children);
-
 	// Ensure that children with partial visibility have a pointer
 	ASSERT_NE(nullptr, rootNode.children[(size_t)Node::BACK_LOWER_LEFT]);
 	ASSERT_NE(nullptr, rootNode.children[(size_t)Node::FRONT_LOWER_RIGHT]);
+
+	// ... and the other ones don't
+	ASSERT_EQ(nullptr, rootNode.children[(size_t)Node::FRONT_LOWER_LEFT]);
+	ASSERT_EQ(nullptr, rootNode.children[(size_t)Node::FRONT_UPPER_LEFT]);
+
+	auto bllChild = rootNode.children[(size_t)Node::BACK_LOWER_LEFT].get();
+	bllChild->addChildren(mm, mm.getNumLevels() - 3, 2);
+	ASSERT_TRUE(bllChild->isVisible(Node::FRONT_LOWER_LEFT));
+
+	//TODO: This is an edge case! Result shouldn't be partial
+	ASSERT_TRUE(bllChild->isPartial(Node::BACK_LOWER_LEFT));
+}
+
+TEST_F(CompressedShadowNodeTest, bigImageTest) {
+	MinMaxHierarchy minMax(createLargeImg());
+
 }

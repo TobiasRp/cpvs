@@ -2,12 +2,14 @@
 #include "CompressedShadowNode.h"
 #include "MinMaxHierarchy.h"
 #include "ShadowMap.h"
-
 #include <cmath>
+using namespace cs;
+using namespace std;
+
+// for testing and debugging
 #include <glm/ext.hpp>
 #include <iostream>
-using namespace std;
-using namespace cs;
+
 
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
@@ -15,28 +17,19 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	size_t res = getResolution(m_numLevels);
 	assert(res >= 2);
 
-	AABB lightFrustum(ivec3(0, 0, 0), ivec3(2, 2, 2));
-	auto root = make_unique<Node>(lightFrustum);
+	auto root = make_unique<Node>(ivec3(0, 0, 0), 2);
 	constructSvoSubtree(minMax, m_numLevels - 2, root.get());
 }
 
 void CompressedShadow::constructSvoSubtree(const MinMaxHierarchy& minMax, size_t level, cs::Node* top) {
-	auto children = top->aabb.findChildren();
-	size_t offsetX = top->aabb.minPoint.x;
-	size_t offsetY = top->aabb.minPoint.y;
-
-	top->calcChildmask(minMax, children, level, offsetX, offsetY);
-	top->addNewChildren(children);
+	top->addChildren(minMax, level);
 
 	if (level == 0)
 		return;
 
 	for (auto& childPtr : top->children) {
 		if (childPtr != nullptr) {
-			/* The AABB now needs to be of a bigger resolution
-			 * (because it will be used on the next level), so double it's size */
-			childPtr->doubleAABB();
-
+			cout << "next level shit: " << level - 1<< endl;
 			constructSvoSubtree(minMax, level - 1, childPtr.get());
 		}
 	}

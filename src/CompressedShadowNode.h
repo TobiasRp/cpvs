@@ -11,44 +11,19 @@
 namespace cs {
 
 	/**
-	 * Axis-aligned bounding box.
-	 *
-	 * An AABB is defined by a minimum and a maximum point.
+	 * Compares a min and max z value and a min/max depth value (probably from the min-max hierarchy)
+	 * and returns either visible, shadow or partial
 	 */
-	struct AABB {
-		ivec3 minPoint, maxPoint;
-
-		AABB(const ivec3& min, const ivec3& max)
-			: minPoint(min), maxPoint(max) { }
-
-		/**
-		 * Decides if this AABB is visible, shadowed or partially visible.
-		 * @param min Minimum depth value (from the min-max hierarchy), a value between [0, 1]
-		 * @param max Analog to min
-		 * @param resolution Resolution of the total volume.
-		 */
-		inline CompressedShadow::NodeVisibility visible(size_t resolution, float min, float max) const {
-			const float maxDepth = maxPoint.z;
-			const float minDepth = minPoint.z;
-
-			if (maxDepth <= min * resolution)
-				return CompressedShadow::VISIBLE;
-			else if (minDepth >= max * resolution)
-				return CompressedShadow::SHADOW;
-			else
-				return CompressedShadow::PARTIAL;
+	inline CompressedShadow::NodeVisibility visible(float minZ, float maxZ, float minDepth, float maxDepth) {
+		if (maxZ <= minDepth)
+			return CompressedShadow::VISIBLE;
+		else if (minZ >= maxDepth)
+			return CompressedShadow::SHADOW;
+		else {
+			//TODO handle edge case to not return partial in the last level.
+			return CompressedShadow::PARTIAL;
 		}
-
-		/**
-		 * Calculates 8-children from an AABB.
-		 */
-		array<AABB, 8> findChildren() const;
-
-		inline void doubleSize() {
-			minPoint *= 2;
-			maxPoint *= 2;
-		}
-	};
+	}
 
 	/**
 	 * A CompressedShadow is stored in a linear array with offsets as 'pointers'. But to construct the SVO/DAG
@@ -75,13 +50,11 @@ namespace cs {
 
 		uint             childmask;
 		unique_ptr<Node> children[8];
-		AABB       aabb;
+		ivec3            offset;
+		float            depth;
 
-		Node(const AABB& bb)
-			: aabb(bb) { }
-
-		Node(AABB&& bb)
-			: aabb(std::move(bb)) { }
+		Node(const ivec3 off, float d)
+			: offset(off), depth(d) { }
 
 		/**
 		 * Returns true if the child node is partially visible.
@@ -107,32 +80,12 @@ namespace cs {
 		}
 
 		/**
-		 * Calculates the childmask, i.e. the visibility of the given eight AABBs.
-		 * parX and parY are the x- and y-offset into the min-max hierarchy.
+		 * Calculates the childmask, it.e. visibility of the children and adds all partially visible children.
 		 *
-		 * @param children As returned from AABB::findChildren
-		 *
-		 * @return 16-bit childmask where every 2-bits are set to 10, 01 or 00 (partial, visible, shadow).
+		 * @note The childmask contains 16-bit where every 2-bits are set
+		 * to 10, 01 or 00 (partial, visible, shadow).
 		 */
-		void calcChildmask(const MinMaxHierarchy& minMax, const array<AABB, 8>& children, 
-				size_t level, size_t parX, size_t parY);
-
-		/**
-		 * Adds all children which are of partial visibility to the Node.
-		 *
-		 * @param children As returned from AABB::findChildren
-		 *
-		 * @note This assumes that the childmask is calculated and correct.
-		 */
-		void addNewChildren(const array<AABB, 8>& aabbs);
-
-		/**
-		 * Doubles the size of the AABB so it can be used on the next level
-		 * in the hierarchy with a bigger resolution.
-		 */
-		inline void doubleAABB() {
-			aabb.doubleSize();
-		}
+		void addChildren(const MinMaxHierarchy& minMax, size_t level, size_t steps = 2);
 	};
 };
 

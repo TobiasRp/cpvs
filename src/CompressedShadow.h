@@ -7,7 +7,6 @@ class MinMaxHierarchy;
 class ShadowMap;
 
 namespace cs {
-	struct AABB;
 	struct Node;
 };
 
@@ -104,7 +103,6 @@ private:
 	 * This function will compress this structure 'm_dag' by removing all unnecessary pointers.
 	 */
 	void compressDAG();
-
 
 	void constructSvoSubtree(const MinMaxHierarchy& minMax, size_t level, cs::Node* top);
 
