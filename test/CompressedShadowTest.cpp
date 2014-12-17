@@ -35,7 +35,6 @@ TEST_F(CompressedShadowTest, create) {
 	MinMaxHierarchy mm(img);
 	auto csPtr = CompressedShadow::create(mm);
 	
-	//TODO Traversal tests
 	auto vis = csPtr->traverse(vec3(-1, 1, -1));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
@@ -51,14 +50,19 @@ TEST_F(CompressedShadowTest, create) {
 	vis = csPtr->traverse(vec3(1, 1, -0.75));
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
-	vis = csPtr->traverse(ivec3(1, 1, 0.5));
+	vis = csPtr->traverse(vec3(1, 1, 0.5));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(ivec3(1, -1, 0.99));
+	vis = csPtr->traverse(vec3(1, -1, 0.99));
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
-	vis = csPtr->traverse(ivec3(0.8, -1, 0.99));
+	vis = csPtr->traverse(vec3(0.7, -1, 0.99));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
+	vis = csPtr->traverse(vec3(0.4, -1, -0.8));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = csPtr->traverse(vec3(0.1, -1.0, -0.9));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 }
 
