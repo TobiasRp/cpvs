@@ -2,6 +2,9 @@
 #include "CompressedShadowNode.h"
 #include "MinMaxHierarchy.h"
 #include "ShadowMap.h"
+
+#include <thread>
+#include <algorithm>
 #include <cmath>
 using namespace cs;
 using namespace std;
@@ -16,9 +19,7 @@ CompressedShadow::~CompressedShadow() {
 
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
-
-	size_t res = getResolution(m_numLevels);
-	assert(res >= 2);
+	assert(m_numLevels > 3);
 
 	root = new Node(ivec3(0, 0, 0), 2);
 	constructSvoSubtree(minMax, m_numLevels - 2, root);
@@ -53,8 +54,8 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 	while(level >= 0) {
 		int lvlBit = 1 << (level - 2);
 		int childIndex = ((path.x & lvlBit) ? 1 : 0) +
-		                  ((path.y & lvlBit) ? 2 : 0) +
-						  ((path.z & lvlBit) ? 4 : 0);
+		                 ((path.y & lvlBit) ? 2 : 0) +
+						 ((path.z & lvlBit) ? 4 : 0);
 
 		if (node->isVisible((Node::NodeNumber) childIndex)) {
 			return VISIBLE;
@@ -64,7 +65,6 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 			node = node->children[childIndex].get();
 			assert(node != nullptr);
 		}
-
 		level -= 1;
 	}
 

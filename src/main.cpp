@@ -13,6 +13,7 @@ using namespace std;
 #include "AssimpScene.h"
 
 #include "MinMaxHierarchy.h"
+#include "CompressedShadow.h"
 #include <chrono>
 
 /* Settings and globals */
@@ -137,7 +138,7 @@ int main(int argc, char **argv) {
 	cout << "Loading scene... "; cout.flush();
 
 	auto scene = loadSceneFromArguments(argc, argv);
-	cout << "finished." << endl;
+	cout << "done." << endl;
 
 	cam.setSpeed(3.0f);
 	cam.setPosition(vec3(10, 10, 10));
@@ -150,8 +151,17 @@ int main(int argc, char **argv) {
 	auto t0 = chrono::high_resolution_clock::now();
 	MinMaxHierarchy mm(smImg);
 	auto t1 = chrono::high_resolution_clock::now();
-	cout << " finished after ";
+	cout << " done after ";
 	cout << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << "msec\n";
+
+	cout << "Compressing shadow... "; cout.flush();
+	t0 = chrono::high_resolution_clock::now();
+	auto shadow = CompressedShadow::create(mm);
+	t1 = chrono::high_resolution_clock::now();
+
+	cout << " done after ";
+	cout << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << "msec\n";
+
 
 	auto level1 = mm.getLevel(5);
 	auto texLevel1 = std::make_shared<Texture2D>(*level1);

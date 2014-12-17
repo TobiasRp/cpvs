@@ -41,7 +41,7 @@ void cs::Node::addChildren(const MinMaxHierarchy& minMax, size_t level, size_t s
 				childNr |= y << (steps / 2);
 				childNr |= z << steps;
 
-				// Now set the two bits we've just calculated
+				/* Now set the two bits we've just calculated at the right position */
 				childmask |= bits << (childNr * 2);
 
 				if (bits == CompressedShadow::PARTIAL) {
