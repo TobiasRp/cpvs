@@ -74,15 +74,13 @@ public:
 	 *
 	 * @note Useful for testing purposes!
 	 */
-	NodeVisibility traverse(vec3 position);
+	NodeVisibility traverse(const vec3 position);
 	
-	NodeVisibility traverse(ivec3 path);
-
 	/**
 	 * Given the number of levels in the octree, this calculates the resolution.
 	 */
 	inline static size_t getResolution(size_t numLevels) {
-		return 1 << (numLevels - 1);
+		return (1 << (numLevels - 1)) - 1;
 	}
 
 
@@ -94,7 +92,7 @@ private:
 	 * the corresponding discrete coordinates within a 3-dimensional grid.
 	 */
 	inline static ivec3 getPathFromNDC(vec3 ndc, size_t numLevels) {
-		size_t resolution = getResolution(numLevels);
+		int resolution = getResolution(numLevels);
 		ndc += vec3(1.0f, 1.0f, 1.0f);
 		ndc *= 0.5f;
 		return ivec3(ndc.x * resolution, ndc.y * resolution, ndc.z * resolution);

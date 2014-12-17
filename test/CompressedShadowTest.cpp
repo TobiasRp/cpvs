@@ -9,8 +9,8 @@ protected:
 		: img(8, 8, 1)
 	{
 		img.setAll(vector<float>{ 
-				0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
-				0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
+				0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
+				0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
 				0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
 				0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
 				1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
@@ -48,11 +48,17 @@ TEST_F(CompressedShadowTest, create) {
 	vis = csPtr->traverse(vec3(0.5, 0.5, 0.5));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-//	vis = csPtr->traverse(vec3(1, 1, -0.75));
-//	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
-
-	vis = csPtr->traverse(ivec3(15, 15, 0));
+	vis = csPtr->traverse(vec3(1, 1, -0.75));
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(ivec3(1, 1, 0.5));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = csPtr->traverse(ivec3(1, -1, 0.99));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(ivec3(0.8, -1, 0.99));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
 }
 

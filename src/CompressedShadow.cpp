@@ -46,25 +46,15 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap
 	return create(minMax);
 }
 
-
-CompressedShadow::NodeVisibility CompressedShadow::traverse(vec3 position) {
+CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {
 	ivec3 path = getPathFromNDC(position, m_numLevels);
-
-//	cout << glm::to_string(path) << endl;
-	return traverse(path);
-}
-
-CompressedShadow::NodeVisibility CompressedShadow::traverse(ivec3 path) {
 	Node *node = root;
-	int level = m_numLevels - 2;
+	int level = m_numLevels;
 	while(level >= 0) {
-		int lvlBit = 1 << (level + 1);
-		//cout << "lvlBit = " << hex << lvlBit << endl;
+		int lvlBit = 1 << (level - 2);
 		int childIndex = ((path.x & lvlBit) ? 1 : 0) +
 		                  ((path.y & lvlBit) ? 2 : 0) +
 						  ((path.z & lvlBit) ? 4 : 0);
-
-		//cout << childIndex << endl;
 
 		if (node->isVisible((Node::NodeNumber) childIndex)) {
 			return VISIBLE;
