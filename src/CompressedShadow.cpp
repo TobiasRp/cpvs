@@ -10,6 +10,9 @@ using namespace std;
 #include <glm/ext.hpp>
 #include <iostream>
 
+CompressedShadow::~CompressedShadow() {
+	delete root;
+}
 
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
@@ -17,8 +20,8 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	size_t res = getResolution(m_numLevels);
 	assert(res >= 2);
 
-	auto root = make_unique<Node>(ivec3(0, 0, 0), 2);
-	constructSvoSubtree(minMax, m_numLevels - 2, root.get());
+	root = new Node(ivec3(0, 0, 0), 2);
+	constructSvoSubtree(minMax, m_numLevels - 2, root);
 }
 
 void CompressedShadow::constructSvoSubtree(const MinMaxHierarchy& minMax, size_t level, cs::Node* top) {
@@ -29,7 +32,6 @@ void CompressedShadow::constructSvoSubtree(const MinMaxHierarchy& minMax, size_t
 
 	for (auto& childPtr : top->children) {
 		if (childPtr != nullptr) {
-			cout << "next level shit: " << level - 1<< endl;
 			constructSvoSubtree(minMax, level - 1, childPtr.get());
 		}
 	}
@@ -44,6 +46,38 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap
 	return create(minMax);
 }
 
+
 CompressedShadow::NodeVisibility CompressedShadow::traverse(vec3 position) {
+	ivec3 path = getPathFromNDC(position, m_numLevels);
+
+//	cout << glm::to_string(path) << endl;
+	return traverse(path);
+}
+
+CompressedShadow::NodeVisibility CompressedShadow::traverse(ivec3 path) {
+	Node *node = root;
+	int level = m_numLevels - 2;
+	while(level >= 0) {
+		int lvlBit = 1 << (level + 1);
+		//cout << "lvlBit = " << hex << lvlBit << endl;
+		int childIndex = ((path.x & lvlBit) ? 1 : 0) +
+		                  ((path.y & lvlBit) ? 2 : 0) +
+						  ((path.z & lvlBit) ? 4 : 0);
+
+		//cout << childIndex << endl;
+
+		if (node->isVisible((Node::NodeNumber) childIndex)) {
+			return VISIBLE;
+		} else if (node->isShadowed((Node::NodeNumber) childIndex)) {
+			return SHADOW;
+		} else {
+			node = node->children[childIndex].get();
+			assert(node != nullptr);
+		}
+
+		level -= 1;
+	}
+
+
 	return PARTIAL;
 }

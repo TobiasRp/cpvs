@@ -36,5 +36,23 @@ TEST_F(CompressedShadowTest, create) {
 	auto csPtr = CompressedShadow::create(mm);
 	
 	//TODO Traversal tests
+	auto vis = csPtr->traverse(vec3(-1, 1, -1));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = csPtr->traverse(vec3(-1, -1, 0));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(vec3(1, 1, 0));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = csPtr->traverse(vec3(0.5, 0.5, 0.5));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+//	vis = csPtr->traverse(vec3(1, 1, -0.75));
+//	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(ivec3(15, 15, 0));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
 }
 

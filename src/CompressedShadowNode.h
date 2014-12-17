@@ -20,9 +20,19 @@ namespace cs {
 		else if (minZ >= maxDepth)
 			return CompressedShadow::SHADOW;
 		else {
-			//TODO handle edge case to not return partial in the last level.
 			return CompressedShadow::PARTIAL;
 		}
+	}
+
+	/**
+	 * Compares a min/max z value and a depth value and returns either visible or shadow, but not partial.
+	 * @note Use this function for level 0.
+	 */
+	inline CompressedShadow::NodeVisibility absoluteVisible(float minZ, float maxZ, float depth) {
+		if (maxZ <= depth)
+			return CompressedShadow::VISIBLE;
+		else
+			return CompressedShadow::SHADOW;
 	}
 
 	/**
@@ -52,6 +62,9 @@ namespace cs {
 		unique_ptr<Node> children[8];
 		ivec3            offset;
 		float            depth;
+
+		Node()
+			: offset(ivec3(0, 0, 0)), depth(2) { }
 
 		Node(const ivec3 off, float d)
 			: offset(off), depth(d) { }

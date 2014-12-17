@@ -36,7 +36,7 @@ private:
 public:
 	/* Constructors, destructors,... and factory functions */
 
-	~CompressedShadow() = default;
+	~CompressedShadow();
 
 	CompressedShadow(const CompressedShadow&) = default;
 	CompressedShadow& operator=(const CompressedShadow&) = default;
@@ -75,6 +75,8 @@ public:
 	 * @note Useful for testing purposes!
 	 */
 	NodeVisibility traverse(vec3 position);
+	
+	NodeVisibility traverse(ivec3 path);
 
 	/**
 	 * Given the number of levels in the octree, this calculates the resolution.
@@ -111,6 +113,9 @@ private:
 	size_t m_numLevels;
 
 	vector<uint> m_dag;
+
+	// For testing.
+	cs::Node *root;
 };
 
 #endif
