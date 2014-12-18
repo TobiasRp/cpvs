@@ -20,15 +20,15 @@ void cs::Node::addChildren(const MinMaxHierarchy& minMax, size_t level, size_t s
 	for (uint z = 0; z < steps; ++z) {
 		for (uint y = 0; y < steps; ++y) {
 			for (uint x = 0; x < steps; ++x) {
-				float depthHalf = depth / 2.0f;
-				size_t offZ = z * depthHalf + offset.z;
+				float depthHalf = depth / static_cast<float>(steps);
+				float offZ = z * depthHalf + offset.z;
 				size_t offY = invertedY - y;
 				size_t offX = x + offset.x;
 
 				auto min = minMax.getMin(level, offX, offY);
 				auto max = minMax.getMax(level, offX, offY);
 
-				uint bits;
+				uint64 bits;
 				if (level > 0) {
 					bits = visible(offZ, offZ + depthHalf, min * levelHeight, max * levelHeight);
 				} else {
@@ -37,7 +37,7 @@ void cs::Node::addChildren(const MinMaxHierarchy& minMax, size_t level, size_t s
 				}
 
 				/* Combine x, y, z to get the index of the child we just calculated the visibility for */
-				uint childNr = x;
+				uint64 childNr = x;
 				childNr |= y << (steps / 2);
 				childNr |= z << steps;
 

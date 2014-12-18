@@ -58,10 +58,10 @@ namespace cs {
 			BACK_UPPER_RIGHT  = 7
 		};
 
-		uint             childmask;
-		unique_ptr<Node> children[8];
-		ivec3            offset;
-		float            depth;
+		uint64           childmask;   // usually only the lower 16-bit are used, but for leafs all 64-bit are needed.
+		unique_ptr<Node> children[8]; // Pointers to the children; can be nullptr's
+		ivec3            offset;      // Spatial offset (for the minimum point of the node's AABB)
+		float            depth;       // Spatial depth (for the z-radius of the node's AABB; x,y are not needed)
 
 		Node()
 			: offset(ivec3(0, 0, 0)), depth(2) { }
@@ -73,7 +73,7 @@ namespace cs {
 		 * Returns true if the child node is partially visible.
 		 */
 		inline bool isPartial(NodeNumber nr) {
-			uint mask = 1 << (nr * 2 + 1);
+			uint64 mask = 1 << (nr * 2 + 1);
 			return mask & childmask;
 		}
 
@@ -81,7 +81,7 @@ namespace cs {
 		 * Returns true if the child node is fully visible.
 		 */
 		inline bool isVisible(NodeNumber nr) {
-			uint mask = 1 << (nr * 2);
+			uint64 mask = 1 << (nr * 2);
 			return mask & childmask;
 		}
 

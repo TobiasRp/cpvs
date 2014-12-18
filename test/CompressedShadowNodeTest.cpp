@@ -5,26 +5,6 @@ using namespace std;
 
 using namespace cs;
 
-std::vector<float> depths16x16 {
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0
-};
-
-
 class CompressedShadowNodeTest : public ::testing::Test {
 protected:
 	CompressedShadowNodeTest() {
@@ -37,10 +17,6 @@ protected:
 				});
 
 		mm = make_unique<MinMaxHierarchy>(img);
-
-		ImageF bigImg(16, 16, 1);
-		bigImg.setAll(depths16x16);
-		bigMinMax = make_unique<MinMaxHierarchy>(bigImg);
 	}
 
 	virtual ~CompressedShadowNodeTest() {
@@ -48,8 +24,6 @@ protected:
 
 	virtual void SetUp() {
 		rootNode.addChildren(*(mm.get()), mm->getNumLevels() - 2);
-
-		bigRootNode.addChildren(*(bigMinMax.get()), bigMinMax->getNumLevels() - 2);
 	}
 
 	virtual void TearDown() {
@@ -57,9 +31,6 @@ protected:
 protected:
 	Node rootNode;
 	unique_ptr<MinMaxHierarchy> mm;
-
-	unique_ptr<MinMaxHierarchy> bigMinMax;
-	Node bigRootNode;
 };
 
 TEST_F(CompressedShadowNodeTest, testCreatingChildren) {
@@ -92,10 +63,4 @@ TEST_F(CompressedShadowNodeTest, testSubNode) {
 	bllChild->addChildren(*(mm.get()), mm->getNumLevels() - 3, 2);
 	ASSERT_TRUE(bllChild->isVisible(Node::FRONT_LOWER_LEFT));
 	ASSERT_TRUE(bllChild->isShadowed(Node::BACK_LOWER_LEFT));
-}
-
-TEST_F(CompressedShadowNodeTest, bigHierarchyTest) {
-	// In the big image all 8 children are partially visible
-	for (uint i = 0; i < 8; ++i)
-		ASSERT_TRUE(bigRootNode.isPartial((Node::NodeNumber)i));
 }

@@ -19,6 +19,7 @@ using std::unique_ptr;
 using std::array;
 
 using uint = unsigned int;
+using uint64 = uint64_t;
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
