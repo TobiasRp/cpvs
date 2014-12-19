@@ -1,4 +1,4 @@
-#include "CompressedShadowNode.h"
+#include "CompressedShadowUtil.h"
 
 /* For cout debugging :-) */
 #include <iostream>
@@ -7,7 +7,7 @@
 using namespace std;
 using namespace cs;
 
-void cs::Node::addChildren(const MinMaxHierarchy& minMax, size_t level, size_t steps) {
+uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset, size_t steps) {
 	assert(steps == 2 && "Haven't tested/implemented with steps != 2");
 
 	/* Size of the minMax level (levelHeight) */
@@ -16,11 +16,11 @@ void cs::Node::addChildren(const MinMaxHierarchy& minMax, size_t level, size_t s
 	/* The y-axis of the image in the min-max hierarchy is inverted */
 	size_t invertedY = levelHeight - offset.y - 1;
 
-	childmask = 0;
+	uint64 childmask = 0;
 	for (uint z = 0; z < steps; ++z) {
 		for (uint y = 0; y < steps; ++y) {
 			for (uint x = 0; x < steps; ++x) {
-				float depthHalf = depth / static_cast<float>(steps);
+				float depthHalf = 2.0f / static_cast<float>(steps);
 				float offZ = z * depthHalf + offset.z;
 				size_t offY = invertedY - y;
 				size_t offX = x + offset.x;
@@ -43,12 +43,23 @@ void cs::Node::addChildren(const MinMaxHierarchy& minMax, size_t level, size_t s
 
 				/* Now set the two bits we've just calculated at the right position */
 				childmask |= bits << (childNr * 2);
-
-				if (bits == CompressedShadow::PARTIAL) {
-					ivec3 newOffset = ivec3(offX * 2, (offset.y + y) * 2, offZ * 2);
-					children[childNr] = make_unique<Node>(newOffset, depth);
-				}
 			}
 		}
 	}
+	return childmask;
+}
+
+vector<ivec3> cs::getChildOffsets(uint childmask, const ivec3& parentOffset) {
+	vector<ivec3> result;
+	for (uint i = 0; i < 8; ++i) {
+		if (isPartial(childmask, i)) {
+			uint maskX = (1 & i) ? 1 : 0;
+			uint maskY = (2 & i) ? 1 : 0;
+			uint maskZ = (4 & i) ? 1 : 0;
+			ivec3 off((parentOffset.x + maskX) * 2, (parentOffset.y + maskY) * 2, (parentOffset.z + maskZ) * 2);
+
+			result.push_back(off);
+		}
+	}
+	return result;
 }

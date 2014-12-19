@@ -6,10 +6,6 @@
 class MinMaxHierarchy;
 class ShadowMap;
 
-namespace cs {
-	struct Node;
-};
-
 /**
  * This entral datastructure of the CPVS represents the DAG of voxels
  * which is a compressed shadow of a light.
@@ -36,7 +32,7 @@ private:
 public:
 	/* Constructors, destructors,... and factory functions */
 
-	~CompressedShadow();
+	~CompressedShadow() = default;
 
 	CompressedShadow(const CompressedShadow&) = default;
 	CompressedShadow& operator=(const CompressedShadow&) = default;
@@ -104,16 +100,15 @@ private:
 	 */
 	void compressDAG();
 
-	void constructSvoSubtree(const MinMaxHierarchy& minMax, size_t level, cs::Node* top);
+	void constructSvo(const MinMaxHierarchy& minMax);
+
+	void setChildrenOffsets(size_t nodeOffset, size_t childrenOffset, uint numChildren);
 
 private:
 	/* Private class members */
 	size_t m_numLevels;
 
 	vector<uint> m_dag;
-
-	// For testing.
-	cs::Node *root;
 };
 
 #endif
