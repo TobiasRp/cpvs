@@ -42,6 +42,10 @@ using ivec4 = glm::ivec4;
 
 #define GL_ASSERT_NO_ERROR() assert(glGetError() == GL_NO_ERROR);
 
+// Counts the number of set bits.
+// Builtin exists for clang and gcc
+#define POPCOUNT(x) __builtin_popcount(x)
+
 /* Checks for OpenGL errors and outputs an error string */
 extern void checkGLErrors(const std::string &str);
 

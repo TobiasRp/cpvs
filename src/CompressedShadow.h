@@ -98,11 +98,22 @@ private:
 	 * During the construction of the SVO/DAG each node will have 8 pointers to it's children.
 	 * This function will compress this structure 'm_dag' by removing all unnecessary pointers.
 	 */
-	void compressDAG();
+	void compress();
 
+	/**
+	 * Merges common subtrees of an SVO to transform it into a directed acyclic graph (DAG).
+	 * \note Assumes an uncompressed SVO exists.
+	 */
+	void mergeSubtrees();
+
+	/**
+	 * Constructs the sparse voxel octree in a 1-dimensional array.
+	 * The resulting datastructure is not compressed, i.e. every node has 8 pointers even if they
+	 * are 0.
+	 * \see compress
+	 * \see mergeSubtrees
+	 */
 	void constructSvo(const MinMaxHierarchy& minMax);
-
-	void setChildrenOffsets(size_t nodeOffset, size_t childrenOffset, uint numChildren);
 
 private:
 	/* Private class members */

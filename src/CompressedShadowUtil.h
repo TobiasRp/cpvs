@@ -53,7 +53,7 @@ namespace cs {
 		// partialMask will have a bit set for every partially visible child
 		uint partialMask = childmask & (0xAAAA);
 		// count number of bits set
-		return __builtin_popcount(partialMask);
+		return POPCOUNT(partialMask);
 	}
 
 	/**

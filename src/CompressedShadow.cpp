@@ -3,18 +3,16 @@
 #include "MinMaxHierarchy.h"
 #include "ShadowMap.h"
 
-#include <thread>
 #include <algorithm>
 #include <cmath>
 using namespace cs;
 using namespace std;
 
-// for testing and debugging
+// for cout testing and debugging!
 #include <glm/ext.hpp>
 #include <iostream>
 
-// Some constants
-constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (can be compressed later)
+constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointer will be removed later)
 
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
@@ -23,16 +21,27 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	constructSvo(minMax);
 }
 
+/**
+ * Given a node through it's offset and a pointer to the beginning of it's children, this helper
+ * function sets the nodes pointers to it's children in the dag.
+ */
+void setChildrenOffsets(const vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren) {
+	for (uint i = 0; i < numChildren; ++i) {
+		dag[nodeOffset + 1 + i] = childrenOffset + i * NODE_SIZE;
+	}
+}
+
 void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	const ivec3 rootOffset(0, 0, 0);
 	uint64 rootmask  = cs::createChildmask(minMax, m_numLevels - 2, rootOffset);
 	uint numChildren = cs::getNumChildren(rootmask);
-
-	m_dag.resize(NODE_SIZE + numChildren * NODE_SIZE); // resize so root + children fit in
+ 
+	// Resize so root and children fit in
+	m_dag.resize(NODE_SIZE + numChildren * NODE_SIZE);
 	m_dag[0] = rootmask;
 
 	vector<ivec3> childCoords = cs::getChildOffsets(rootmask, rootOffset);
-	setChildrenOffsets(0, NODE_SIZE, numChildren);
+	setChildrenOffsets(m_dag, 0, NODE_SIZE, numChildren);
 
 	uint levelOffset     = NODE_SIZE;
 	size_t numLevelNodes = numChildren;
@@ -40,6 +49,8 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	vector<ivec3> newChildrenCoords;
 
 	int level = m_numLevels - 3;
+
+	/* Create new levels from the highest to the lowest level */
 	while(level >= 0 && numLevelNodes > 0) {
 		size_t nextLevelOffset   = levelOffset + numLevelNodes * NODE_SIZE;
 		size_t newChildrenNodes  = 0;
@@ -72,7 +83,7 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 				auto coords = cs::getChildOffsets(nodemask, childCoords[nodeNr]);
 				size_t childOffset = nextLevelOffset + nextLevelProgress;
 
-				setChildrenOffsets(nodeOffset, childOffset, numChildren);
+				setChildrenOffsets(m_dag, nodeOffset, childOffset, numChildren);
 				newChildrenCoords.insert(newChildrenCoords.end(), coords.begin(), coords.end());
 
 				nextLevelProgress += numChildren * NODE_SIZE;
@@ -85,12 +96,6 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 		childCoords   = newChildrenCoords;
 
 		level--;
-	}
-}
-
-void CompressedShadow::setChildrenOffsets(size_t nodeOffset, size_t childrenOffset, uint numChildren) {
-	for (uint i = 0; i < numChildren; ++i) {
-		m_dag[nodeOffset + 1 + i] = childrenOffset + i * NODE_SIZE;
 	}
 }
 
@@ -121,14 +126,14 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 		} else if (isShadowed(childmask, childIndex)) {
 			return SHADOW;
 		} else {
-			// We need the child index whilst counting only partially visible children
+			// We need the child index counting only partially visible children
 
 			uint childBits = childIndex * 2;
 			// 0xAAAA is a mask for partial visibility
 			uint maskedChildMask = childmask & (0xAAAA >> (16 - childBits));
 
 			// Count the bits set, this is the correct offset
-			uint childOffset = __builtin_popcount(maskedChildMask);
+			uint childOffset = POPCOUNT(maskedChildMask);
 
 			offset = m_dag[offset + 1 + childOffset];
 		}
