@@ -25,7 +25,7 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 
 void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	const ivec3 rootOffset(0, 0, 0);
-	uint64 rootmask = cs::createChildmask(minMax, m_numLevels - 2, rootOffset);
+	uint64 rootmask  = cs::createChildmask(minMax, m_numLevels - 2, rootOffset);
 	uint numChildren = cs::getNumChildren(rootmask);
 
 	m_dag.resize(NODE_SIZE + numChildren * NODE_SIZE); // resize so root + children fit in
@@ -34,28 +34,26 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	vector<ivec3> childCoords = cs::getChildOffsets(rootmask, rootOffset);
 	setChildrenOffsets(0, NODE_SIZE, numChildren);
 
-	uint levelOffset = NODE_SIZE;// + numChildren * NODE_SIZE;
+	uint levelOffset     = NODE_SIZE;
 	size_t numLevelNodes = numChildren;
 
 	vector<ivec3> newChildrenCoords;
 
 	int level = m_numLevels - 3;
 	while(level >= 0 && numLevelNodes > 0) {
-		size_t nextLevelOffset  = levelOffset + numLevelNodes * NODE_SIZE;
-
-		size_t newChildrenNodes = 0;
+		size_t nextLevelOffset   = levelOffset + numLevelNodes * NODE_SIZE;
+		size_t newChildrenNodes  = 0;
+		size_t nextLevelProgress = 0;
 		newChildrenCoords.clear();
 
-		/* First calculates the number of new children nodes so we can resize the dag.
+		/* First calculate the number of new children nodes so we can resize the dag.
 		 * Thereby save all masks so we don't have to calculate them twice */
 		vector<uint64> masks(numLevelNodes);
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-//			cout << glm::to_string(childCoords[nodeNr]) << endl;
 			uint64 nodemask = cs::createChildmask(minMax, level, childCoords[nodeNr]);
 			numChildren     = cs::getNumChildren(nodemask);
 
 			masks[nodeNr] = nodemask;
-//			cout << "nodeNr " << nodeNr << " with mask " << hex << nodemask << endl;
 			newChildrenNodes += numChildren;
 		}
 
@@ -63,7 +61,7 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 			m_dag.resize(m_dag.size() + newChildrenNodes * NODE_SIZE, 0);
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-			uint nodeOffset   = levelOffset + nodeNr * NODE_SIZE;
+			size_t nodeOffset   = levelOffset + nodeNr * NODE_SIZE;
 			uint64 nodemask   = masks[nodeNr];
 			numChildren       = cs::getNumChildren(nodemask);
 			m_dag[nodeOffset] = nodemask;
@@ -72,9 +70,12 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 				assert(level != 0);
 
 				auto coords = cs::getChildOffsets(nodemask, childCoords[nodeNr]);
+				size_t childOffset = nextLevelOffset + nextLevelProgress;
 
-				setChildrenOffsets(nodeOffset, nextLevelOffset + nodeNr * NODE_SIZE, numChildren);
+				setChildrenOffsets(nodeOffset, childOffset, numChildren);
 				newChildrenCoords.insert(newChildrenCoords.end(), coords.begin(), coords.end());
+
+				nextLevelProgress += numChildren * NODE_SIZE;
 			}
 		}
 
@@ -84,10 +85,6 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 		childCoords   = newChildrenCoords;
 
 		level--;
-	}
-
-	for (uint i = 0; i < m_dag.size(); ++i) {
-		cout << hex << m_dag[i] << ", ";
 	}
 }
 
@@ -107,35 +104,32 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap
 }
 
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {
-	ivec3 path = getPathFromNDC(std::move(position), m_numLevels);
-
-	//cout << "path = " << glm::to_string(path) << endl;
+	const ivec3 path = getPathFromNDC(std::move(position), m_numLevels);
 
 	size_t offset = 0;
-
-	int level = m_numLevels;
+	int level     = m_numLevels;
 	while(level > 1) {
-		//cout << "leveeel is " << level << endl;
 		int lvlBit = 1 << (level - 2);
-		//cout << "lvlBit " << lvlBit << endl;
 		int childIndex = ((path.x & lvlBit) ? 1 : 0) +
 		                 ((path.y & lvlBit) ? 2 : 0) +
 						 ((path.z & lvlBit) ? 4 : 0);
 
-		//cout << "offset is " << offset << " and ci = " << childIndex << endl;
 		uint64 childmask = m_dag[offset];
-
-		//cout << hex << childmask << endl;
 
 		if(isVisible(childmask, childIndex)) {
 			return VISIBLE;
 		} else if (isShadowed(childmask, childIndex)) {
 			return SHADOW;
 		} else {
-			//FIXME
-			uint maskedChildMask = childmask & (0xAAAA >> (8-childIndex));
+			// We need the child index whilst counting only partially visible children
+
+			uint childBits = childIndex * 2;
+			// 0xAAAA is a mask for partial visibility
+			uint maskedChildMask = childmask & (0xAAAA >> (16 - childBits));
+
+			// Count the bits set, this is the correct offset
 			uint childOffset = __builtin_popcount(maskedChildMask);
-			cout << childOffset << endl;
+
 			offset = m_dag[offset + 1 + childOffset];
 		}
 

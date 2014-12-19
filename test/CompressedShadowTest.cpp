@@ -55,6 +55,8 @@ protected:
 };
 
 TEST_F(CompressedShadowTest, testTraverse8x8) {
+	constexpr float step = 2.0f / 8.0f;
+
 	MinMaxHierarchy mm(img8);
 	auto csPtr = CompressedShadow::create(mm);
 	
@@ -82,7 +84,7 @@ TEST_F(CompressedShadowTest, testTraverse8x8) {
 	vis = csPtr->traverse(vec3(0.7, -1, 0.99));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(0.4, -1, -0.8));
+	vis = csPtr->traverse(vec3(.45, -1, -0.9));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
 	vis = csPtr->traverse(vec3(0.1, -1.0, -0.9));
@@ -93,17 +95,17 @@ TEST_F(CompressedShadowTest, testTraverse16x16) {
 	constexpr float step = 2.0f / 16.0f;
 
 	MinMaxHierarchy mm(img16);
-	//auto csPtr = CompressedShadow::create(mm);
+	auto csPtr = CompressedShadow::create(mm);
 	
-//	auto vis = csPtr->traverse(vec3(1, 1, 0));
-//	ASSERT_EQ(CompressedShadow::SHADOW, vis);
-//
-//	vis = csPtr->traverse(vec3(-1, -1, -1.0f + 3 * step ));
-//	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
-//
-//	vis = csPtr->traverse(vec3(-1, -step, -1.0f + 3 * step ));
-//	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
-//
-//	vis = csPtr->traverse(vec3(-1, 1, -1));
-//	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+	auto vis = csPtr->traverse(vec3(1, 1, 0));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(vec3(-1, -1, -1.0f + 3 * step ));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(vec3(-1, -step, -1.0f + 3 * step ));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(vec3(-1, 1, -1));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 }
