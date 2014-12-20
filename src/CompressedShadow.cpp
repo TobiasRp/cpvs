@@ -25,7 +25,7 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
  * Given a node through it's offset and a pointer to the beginning of it's children, this helper
  * function sets the nodes pointers to it's children in the dag.
  */
-void setChildrenOffsets(const vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren) {
+void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren) {
 	for (uint i = 0; i < numChildren; ++i) {
 		dag[nodeOffset + 1 + i] = childrenOffset + i * NODE_SIZE;
 	}
