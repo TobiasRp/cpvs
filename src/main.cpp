@@ -15,6 +15,7 @@ using namespace std;
 #include "MinMaxHierarchy.h"
 #include "CompressedShadow.h"
 #include <chrono>
+using namespace std::chrono;
 
 /* Settings and globals */
 const string defaultSceneFile = "../scenes/sibenik/sibenik.obj";
@@ -24,7 +25,7 @@ const GLuint WINDOW_HEIGHT = 512;
 
 const GLuint SM_SIZE = 8192;
 
-FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.2, 100'000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
 shared_ptr<PostProcess> fxaa;
 
@@ -123,11 +124,16 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 	}
 }
 
+void printDurationToNow(high_resolution_clock::time_point start) {
+	auto t1 = high_resolution_clock::now();
+	cout << duration_cast<milliseconds>(t1 - start).count() << "msec\n";
+}
+
 int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
 
-	vec3 lightDir = glm::normalize(vec3(1, -0.5, 0.1));
+	vec3 lightDir = glm::normalize( - vec3(1, 0.5, 0.1));
 	DirectionalLight light(vec3(0.5, 0.5, 0.5), lightDir);
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -136,9 +142,10 @@ int main(int argc, char **argv) {
 	renderSystem->setPostProcess(fxaa);
 
 	cout << "Loading scene... "; cout.flush();
-
+	auto t0 = high_resolution_clock::now();
 	auto scene = loadSceneFromArguments(argc, argv);
-	cout << "done." << endl;
+	cout << "done after ";
+	printDurationToNow(t0);
 
 	cam.setSpeed(3.0f);
 	cam.setPosition(vec3(10, 10, 10));
@@ -148,19 +155,16 @@ int main(int argc, char **argv) {
 	auto sm = renderSystem->renderShadowMap(scene.get(), SM_SIZE);
 	auto smImg = sm->createImageF();
 	cout << "Loading min-max hierarchy..."; cout.flush();
-	auto t0 = chrono::high_resolution_clock::now();
+	t0 = high_resolution_clock::now();
 	MinMaxHierarchy mm(smImg);
-	auto t1 = chrono::high_resolution_clock::now();
 	cout << " done after ";
-	cout << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << "msec\n";
+	printDurationToNow(t0);
 
 	cout << "Compressing shadow... "; cout.flush();
 	t0 = chrono::high_resolution_clock::now();
 	auto shadow = CompressedShadow::create(mm);
-	t1 = chrono::high_resolution_clock::now();
-
 	cout << " done after ";
-	cout << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << "msec\n";
+	printDurationToNow(t0);
 
 
 	auto level1 = mm.getLevel(5);

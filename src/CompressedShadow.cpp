@@ -19,6 +19,8 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	assert(m_numLevels > 3);
 
 	constructSvo(minMax);
+
+	compress();
 }
 
 /**
@@ -97,6 +99,25 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 
 		level--;
 	}
+}
+
+void CompressedShadow::compress() {
+	assert(m_dag.size() > 10);
+	vector<uint> newDag(9);
+
+	newDag[0] = m_dag[0];
+	size_t zeroItems = 0;
+	for (size_t i = 0; i < 8; ++i) {
+		if (m_dag[i + 1] == 0)
+			zeroItems++;
+	}
+
+	for (size_t i = 0; i < 8 - zeroItems; ++i) {
+		newDag[i + 1] = m_dag[i + 1] - zeroItems;
+	}
+
+	// swap m_dag and newDag
+	//m_dag.swap(newDag);
 }
 
 unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {

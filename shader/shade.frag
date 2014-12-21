@@ -15,6 +15,7 @@ struct Light {
 uniform Light light;
 
 vec3 ambient_color = vec3(0.15, 0.15, 0.15);
+//vec3 ambient_color = vec3(0.0, 0.0, 0.0);
 
 void main(void) {
 	vec4 positionTex = texture(positionBuffer, position);
@@ -22,14 +23,16 @@ void main(void) {
 	//float depth = positionTex.w;
 
 	vec4 normalTex = texture(normalBuffer, position);
-	vec3 N = normalTex.xyz;
+	vec3 N = normalize(normalTex.xyz);
 	//float shininess = normalTex.w;
 
-	vec3 L = - light.direction;
+	vec3 L = normalize( - light.direction);
 	vec4 diffuse_color = texture(diffuseBuffer, position);
 	float diffuse = max(0.0, dot(N, L));
 
 	vec3 scatteredLight = ambient_color + light.color * diffuse;
 
 	fragColor = vec4(scatteredLight * diffuse_color.rgb, diffuse_color.a);
+	//fragColor = vec4(N, 1.0);
+	//fragColor = vec4(diffuse);
 }

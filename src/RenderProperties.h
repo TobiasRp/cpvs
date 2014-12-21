@@ -39,7 +39,7 @@ public:
 	}
 
 	mat4 getNormalMatrix() const {
-		return glm::transpose(glm::inverse(getMV()));
+		return glm::transpose(glm::inverse(getM()));
 	}
 
 	void setRenderingOfMaterials(bool value) {
