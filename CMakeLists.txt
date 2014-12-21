@@ -14,6 +14,7 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Assimp REQUIRED)
+find_package(AntTweakBar REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 
@@ -21,6 +22,7 @@ include_directories(${OPENGL_INCLUDE_DIRS})
 include_directories(${GLEW_INCLUDE_DIRS})
 include_directories(${GLFW_INCLUDE_DIRS})
 include_directories(${ASSIMP_INCLUDE_DIRS})
+include_directories(${ANT_TWEAK_BAR_INCLUDE_PATH})
 
 # GLM is assumed to be above in the path
 include_directories("glm/")
@@ -37,6 +39,7 @@ target_link_libraries(cpvs ${OPENGL_LIBRARIES})
 target_link_libraries(cpvs ${GLEW_LIBRARIES})
 target_link_libraries(cpvs ${GLFW_STATIC_LIBRARIES})
 target_link_libraries(cpvs ${ASSIMP_LIBRARIES})
+target_link_libraries(cpvs ${ANT_TWEAK_BAR_LIBRARY})
 
 # Testing with GTest
 ADD_SUBDIRECTORY(gtest-1.7.0)

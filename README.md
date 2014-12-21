@@ -13,9 +13,10 @@ OpenGL 4.4 is needed
 Use CMake!
 
 Needed libraries:
-	GLEW, GLFW3, Assimp
+	GLEW, GLFW3, Assimp, AntTweakBar
 
--> CMake should find them
+-> CMake should find them!
+AntTweakBar also needs it's shared library in 'LD_LIBRARY_PATH'
 
 GLM is included in the repository (it is header-only!)
 

@@ -3,6 +3,10 @@
 
 #include <iostream>
 using namespace std;
+#include <chrono>
+using namespace std::chrono;
+
+#include <AntTweakBar.h>
 
 #include "cpvs.h"
 #include "ShaderProgram.h"
@@ -14,8 +18,6 @@ using namespace std;
 
 #include "MinMaxHierarchy.h"
 #include "CompressedShadow.h"
-#include <chrono>
-using namespace std::chrono;
 
 /* Settings and globals */
 const string defaultSceneFile = "../scenes/plane.obj";
@@ -35,6 +37,8 @@ void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
 	glViewport(0, 0, width, height);
 	renderSystem->resize(width, height);
+
+	TwWindowSize(width, height);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -80,6 +84,17 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 	}
 }
 
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	// delegate to tweak bar
+	auto twAction = (action == GLFW_PRESS) ? TW_MOUSE_PRESSED : TW_MOUSE_RELEASED;
+	auto twButton = (button == GLFW_MOUSE_BUTTON_1) ? TW_MOUSE_LEFT : TW_MOUSE_RIGHT;
+	TwMouseButton(twAction, twButton);
+}
+
+void setMousePosCallback(GLFWwindow* window, double xpos, double ypos) {
+	TwMouseMotion(xpos, ypos);
+}
+
 GLFWwindow* initAndCreateWindow() {
 	if (!glfwInit())
 		cerr << "Error: Could not initialize GLFW" << endl;
@@ -92,6 +107,8 @@ GLFWwindow* initAndCreateWindow() {
 
 	glfwSetWindowSizeCallback(window, resize);
 	glfwSetKeyCallback(window, keyCallback);
+	glfwSetMouseButtonCallback(window, mouseButtonCallback);
+	glfwSetCursorPosCallback(window, setMousePosCallback);
 	glfwMakeContextCurrent(window);
 	return window;
 }
@@ -101,6 +118,17 @@ void initExtensions() {
 	if (err != GLEW_OK) {
 		cerr << "Error: " << glewGetErrorString(err) << endl;
 	}
+}
+
+TwBar* initTweakBar() {
+	TwInit(TW_OPENGL_CORE, NULL);
+
+	TwWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	auto twBar = TwNewBar("CPVS Settings");
+	TwAddVarRW(twBar, "Render shadow map", TW_TYPE_BOOLCPP, &renderShadowMap, NULL);
+
+	return twBar;
 }
 
 /**
@@ -132,6 +160,8 @@ void printDurationToNow(high_resolution_clock::time_point start) {
 int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
+
+	auto twBar = initTweakBar();
 
 	vec3 lightDir = glm::normalize( - vec3(1, 0.5, 0.1));
 	DirectionalLight light(vec3(0.5, 0.5, 0.5), lightDir);
@@ -178,10 +208,13 @@ int main(int argc, char **argv) {
 		else
 			renderSystem->render(properties, scene.get());
 		
+		TwDraw();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
+	TwDeleteBar(twBar);
+	TwTerminate();
 	glfwTerminate();
 	return 0;
 }
