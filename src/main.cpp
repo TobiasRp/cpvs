@@ -18,7 +18,7 @@ using namespace std;
 using namespace std::chrono;
 
 /* Settings and globals */
-const string defaultSceneFile = "../scenes/sibenik/sibenik.obj";
+const string defaultSceneFile = "../scenes/plane.obj";
 
 const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;

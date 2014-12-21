@@ -3,6 +3,10 @@ cpvs
 
 Implementation of compact precomputed voxelized shadows
 
+/// General requirements ///
+
+OpenGL 4.4 is needed
+
 
 /// Building CPVS ///
 
@@ -13,7 +17,7 @@ Needed libraries:
 
 -> CMake should find them
 
-Furthermore, GLM is needed. Since GLM is header-only CMake looks for it above the cpvs directory.
+GLM is included in the repository (it is header-only!)
 
 For unit testing GTest is included in the repository
 
@@ -22,4 +26,4 @@ For unit testing GTest is included in the repository
 3D-models/scene files are not included in the repo!
 
 Simply specify the scene to use as an argument.
-(Default scene is "../scenes/sibenik/sibenik.obj", which can be changed in src/main.cpp)
+(Default scene is "../scenes/plane.obj", which can be changed in src/main.cpp)
