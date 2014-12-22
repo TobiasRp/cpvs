@@ -29,7 +29,7 @@ public:
 
 	void renderTexture(shared_ptr<Texture2D> tex);
 
-	const DirectionalLight& getLight() const {
+	DirectionalLight& getLight() {
 		return m_dirLight;
 	}
 
@@ -57,7 +57,7 @@ private:
 	const Quad m_fullscreenQuad;
 	shared_ptr<PostProcess> m_postProcess;
 
-	const DirectionalLight m_dirLight;
+	DirectionalLight m_dirLight;
 };
 
 #endif

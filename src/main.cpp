@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/ext.hpp>
 
 #include <iostream>
 using namespace std;
@@ -31,7 +32,12 @@ FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.2, 100'000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
 shared_ptr<PostProcess> fxaa;
 
-bool renderShadowMap;
+struct Settings {
+	bool renderShadowMap;
+	uint smLevel;
+};
+
+Settings uiSettings;
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
@@ -74,11 +80,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 		/* Disables post process (if one exists) */
 		renderSystem->removePostProcess();
 		break;
-	case GLFW_KEY_F3:
-		/* Toggle rendering of scene / shadow map */
-		if (action == GLFW_PRESS)
-			renderShadowMap = !renderShadowMap;
-		break;
 	case GLFW_KEY_ESCAPE:
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
@@ -99,7 +100,7 @@ GLFWwindow* initAndCreateWindow() {
 	if (!glfwInit())
 		cerr << "Error: Could not initialize GLFW" << endl;
 
-	auto window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "glCompute", nullptr, nullptr);
+	auto window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "CPVS", nullptr, nullptr);
 	if (!window) {
 		glfwTerminate();
 		cerr << "Error: GLFW could not create window" << endl;
@@ -120,13 +121,22 @@ void initExtensions() {
 	}
 }
 
+void initUiSettings() {
+	uiSettings.renderShadowMap = false;
+}
+
 TwBar* initTweakBar() {
 	TwInit(TW_OPENGL_CORE, NULL);
 
 	TwWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	auto twBar = TwNewBar("CPVS Settings");
-	TwAddVarRW(twBar, "Render shadow map", TW_TYPE_BOOLCPP, &renderShadowMap, NULL);
+	TwAddVarRW(twBar, "Render shadow map", TW_TYPE_BOOLCPP, &uiSettings.renderShadowMap, nullptr);
+
+	string minMaxSettings("min=0 max=");
+	minMaxSettings.append(to_string((int)log2(SM_SIZE)));
+	cout << minMaxSettings << endl;
+	TwAddVarRW(twBar, "Shadow map level", TW_TYPE_UINT32, &uiSettings.smLevel, minMaxSettings.c_str());
 
 	return twBar;
 }
@@ -161,10 +171,11 @@ int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
 
+	initUiSettings();
 	auto twBar = initTweakBar();
 
-	vec3 lightDir = glm::normalize( - vec3(1, 0.5, 0.1));
-	DirectionalLight light(vec3(0.5, 0.5, 0.5), lightDir);
+	vec3 direction = glm::normalize(vec3(-0.2, 1.0, 0.18));
+	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction);
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -196,15 +207,22 @@ int main(int argc, char **argv) {
 	cout << " done after ";
 	printDurationToNow(t0);
 
-
-	auto level1 = mm.getLevel(5);
-	auto texLevel1 = std::make_shared<Texture2D>(*level1);
+	auto level = mm.getLevel(1);
+	auto texLevel = std::make_shared<Texture2D>(*level);
+	uint lastLevel = 1;
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());
 
-		if (renderShadowMap)
-			renderSystem->renderTexture(texLevel1);
+		if (uiSettings.smLevel != lastLevel) {
+			// update sm texture (only when necessary)
+			level = mm.getLevel(uiSettings.smLevel);
+			texLevel = std::make_shared<Texture2D>(*level);
+			lastLevel = uiSettings.smLevel;
+		}
+
+		if (uiSettings.renderShadowMap)
+			renderSystem->renderTexture(texLevel);
 		else
 			renderSystem->render(properties, scene.get());
 		
@@ -213,7 +231,6 @@ int main(int argc, char **argv) {
 		glfwPollEvents();
 	}
 
-	TwDeleteBar(twBar);
 	TwTerminate();
 	glfwTerminate();
 	return 0;

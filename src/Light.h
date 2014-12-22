@@ -9,7 +9,7 @@
 class DirectionalLight {
 public:
 	DirectionalLight(vec3 col, vec3 dir)
-	   	: color(col), direction(dir), position(vec3(10, 50, 10)) { }
+	   	: color(col), direction(dir), distance(100) { }
 	~DirectionalLight() = default;
 
 	mat4 getLightView() const;
@@ -19,7 +19,9 @@ public:
 public:
 	vec3 color;
 	vec3 direction;
-	vec3 position;
+	
+	// Rendering of the shadow map needs a position, this is (0, 0, 0) + distance * direction
+	float distance; 
 };
 
 #endif

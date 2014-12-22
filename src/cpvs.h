@@ -10,8 +10,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-
-
 using std::string;
 using std::vector;
 using std::shared_ptr;
@@ -46,17 +44,18 @@ using ivec4 = glm::ivec4;
 // Builtin exists for clang and gcc
 #define POPCOUNT(x) __builtin_popcount(x)
 
-/* Checks for OpenGL errors and outputs an error string */
+/** Checks for OpenGL errors and outputs an error string */
 extern void checkGLErrors(const std::string &str);
 
+/** Returns true if the parameter is a power of two */
 inline constexpr bool isPowerOfTwo(int x) {
 	return !(x & (x - 1));
 }
 
+/** Computes the log of base 2 */
 inline double log2(const double x){
 	return log(x) * 1.44269504088896340736; //log(x) * log2(e)
 }
-
 
 /* Some exception types */
 
