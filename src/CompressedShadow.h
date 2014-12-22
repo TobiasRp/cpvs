@@ -95,8 +95,8 @@ private:
 	}
 
 	/**
-	 * During the construction of the SVO/DAG each node will have 8 pointers to it's children.
-	 * This function will compress this structure 'm_dag' by removing all unnecessary pointers.
+	 * During the construction of the SVO/DAG each node will have 8 pointers to its children.
+	 * This function will compress this structure by removing all unnecessary pointers.
 	 */
 	void compress();
 
