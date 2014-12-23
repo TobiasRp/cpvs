@@ -236,8 +236,8 @@ void DeferredRenderer::computeShadow() {
 
 	const GLuint localSize = 16;
 
-	const GLuint numGroupsX = m_gBuffer.getWidth() / localSize;
-	const GLuint numGroupsY = m_gBuffer.getHeight() / localSize;
+	const GLuint numGroupsX = ceil(m_gBuffer.getWidth() / localSize);
+	const GLuint numGroupsY = ceil(m_gBuffer.getHeight() / localSize);
 	glDispatchCompute(numGroupsX, numGroupsY, 1);
 
 	m_traverseCS.release();

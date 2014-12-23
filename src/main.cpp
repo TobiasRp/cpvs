@@ -26,7 +26,11 @@ const string defaultSceneFile = "../scenes/plane.obj";
 const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;
 
-const GLuint SM_SIZE = 8192;
+
+/* Shadow map and light settings */
+const GLuint SM_SIZE        = 4096;
+const float  lightDistance  = 900;
+const vec3   lightDirection = {-0.2, 1, 0};
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.2, 100'000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
@@ -180,8 +184,8 @@ int main(int argc, char **argv) {
 	initUiSettings();
 	auto twBar = initTweakBar();
 
-	vec3 direction = glm::normalize(vec3(-0.2, 1.0, 0.18));
-	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction);
+	vec3 direction = glm::normalize(lightDirection);
+	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction, lightDistance);
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 
