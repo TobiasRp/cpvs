@@ -57,6 +57,8 @@ void DeferredRenderer::loadShaders() {
 	m_create_sm.addUniform("MVP");
 
 	m_traverseCS.addUniform("shadowProj");
+	m_traverseCS.addUniform("width");
+	m_traverseCS.addUniform("height");
 }
 
 void DeferredRenderer::initFbos() {
@@ -234,10 +236,16 @@ void DeferredRenderer::computeShadow() {
 
 	glUniformMatrix4fv(m_traverseCS["shadowProj"], 1, GL_FALSE, glm::value_ptr(lightMat));
 
-	const GLuint localSize = 16;
+	// Set width and height
+	const GLuint width = m_gBuffer.getWidth();
+	const GLuint height = m_gBuffer.getHeight();
+	glUniform1ui(m_traverseCS["width"], width);
+	glUniform1ui(m_traverseCS["height"], height);
 
-	const GLuint numGroupsX = ceil(m_gBuffer.getWidth() / localSize);
-	const GLuint numGroupsY = ceil(m_gBuffer.getHeight() / localSize);
+	// Now calculate work group size and dispatch!
+	const GLuint localSize = 16;
+	const GLuint numGroupsX = ceil(width / static_cast<float>(localSize));
+	const GLuint numGroupsY = ceil(height / static_cast<float>(localSize));
 	glDispatchCompute(numGroupsX, numGroupsY, 1);
 
 	m_traverseCS.release();

@@ -1,6 +1,11 @@
 #version 440 core
 
-layout (local_size_x = 16, local_size_y = 16) in;
+#define LOCAL_SIZE 16
+
+layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
+
+uniform uint width;
+uniform uint height;
 
 layout (rgba32f, binding = 0) uniform image2D positionsWS;
 layout (rg8, binding = 1) uniform image2D visibilities;
@@ -63,9 +68,12 @@ bool traverse(const vec3 projPos) {
 void main() {
 	ivec2 index = ivec2(gl_GlobalInvocationID.xy);
 
-	vec4 posWS = imageLoad(positionsWS, index);
+	if (index.x >= width || index.y >= height)
+		return;
 
-	vec4 projPos = shadowProj * posWS;
+	vec3 posWS = imageLoad(positionsWS, index).xyz;
+
+	vec4 projPos = shadowProj * vec4(posWS, 1.0);
 	projPos.xyz = projPos.xyz / projPos.z;
 
 	float vis = traverse(projPos.xyz) ? 1.0 : 0.0;
