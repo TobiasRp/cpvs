@@ -215,3 +215,8 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 
 	return PARTIAL;
 }
+
+shared_ptr<SSBO> CompressedShadow::copyToBuffer() const {
+	auto bo = make_shared<SSBO>(m_dag, GL_STATIC_READ);
+	return bo;
+}

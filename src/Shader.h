@@ -16,8 +16,12 @@ public:
 		return m_msg;
 	}
 
-private:
+	std::string where() const {
+		return m_file;
+	}
+
 	std::string m_msg;
+	std::string m_file;
 };
 
 class Shader

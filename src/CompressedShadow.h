@@ -2,15 +2,16 @@
 #define COMPRESSED_SHADOW_H
 
 #include "cpvs.h"
+#include "Buffer.h"
 
 class MinMaxHierarchy;
 class ShadowMap;
 
 /**
- * This entral datastructure of the CPVS represents the DAG of voxels
+ * This central datastructure of the CPVS represents the DAG of voxels
  * which is a compressed shadow of a light.
  *
- * The datastructure is build using a shadow map (actually it's min-max hierarchy).
+ * The datastructure is built using a shadow map (actually it's min-max hierarchy).
  *
  * @see 'Compact Precomputed Voxelized Shadows' by E. Sintorn, V. Kaempe, O. Olsson, U. Assarsson (2014)
  * and 'High Resolution Sparse Voxel DAGs' by V. Kaempe, E. Sintorn, U. Assarsson (2013)
@@ -79,6 +80,7 @@ public:
 		return 1 << (numLevels - 1);
 	}
 
+	shared_ptr<SSBO> copyToBuffer() const;
 
 private:
 	/* Private member and helper functions */

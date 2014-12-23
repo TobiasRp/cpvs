@@ -40,7 +40,12 @@ void Shader::compileFile(const char *file)
 		code += "\n" + line;
 	code += '\0';
 
-	compileSource(code.c_str());
+	try {
+		compileSource(code.c_str());
+	} catch (ShaderException& exc) {
+		exc.m_file = file;
+		throw;
+	}
 }
 
 

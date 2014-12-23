@@ -35,6 +35,8 @@ shared_ptr<PostProcess> fxaa;
 struct Settings {
 	bool renderShadowMap;
 	uint smLevel;
+
+	bool useShadows;
 };
 
 Settings uiSettings;
@@ -123,6 +125,7 @@ void initExtensions() {
 
 void initUiSettings() {
 	uiSettings.renderShadowMap = false;
+	uiSettings.useShadows = true;
 }
 
 TwBar* initTweakBar() {
@@ -135,8 +138,11 @@ TwBar* initTweakBar() {
 
 	string minMaxSettings("min=0 max=");
 	minMaxSettings.append(to_string((int)log2(SM_SIZE)));
-	cout << minMaxSettings << endl;
 	TwAddVarRW(twBar, "Shadow map level", TW_TYPE_UINT32, &uiSettings.smLevel, minMaxSettings.c_str());
+
+	TwAddSeparator(twBar, "firstSep", nullptr);
+
+	TwAddVarRW(twBar, "Draw shadows", TW_TYPE_BOOLCPP, &uiSettings.useShadows, nullptr);
 
 	return twBar;
 }
@@ -207,6 +213,8 @@ int main(int argc, char **argv) {
 	cout << " done after ";
 	printDurationToNow(t0);
 
+	renderSystem->setShadowDAG(shadow->copyToBuffer());
+
 	auto level = mm.getLevel(1);
 	auto texLevel = std::make_shared<Texture2D>(*level);
 	uint lastLevel = 1;
@@ -220,6 +228,8 @@ int main(int argc, char **argv) {
 			texLevel = std::make_shared<Texture2D>(*level);
 			lastLevel = uiSettings.smLevel;
 		}
+
+		renderSystem->useShadows(uiSettings.useShadows);
 
 		if (uiSettings.renderShadowMap)
 			renderSystem->renderTexture(texLevel);

@@ -1,15 +1,43 @@
 #include "Texture.h"
 
-Texture2D::Texture2D(GLuint width, GLuint height, GLint internalFormat, GLenum format, GLenum type) 
-	: m_internalFormat(internalFormat), m_format(format), m_type(type), m_width(width), m_height(height)
+Texture1D::Texture1D(GLuint width, GLint internalFormat, GLenum format, GLenum type)
+	: TextureBase(internalFormat, format, type), m_width(width)
 {
-	glGenTextures(1, &m_id);
+	assert(width < GL_MAX_TEXTURE_SIZE);
+	glBindTexture(GL_TEXTURE_1D, m_id);
+
+	setMinMagFiltering(GL_NEAREST, GL_NEAREST);
+	setWrap(GL_CLAMP_TO_BORDER);
+
+	glTexImage1D(GL_TEXTURE_1D, 0, m_internalFormat, width, 0, format, type, nullptr);
+	GL_CHECK_ERROR("Texture1D::Texture1D() - ERROR: ");
+}
+
+void Texture1D::setMinMagFiltering(GLint min, GLint max) {
+	glBindTexture(GL_TEXTURE_1D, m_id);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, min);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, max);
+}
+
+void Texture1D::setWrap(GLint wrapS) {
+	glBindTexture(GL_TEXTURE_1D, m_id);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, wrapS);
+}
+
+void Texture1D::setData(const void* data) {
+	glBindTexture(GL_TEXTURE_1D, m_id);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, m_width, m_format, m_type, data);
+}
+
+Texture2D::Texture2D(GLuint width, GLuint height, GLint internalFormat, GLenum format, GLenum type) 
+	: TextureBase(internalFormat, format, type), m_width(width), m_height(height)
+{
 	glBindTexture(GL_TEXTURE_2D, m_id);
 
 	setMinMagFiltering(GL_NEAREST, GL_NEAREST);
 	setWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, width, height, 0, m_format, m_type, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, width, height, 0, m_format, m_type, nullptr);
 	GL_CHECK_ERROR("Texture2D::Texture2D() - ERROR: ");
 }
 
@@ -32,9 +60,8 @@ std::pair<GLint, GLenum> getFormats(const ImageF& img) {
 }
 
 Texture2D::Texture2D(const ImageF& img)
-	: m_type(GL_FLOAT), m_width(img.getWidth()), m_height(img.getHeight())
+	: TextureBase(), m_width(img.getWidth()), m_height(img.getHeight())
 {
-	glGenTextures(1, &m_id);
 	glBindTexture(GL_TEXTURE_2D, m_id);
 
 	setMinMagFiltering(GL_NEAREST, GL_NEAREST);
@@ -43,13 +70,10 @@ Texture2D::Texture2D(const ImageF& img)
 	auto formatPair = getFormats(img);
 	m_internalFormat = std::get<0>(formatPair);
 	m_format = std::get<1>(formatPair);
+	m_type = GL_FLOAT;
 
 	glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, m_width, m_height, 0, m_format, m_type, img.data());
 	GL_CHECK_ERROR("Texture2D::Texture2D() - ERROR: ");
-}
-
-Texture2D::~Texture2D() {
-	glDeleteTextures(1, &m_id);
 }
 
 void Texture2D::resize(GLuint width, GLuint height) {
@@ -58,11 +82,6 @@ void Texture2D::resize(GLuint width, GLuint height) {
 
 	glBindTexture(GL_TEXTURE_2D, m_id);
 	glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, width, height, 0, m_format, m_type, NULL);
-}
-
-void Texture2D::bindAt(GLint index) const {
-	glActiveTexture(GL_TEXTURE0 + index);
-	glBindTexture(GL_TEXTURE_2D, m_id);
 }
 
 void Texture2D::setMinMagFiltering(GLint min, GLint max) {
