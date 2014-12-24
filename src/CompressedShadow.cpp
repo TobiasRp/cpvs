@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
-#include <map>
+#include <unordered_map>
 using namespace cs;
 using namespace std;
 
@@ -126,7 +126,7 @@ void CompressedShadow::compress() {
 		size_t newChildrenNodes  = 0;
 
 		// Maps old offsets from m_dag to new offsets in newDag
-		map<size_t, size_t> oldToNewOffset;
+		unordered_map<size_t, size_t> oldToNewOffset;
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
 			const size_t nodeOffset = oldLevelOffset + nodeNr * NODE_SIZE;

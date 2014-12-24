@@ -16,13 +16,15 @@ layout (std430, binding = 2) buffer shadowDag {
 	uint dag[];
 };
 
-const int NUM_LEVELS = 12;
+const int NUM_LEVELS = 13;
 const int RESOLUTION = 1 << (NUM_LEVELS - 1);
+const float BIAS = 0.001;
 
 ivec3 getPathFromNDC(vec3 ndc) {
+	uint max = RESOLUTION - 1;
 	ndc += vec3(1.0, 1.0, 1.0);
 	ndc *= 0.5f;
-	return ivec3(ndc.x * RESOLUTION, ndc.y * RESOLUTION, ndc.z * RESOLUTION);
+	return ivec3(ndc.x * max, ndc.y * max, ndc.z * max);
 }
 
 /* GLSL doesn't seem to support the popcount instruction, but the hardware probably does...
@@ -63,6 +65,7 @@ bool traverse(const vec3 projPos) {
 
 		level -= 1;
 	}
+	return true;
 }
 
 void main() {
@@ -75,6 +78,8 @@ void main() {
 
 	vec4 projPos = shadowProj * vec4(posWS, 1.0);
 	projPos.xyz = projPos.xyz / projPos.z;
+
+	projPos.z -= BIAS; // Apply BIAS to the projected position
 
 	float vis = traverse(projPos.xyz) ? 1.0 : 0.0;
 	imageStore(visibilities, index, vec4(vis));

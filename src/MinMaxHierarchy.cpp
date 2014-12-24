@@ -41,7 +41,7 @@ void setRow(const ImageF& in, ImageF& out, size_t row, size_t channel, size_t ou
 	}
 }
 
-void constructRange(const ImageF& in, ImageF& out, size_t begin, size_t end, size_t minInChannel, size_t maxInChannel) {
+inline void constructRange(const ImageF& in, ImageF& out, size_t begin, size_t end, size_t minInChannel, size_t maxInChannel) {
 	for (int y = begin; y < end; y += 2) {
 		setRow(in, out, y, minInChannel, 0, std::min<float>);
 		setRow(in, out, y, maxInChannel, 1, std::max<float>);
@@ -94,27 +94,4 @@ ImageF MinMaxHierarchy::constructLevelFromRoot(const ImageF& in) const {
 	}
 
 	return res;
-}
-
-bool checkBounds(const ImageF& img, size_t x, size_t y) {
-	return x < img.getWidth() && y < img.getHeight();
-}
-
-float MinMaxHierarchy::getMin(size_t level, size_t x, size_t y) const {
-	if (level == 0) {
-		assert(checkBounds(m_root, x, y));
-		return m_root.get(x, y, 0);
-	}
-	assert(checkBounds(m_levels[level - 1], x, y));
-	return m_levels[level - 1].get(x, y, MIN_CH);
-}
-
-float MinMaxHierarchy::getMax(size_t level, size_t x, size_t y) const {
-	if (level == 0) {
-		assert(checkBounds(m_root, x, y));
-		return m_root.get(x, y, 0);
-	}
-
-	assert(checkBounds(m_levels[level - 1], x, y));
-	return m_levels[level - 1].get(x, y, MAX_CH);
 }

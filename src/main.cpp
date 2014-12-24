@@ -29,7 +29,7 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 4096;
-const float  lightDistance  = 900;
+const float  lightDistance  = 700;
 const vec3   lightDirection = {-0.2, 1, 0};
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.2, 100'000.0f);
@@ -232,6 +232,14 @@ int main(int argc, char **argv) {
 			texLevel = std::make_shared<Texture2D>(*level);
 			lastLevel = uiSettings.smLevel;
 		}
+
+		//testing Shadow DAG on the cpu 
+//		mat4 sproj = renderSystem->getLight().getLightProj() * renderSystem->getLight().getLightView();
+//		vec4 pos = sproj * vec4(8.0, 9.0, 0.0, 1.0);
+//		vec3 pos3 = vec3(pos.x, pos.y, pos.z) / pos.w;
+//		cout << glm::to_string(pos3) << endl;
+//		cout << shadow->traverse(pos3) << endl;
+		
 
 		renderSystem->useShadows(uiSettings.useShadows);
 

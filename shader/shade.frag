@@ -40,6 +40,4 @@ void main(void) {
 	vec3 scatteredLight = ambient_color + light.color * diffuse;
 
 	fragColor = vec4(vis * scatteredLight * diffuse_color.rgb, diffuse_color.a);
-	//fragColor = vec4(N, 1.0);
-	//fragColor = vec4(diffuse);
 }

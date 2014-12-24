@@ -28,13 +28,28 @@ public:
 	 * Returns the minimum at (x, y) of the given level.
 	 * @note For level 0 min == max
 	 */
-	float getMin(size_t level, size_t x, size_t y) const;
+	inline float getMin(size_t level, size_t x, size_t y) const {
+		if (level == 0) {
+			assert(checkBounds(m_root, x, y));
+			return m_root.get(x, y, 0);
+		}
+		assert(checkBounds(m_levels[level - 1], x, y));
+		return m_levels[level - 1].get(x, y, MIN_CH);
+	}
 
 	/**
 	 * Returns the maximum at (x, y) of the given level.
 	 * @note For level 0 min == max
 	 */
-	float getMax(size_t level, size_t x, size_t y) const;
+	inline float getMax(size_t level, size_t x, size_t y) const {
+		if (level == 0) {
+			assert(checkBounds(m_root, x, y));
+			return m_root.get(x, y, 0);
+		}
+	
+		assert(checkBounds(m_levels[level - 1], x, y));
+		return m_levels[level - 1].get(x, y, MAX_CH);
+	}
 
 	/**
 	 * Returns the number of levels the hierarchy has (including the original image)
@@ -63,6 +78,10 @@ private:
 	 * The first level 0 only contains 1 channel, therefore it needs to be processed differently.
 	 */
 	ImageF constructLevelFromRoot(const ImageF& in) const;
+
+	inline bool checkBounds(const ImageF& img, size_t x, size_t y) {
+		return x < img.getWidth() && y < img.getHeight();
+	}
 
 private:
 	const ImageF m_root;
