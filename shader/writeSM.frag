@@ -6,13 +6,14 @@ in vec2 position;
 
 layout (binding  = 0) uniform sampler2D imageTex;
 
-void main() {
-	//fragColor = texture(imageTex, position);
+float linearizeDepth(in vec2 uv) {
+	const float znear = 1.0;
+	const float zfar = 1000;
+	float depth = texture(imageTex, uv).r;
+	return (1.0 * znear) / (zfar + znear - depth * (zfar - znear));
+}
 
-	vec4 t = texture(imageTex, position);
-	if (t.x == 1.0)
-		fragColor = vec4(1.0);
-	else {
-		fragColor = vec4(t.x * 0.33 - 0.8);
-	}
+void main() {
+	float d = linearizeDepth(position);
+	fragColor = vec4(d, d, d, 1.0);
 }

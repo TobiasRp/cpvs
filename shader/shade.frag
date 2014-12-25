@@ -17,7 +17,6 @@ struct Light {
 uniform Light light;
 
 vec3 ambient_color = vec3(0.15, 0.15, 0.15);
-//vec3 ambient_color = vec3(0.0, 0.0, 0.0);
 
 void main(void) {
 	float vis = 1.0f;
@@ -27,11 +26,9 @@ void main(void) {
 
 	vec4 positionTex = texture(positionBuffer, position);
 	vec3 pos = positionTex.xyz;
-	//float depth = positionTex.w;
 
 	vec4 normalTex = texture(normalBuffer, position);
 	vec3 N = normalize(normalTex.xyz);
-	//float shininess = normalTex.w;
 
 	vec3 L = normalize( - light.direction);
 	vec4 diffuse_color = texture(diffuseBuffer, position);

@@ -18,7 +18,7 @@ layout (location = 2) out vec4 diffuse;
 
 void main(void)
 {
-    position = vec4(fs_in.position, gl_FragCoord.z);
+    position = vec4(fs_in.position, 1.0);
     normal = vec4(normalize(fs_in.normal), material.shininess);
     diffuse = vec4(material.diffuse_color, 1.0);
 }

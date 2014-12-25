@@ -28,11 +28,11 @@ const GLuint WINDOW_HEIGHT = 512;
 
 
 /* Shadow map and light settings */
-const GLuint SM_SIZE        = 4096;
-const float  lightDistance  = 700;
+const GLuint SM_SIZE        = 8192;
+const float  lightDistance  = 650;
 const vec3   lightDirection = {-0.2, 1, 0};
 
-FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.2, 100'000.0f);
+FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 1000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
 shared_ptr<PostProcess> fxaa;
 

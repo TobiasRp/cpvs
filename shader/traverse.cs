@@ -16,9 +16,8 @@ layout (std430, binding = 2) buffer shadowDag {
 	uint dag[];
 };
 
-const int NUM_LEVELS = 13;
+const int NUM_LEVELS = 14;
 const int RESOLUTION = 1 << (NUM_LEVELS - 1);
-const float BIAS = 0.001;
 
 ivec3 getPathFromNDC(vec3 ndc) {
 	uint max = RESOLUTION - 1;
@@ -77,9 +76,7 @@ void main() {
 	vec3 posWS = imageLoad(positionsWS, index).xyz;
 
 	vec4 projPos = shadowProj * vec4(posWS, 1.0);
-	projPos.xyz = projPos.xyz / projPos.z;
-
-	projPos.z -= BIAS; // Apply BIAS to the projected position
+	projPos.xyz = projPos.xyz / projPos.w;
 
 	float vis = traverse(projPos.xyz) ? 1.0 : 0.0;
 	imageStore(visibilities, index, vec4(vis));

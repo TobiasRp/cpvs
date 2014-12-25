@@ -33,7 +33,7 @@ void Fbo::attachRenderbuffer() {
 	glGenRenderbuffers(1, &m_depth);
 	glBindRenderbuffer(GL_RENDERBUFFER, m_depth);
 
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, m_width, m_height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, m_width, m_height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth);
 }
 
@@ -59,7 +59,7 @@ void Fbo::resize(int width, int height)
 	}
 	if (m_hasRenderbuffer) {
 		glBindRenderbuffer(GL_RENDERBUFFER, m_depth);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, width, height);
 	}
 	if (m_depthTexture.get() != nullptr) {
 		m_depthTexture->resize(width, height);

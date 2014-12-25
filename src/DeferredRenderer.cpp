@@ -117,7 +117,7 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(2.0f, 4.0f);
+	glPolygonOffset(1.1f, 4.0f);
 
 	scene->render(smProps);
 
