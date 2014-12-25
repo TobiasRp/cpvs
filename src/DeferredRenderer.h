@@ -50,7 +50,7 @@ public:
 
 		const GLuint width = m_gBuffer.getWidth();
 		const GLuint height = m_gBuffer.getHeight();
-		m_visibilities = std::make_unique<Texture2D>(width, height, GL_RG8, GL_RG, GL_UNSIGNED_BYTE);
+		m_visibilities = std::make_unique<Texture2D>(width, height, GL_R8, GL_RED, GL_UNSIGNED_BYTE);
 	}
 
 	inline void useShadows(bool use) {

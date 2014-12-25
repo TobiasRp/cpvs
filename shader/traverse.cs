@@ -10,7 +10,7 @@ uniform uint height;
 uniform mat4 shadowProj;
 
 layout (rgba32f, binding = 0) uniform image2D positionsWS;
-layout (rg8, binding = 1)     uniform image2D visibilities;
+layout (r8, binding = 1)      uniform image2D visibilities;
 
 layout (std430, binding = 2) buffer shadowDag {
 	uint dag[];
