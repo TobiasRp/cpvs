@@ -33,6 +33,7 @@ uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const iv
 					bits = visible(offZ, offZ + depthHalf, min * levelHeight, max * levelHeight);
 				} else {
 					// At level 0 we want to be sure about the visibility
+					assert(abs(min - max) < 1e-6f);
 					bits = absoluteVisible(offZ, offZ + depthHalf, min * levelHeight);
 				}
 

@@ -78,8 +78,6 @@ namespace cs {
 	inline bool isShadowed(uint64 childmask, uint childIndex) {
 		return !isVisible(childmask, childIndex) && !isPartial(childmask, childIndex);
 	}
-
-
 };
 
 #endif

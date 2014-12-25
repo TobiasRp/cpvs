@@ -151,6 +151,16 @@ TwBar* initTweakBar() {
 	return twBar;
 }
 
+void initCamera() {
+	cam.setSpeed(3.0f);
+	cam.setPosition(vec3(10, 10, 10));
+}
+
+void printDurationToNow(high_resolution_clock::time_point start) {
+	auto t1 = high_resolution_clock::now();
+	cout << duration_cast<milliseconds>(t1 - start).count() << "msec\n";
+}
+
 /**
  * If the process was started with an argument, this is assumed to be the scene name,
  * or else the default scene will be loaded
@@ -163,7 +173,11 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 		file = argv[1];
 	}
 	try {
+		cout << "Loading scene... "; cout.flush();
+		auto t0 = high_resolution_clock::now();
 		auto ptr = make_unique<AssimpScene>(file);
+		cout << "done after ";
+		printDurationToNow(t0);
 		return ptr;
 	} catch (FileNotFound& exc) {
 		cerr << "Specified scene file not found!\n";
@@ -172,18 +186,7 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 	}
 }
 
-void printDurationToNow(high_resolution_clock::time_point start) {
-	auto t1 = high_resolution_clock::now();
-	cout << duration_cast<milliseconds>(t1 - start).count() << "msec\n";
-}
-
-int main(int argc, char **argv) {
-	auto window = initAndCreateWindow();
-	initExtensions();
-
-	initUiSettings();
-	auto twBar = initTweakBar();
-
+void initRenderSystem() {
 	vec3 direction = glm::normalize(lightDirection);
 	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction, lightDistance);
 
@@ -191,23 +194,13 @@ int main(int argc, char **argv) {
 
 	fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
 	renderSystem->setPostProcess(fxaa);
+}
 
-	cout << "Loading scene... "; cout.flush();
-	auto t0 = high_resolution_clock::now();
-	auto scene = loadSceneFromArguments(argc, argv);
-	cout << "done after ";
-	printDurationToNow(t0);
-
-	cam.setSpeed(3.0f);
-	cam.setPosition(vec3(10, 10, 10));
-	cam.rotate(180, -10, 0);
-
-	/* Render shadow map and create min-max hierarchy*/
-	auto sm = renderSystem->renderShadowMap(scene.get(), SM_SIZE);
-	auto smImg = sm->createImageF();
+MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
+	auto sm = renderSystem->renderShadowMap(scene, SM_SIZE);
 	cout << "Loading min-max hierarchy..."; cout.flush();
-	t0 = high_resolution_clock::now();
-	MinMaxHierarchy mm(smImg);
+	auto t0 = high_resolution_clock::now();
+	MinMaxHierarchy mm(sm->createImageF());
 	cout << " done after ";
 	printDurationToNow(t0);
 
@@ -219,8 +212,25 @@ int main(int argc, char **argv) {
 
 	renderSystem->setShadowDAG(shadow->copyToBuffer());
 
-	auto level = mm.getLevel(1);
-	auto texLevel = std::make_shared<Texture2D>(*level);
+	return mm;
+}
+
+int main(int argc, char **argv) {
+	auto window = initAndCreateWindow();
+	initExtensions();
+
+	initUiSettings();
+	auto twBar = initTweakBar();
+
+	auto scene = loadSceneFromArguments(argc, argv);
+
+	initCamera();
+	initRenderSystem();
+
+	auto mm = createPrecomputedShadows(scene.get());
+
+	auto level     = mm.getLevel(1);
+	auto texLevel  = std::make_shared<Texture2D>(*level);
 	uint lastLevel = 1;
 
 	while (!glfwWindowShouldClose(window)) {
@@ -232,14 +242,6 @@ int main(int argc, char **argv) {
 			texLevel = std::make_shared<Texture2D>(*level);
 			lastLevel = uiSettings.smLevel;
 		}
-
-		//testing Shadow DAG on the cpu 
-//		mat4 sproj = renderSystem->getLight().getLightProj() * renderSystem->getLight().getLightView();
-//		vec4 pos = sproj * vec4(8.0, 9.0, 0.0, 1.0);
-//		vec3 pos3 = vec3(pos.x, pos.y, pos.z) / pos.w;
-//		cout << glm::to_string(pos3) << endl;
-//		cout << shadow->traverse(pos3) << endl;
-		
 
 		renderSystem->useShadows(uiSettings.useShadows);
 

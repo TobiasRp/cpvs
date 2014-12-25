@@ -38,7 +38,7 @@ uint popcount(uint x) {
     return x & 0x003F;
 }
 
-bool traverse(const vec3 projPos) {
+float traverse(const vec3 projPos) {
 	ivec3 path = getPathFromNDC(projPos);
 	uint offset = 0;
 	int level = NUM_LEVELS;
@@ -54,9 +54,9 @@ bool traverse(const vec3 projPos) {
 
 		uint visibility = 0x3 & (childmask >> childIndex);
 		if (visibility == 0)
-			return false;
+			return 0.0;
 		else if (visibility == 1)
-			return true;
+			return 1.0;
 
 		uint maskedChildmask = childmask & (0xAAAA >> (16 - childIndex));
 		uint childOffset = popcount(maskedChildmask);
@@ -64,7 +64,7 @@ bool traverse(const vec3 projPos) {
 
 		level -= 1;
 	}
-	return true;
+	return 1.0;
 }
 
 void main() {
@@ -78,6 +78,6 @@ void main() {
 	vec4 projPos = shadowProj * vec4(posWS, 1.0);
 	projPos.xyz = projPos.xyz / projPos.w;
 
-	float vis = traverse(projPos.xyz) ? 1.0 : 0.0;
+	float vis = traverse(projPos.xyz);
 	imageStore(visibilities, index, vec4(vis));
 }
