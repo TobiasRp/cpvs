@@ -16,10 +16,12 @@ public:
 
 	mat4 getLightProj() const;
 
+	mat4 getLightViewProj() const;
+
 public:
 	vec3 color;
 	vec3 direction;
-	
+
 	// Rendering of the shadow map needs a position, this is (0, 0, 0) + distance * direction
 	float distance; 
 

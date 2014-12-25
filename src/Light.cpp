@@ -12,3 +12,7 @@ mat4 DirectionalLight::getLightProj() const {
 	return glm::frustum(-1.0f, 1.0f, -1.0f, 1.0f, znear, zfar);
 }
 
+mat4 DirectionalLight::getLightViewProj() const {
+	return getLightProj() * getLightView();
+}
+

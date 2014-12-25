@@ -15,6 +15,6 @@ uniform mat3 NormalMatrix;
 void main(void)
 {
 	gl_Position = MVP * vec4(position, 1.0);
-	vs_out.position = vec3(M * vec4(position, 1.0)).xyz;
+	vs_out.position = (M * vec4(position, 1.0)).xyz;
 	vs_out.normal = normalize(NormalMatrix * normal);
 }

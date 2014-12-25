@@ -230,10 +230,7 @@ void DeferredRenderer::computeShadow() {
 	// Bind image for results
 	m_visibilities->bindImageAt(1, GL_WRITE_ONLY);
 
-	const mat4 lightView = m_dirLight.getLightView();
-	const mat4 lightProj = m_dirLight.getLightProj();
-	const mat4 lightMat  = lightProj * lightView;
-
+	const mat4 lightMat = m_dirLight.getLightViewProj();
 	glUniformMatrix4fv(m_traverseCS["shadowProj"], 1, GL_FALSE, glm::value_ptr(lightMat));
 
 	// Set width and height
@@ -243,7 +240,7 @@ void DeferredRenderer::computeShadow() {
 	glUniform1ui(m_traverseCS["height"], height);
 
 	// Now calculate work group size and dispatch!
-	const GLuint localSize = 16;
+	const GLuint localSize = 32;
 	const GLuint numGroupsX = ceil(width / static_cast<float>(localSize));
 	const GLuint numGroupsY = ceil(height / static_cast<float>(localSize));
 	glDispatchCompute(numGroupsX, numGroupsY, 1);

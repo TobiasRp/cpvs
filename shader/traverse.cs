@@ -1,22 +1,24 @@
 #version 440 core
 
-#define LOCAL_SIZE 16
+#define LOCAL_SIZE 32
 
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
 
 uniform uint width;
 uniform uint height;
 
-layout (rgba32f, binding = 0) uniform image2D positionsWS;
-layout (rg8, binding = 1) uniform image2D visibilities;
-
 uniform mat4 shadowProj;
+
+layout (rgba32f, binding = 0) uniform image2D positionsWS;
+layout (rg8, binding = 1)     uniform image2D visibilities;
 
 layout (std430, binding = 2) buffer shadowDag {
 	uint dag[];
 };
 
+/* Fix size of shadow here! Be sure to update if the size changes */
 const int NUM_LEVELS = 14;
+
 const int RESOLUTION = 1 << (NUM_LEVELS - 1);
 
 ivec3 getPathFromNDC(vec3 ndc) {
@@ -30,12 +32,12 @@ ivec3 getPathFromNDC(vec3 ndc) {
  * Emulate it for the time being.
  */
 uint popcount(uint x) {
-    x = x - ((x >> 1) & 0x5555);
-    x = (x & 0x3333) + ((x >> 2) & 0x3333);
-    x = (x + (x >> 4)) & 0x0F0F;
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0F0F0F0F;
     x = x + (x >> 8);
     x = x + (x >> 16);
-    return x & 0x003F;
+    return x & 0x0000003F;
 }
 
 float traverse(const vec3 projPos) {
@@ -44,7 +46,6 @@ float traverse(const vec3 projPos) {
 	int level = NUM_LEVELS;
 
 	while(level > 1) {
-
 		int lvlBit = 1 << (level - 2);
 		int childIndex = (bool(path.x & lvlBit) ? 2 : 0) +
 						 (bool(path.y & lvlBit) ? 4 : 0) +

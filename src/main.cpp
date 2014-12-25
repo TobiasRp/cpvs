@@ -132,7 +132,7 @@ void initUiSettings() {
 	uiSettings.useShadows = true;
 }
 
-TwBar* initTweakBar() {
+void initTweakBar() {
 	TwInit(TW_OPENGL_CORE, NULL);
 
 	TwWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -147,8 +147,6 @@ TwBar* initTweakBar() {
 	TwAddSeparator(twBar, "firstSep", nullptr);
 
 	TwAddVarRW(twBar, "Draw shadows", TW_TYPE_BOOLCPP, &uiSettings.useShadows, nullptr);
-
-	return twBar;
 }
 
 void initCamera() {
@@ -220,7 +218,7 @@ int main(int argc, char **argv) {
 	initExtensions();
 
 	initUiSettings();
-	auto twBar = initTweakBar();
+	initTweakBar();
 
 	auto scene = loadSceneFromArguments(argc, argv);
 
@@ -255,6 +253,7 @@ int main(int argc, char **argv) {
 		glfwPollEvents();
 	}
 
+	TwDeleteAllBars();
 	TwTerminate();
 	glfwTerminate();
 	return 0;
