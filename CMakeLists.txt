@@ -4,7 +4,7 @@ project (cpvs)
 set (CPVS_VERSION_MAJOR_0)
 set (CPVS_VERSION_MINOR_1)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g")
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 
@@ -12,6 +12,7 @@ set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-mo
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 find_package(OpenGL REQUIRED)
+find_package(OpenCL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Assimp REQUIRED)
 find_package(AntTweakBar REQUIRED)
@@ -19,6 +20,7 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 
 include_directories(${OPENGL_INCLUDE_DIRS})
+include_directories(${OPENCL_INCLUDE_DIRS})
 include_directories(${GLEW_INCLUDE_DIRS})
 include_directories(${GLFW_INCLUDE_DIRS})
 include_directories(${ASSIMP_INCLUDE_DIRS})
@@ -36,6 +38,7 @@ add_executable(cpvs ${SRC_DIR_FILES})
 add_library(cpvs_lib STATIC ${SRC_DIR_FILES})
 
 target_link_libraries(cpvs ${OPENGL_LIBRARIES})
+target_link_libraries(cpvs ${OPENCL_LIBRARIES})
 target_link_libraries(cpvs ${GLEW_LIBRARIES})
 target_link_libraries(cpvs ${GLFW_STATIC_LIBRARIES})
 target_link_libraries(cpvs ${ASSIMP_LIBRARIES})
@@ -50,6 +53,8 @@ include_directories("src/")
 # Unit Tests
 add_executable(runUnitTests ${TEST_CPP_FILES})
 target_link_libraries(runUnitTests gtest gtest_main cpvs_lib)
-target_link_libraries(runUnitTests ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} )
+target_link_libraries(runUnitTests ${OPENGL_LIBRARIES})
+target_link_libraries(runUnitTests ${OPENCL_LIBRARIES})
+target_link_libraries(runUnitTests ${GLEW_LIBRARIES})
 add_test(runUnitTests runUnitTests)
 
