@@ -9,6 +9,8 @@
 #include <cassert>
 #include <algorithm>
 
+#include <GL/glx.h>
+
 using namespace std;
 
 static cl::Context context;
@@ -34,7 +36,26 @@ void checkCLErrors(cl_int err, const char* name) {
 	}
 }
 
-void initializeCL() {
+/* Linux implementation for creating a shared context with OpenGL */
+void createSharedContext(const cl::Platform& pl) {
+	cl_context_properties cps[] = {
+		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
+		CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
+		CL_CONTEXT_PLATFORM, (cl_context_properties)pl()
+	};
+	context = cl::Context(CL_DEVICE_TYPE_GPU, cps);
+}
+
+void createNewContext(const cl::Platform& pl) {
+	cl_context_properties cps[] = {
+		CL_CONTEXT_PLATFORM,
+		(cl_context_properties)pl(),
+		0
+	};
+	context = cl::Context(CL_DEVICE_TYPE_GPU, cps);
+}
+
+void initializeCL(bool useOpenGL) {
 	vector<cl::Platform> platformList;
 	cl::Platform::get(&platformList);
 
@@ -53,12 +74,10 @@ void initializeCL() {
 		cout << "OpenCL device version is: " << version << "\n";
 	}
 
-	cl_context_properties cps[] = {
-		CL_CONTEXT_PLATFORM,
-		(cl_context_properties)(platformList[0])(),
-		0
-	};
-	context = cl::Context(CL_DEVICE_TYPE_GPU, cps);
+	if (useOpenGL)
+		createSharedContext(defaultPlatform);
+	else
+		createNewContext(defaultPlatform);
 
 	for_each(devices.begin(), devices.end(), [ctx = context](auto dev)
 			{ commandQueues.push_back(cl::CommandQueue(ctx, dev)); });

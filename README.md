@@ -13,6 +13,7 @@ OpenGL 4.4 is needed
 Use CMake!
 
 Needed libraries:
+	OpenGL and OpenCL
 	GLEW, GLFW3, Assimp, AntTweakBar
 
 -> CMake should find them!

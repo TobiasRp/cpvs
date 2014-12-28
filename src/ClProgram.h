@@ -11,7 +11,7 @@ extern void checkCLErrors(cl_int err, const char* name);
 /**
  * Intializes all OpenCL stuff.
  */
-extern void initializeCL();
+extern void initializeCL(bool useOpenGL = true);
 
 /**
  * Wraps a cl::Program, but also takes care of context, devices, command queues, ... in a simple way.
