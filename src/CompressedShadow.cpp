@@ -10,7 +10,6 @@
 using namespace cs;
 using namespace std;
 
-// for cout testing and debugging!
 #include <glm/ext.hpp>
 #include <iostream>
 
@@ -23,6 +22,23 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	constructSvo(minMax);
 
 	compress();
+
+	initShaderAndKernels();
+	m_deviceDag = make_unique<SSBO>(m_dag, GL_STATIC_READ);
+}
+
+void CompressedShadow::initShaderAndKernels() {
+	try {
+		m_traverseCS.addShaderFromFile(GL_COMPUTE_SHADER, "../shader/traverse.cs");
+		m_traverseCS.link();
+	} catch(ShaderException& exc) {
+		cout << exc.where() << " - " << exc.what() << endl;
+		std::terminate();
+	}
+
+	m_traverseCS.addUniform("shadowProj");
+	m_traverseCS.addUniform("width");
+	m_traverseCS.addUniform("height");
 }
 
 /**
@@ -216,7 +232,35 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 	return PARTIAL;
 }
 
-shared_ptr<SSBO> CompressedShadow::copyToBuffer() const {
-	auto bo = make_shared<SSBO>(m_dag, GL_STATIC_READ);
-	return bo;
+void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightViewProj,
+		Texture2D* visibilities) {
+
+	GL_CHECK_ERROR("traverse - begin");
+	m_traverseCS.bind();
+
+	// Bind WS positions
+	positionsWS->bindImageAt(0, GL_READ_ONLY);
+
+	// Bind image for results
+	visibilities->bindImageAt(1, GL_WRITE_ONLY);
+
+	// Bind dag
+	m_deviceDag->bindAt(2);
+
+	glUniformMatrix4fv(m_traverseCS["shadowProj"], 1, GL_FALSE, glm::value_ptr(lightViewProj));
+
+	// Set width and height
+	const GLuint width = positionsWS->getWidth();
+	const GLuint height = positionsWS->getHeight();
+	glUniform1ui(m_traverseCS["width"], width);
+	glUniform1ui(m_traverseCS["height"], height);
+
+	// Now calculate work group size and dispatch!
+	const GLuint localSize = 32;
+	const GLuint numGroupsX = ceil(width / static_cast<float>(localSize));
+	const GLuint numGroupsY = ceil(height / static_cast<float>(localSize));
+	glDispatchCompute(numGroupsX, numGroupsY, 1);
+
+	m_traverseCS.release();
+	GL_CHECK_ERROR("traverse - end");
 }

@@ -3,6 +3,8 @@
 
 #include "cpvs.h"
 #include "Buffer.h"
+#include "ShaderProgram.h"
+#include "Texture.h"
 
 class MinMaxHierarchy;
 class ShadowMap;
@@ -31,8 +33,6 @@ private:
 	CompressedShadow(const MinMaxHierarchy& minMax);
 
 public:
-	/* Constructors, destructors,... and factory functions */
-
 	~CompressedShadow() = default;
 
 	CompressedShadow(const CompressedShadow&) = default;
@@ -62,9 +62,6 @@ public:
 	 */
 	static unique_ptr<CompressedShadow> create(const ShadowMap& shadowMap);
 
-public:
-	/* Public methods */
-
 	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position
 	 * in normal device coordinates, i.e. in [-1, 1]^3.
@@ -74,16 +71,23 @@ public:
 	NodeVisibility traverse(const vec3 position);
 	
 	/**
+	 * Calculates the visibility/shadow of every world-space position in the given texture.
+	 * The result is a 2-dimensional texture of visibility values.
+	 */
+	void compute(const Texture2D* positionsWS, const mat4& lightViewProj, Texture2D* visibilities);
+
+private:
+	/* Private member and helper functions */
+
+
+	void initShaderAndKernels();
+
+	/**
 	 * Given the number of levels in the octree, this calculates the resolution.
 	 */
 	inline static size_t getResolution(size_t numLevels) {
 		return 1 << (numLevels - 1);
 	}
-
-	shared_ptr<SSBO> copyToBuffer() const;
-
-private:
-	/* Private member and helper functions */
 
 	/**
 	 * Given a point in normalized device coordinates, this calculates 
@@ -122,6 +126,10 @@ private:
 	size_t m_numLevels;
 
 	vector<uint> m_dag;
+
+	unique_ptr<SSBO> m_deviceDag;
+
+	ShaderProgram m_traverseCS;
 };
 
 #endif

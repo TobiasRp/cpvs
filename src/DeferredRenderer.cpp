@@ -13,6 +13,8 @@ DeferredRenderer::DeferredRenderer(const DirectionalLight& light, GLuint width, 
 {
 	loadShaders();
 	initFbos();
+
+	m_visibilities = make_unique<Texture2D>(width, height, GL_R8, GL_RED, GL_UNSIGNED_BYTE);
 }
 
 void DeferredRenderer::loadShaders() {
@@ -32,9 +34,6 @@ void DeferredRenderer::loadShaders() {
 		m_writeImg.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
 		m_writeImg.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeSM.frag");
 		m_writeImg.link();
-
-		m_traverseCS.addShaderFromFile(GL_COMPUTE_SHADER, "../shader/traverse.cs");
-		m_traverseCS.link();
 	} catch (ShaderException& exc) {
 		cout << exc.where() << " - " << exc.what() << endl;
 		std::terminate();
@@ -55,10 +54,6 @@ void DeferredRenderer::loadShaders() {
 	m_shade.addUniform("renderShadow");
 
 	m_create_sm.addUniform("MVP");
-
-	m_traverseCS.addUniform("shadowProj");
-	m_traverseCS.addUniform("width");
-	m_traverseCS.addUniform("height");
 }
 
 void DeferredRenderer::initFbos() {
@@ -90,8 +85,7 @@ void DeferredRenderer::resize(GLuint width, GLuint height) {
 	if (m_postProcess.get() != nullptr)
 		m_postProcess->resize(width, height);
 
-	if (m_visibilities.get() != nullptr)
-		m_visibilities->resize(width, height);
+	m_visibilities->resize(width, height);
 }
 
 unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int size) {
@@ -154,9 +148,6 @@ void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) 
 	properties.setRenderingOfMaterials(true);
 	renderScene(properties, scene);
 
-	if (m_useShadowDag)
-		computeShadow();
-
 	doAllShading(properties, scene);
 
 	if (m_postProcess.get() != nullptr) {
@@ -197,54 +188,23 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	glUniform3fv(m_shade["light.color"], 1, glm::value_ptr(m_dirLight.color));
 	glUniform3fv(m_shade["light.direction"], 1, glm::value_ptr(m_dirLight.direction));
 
-	if (m_useShadowDag) {
-		glUniform1i(m_shade["renderShadow"], 1);
-		m_visibilities->bindAt(3);
-	} else {
-		glUniform1i(m_shade["renderShadow"], 0);
-	}
-
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
 
 	m_gBuffer.bindTextures();
 
+	if (m_useShadowDag) {
+		glUniform1i(m_shade["renderShadow"], 1);
+
+		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.getLightViewProj(), m_visibilities.get());
+		m_shade.bind();
+		m_visibilities->bindAt(3);
+	} else {
+		glUniform1i(m_shade["renderShadow"], 0);
+	}
+
 	m_fullscreenQuad.draw();
 
 	m_shade.release();
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - end");
-}
-
-void DeferredRenderer::computeShadow() {
-	assert(m_shadowDag != nullptr);
-	GL_CHECK_ERROR("DeferredRenderer::computeShadow - begin");
-	m_traverseCS.bind();
-
-	// Bind dag
-	m_shadowDag->bindAt(2);
-
-	// Bind WS positions
-	auto posTex = m_gBuffer.getTexture(0);
-	posTex->bindImageAt(0, GL_READ_ONLY);
-
-	// Bind image for results
-	m_visibilities->bindImageAt(1, GL_WRITE_ONLY);
-
-	const mat4 lightMat = m_dirLight.getLightViewProj();
-	glUniformMatrix4fv(m_traverseCS["shadowProj"], 1, GL_FALSE, glm::value_ptr(lightMat));
-
-	// Set width and height
-	const GLuint width = m_gBuffer.getWidth();
-	const GLuint height = m_gBuffer.getHeight();
-	glUniform1ui(m_traverseCS["width"], width);
-	glUniform1ui(m_traverseCS["height"], height);
-
-	// Now calculate work group size and dispatch!
-	const GLuint localSize = 32;
-	const GLuint numGroupsX = ceil(width / static_cast<float>(localSize));
-	const GLuint numGroupsY = ceil(height / static_cast<float>(localSize));
-	glDispatchCompute(numGroupsX, numGroupsY, 1);
-
-	m_traverseCS.release();
-	GL_CHECK_ERROR("DeferredRenderer::computeShadow - end");
 }

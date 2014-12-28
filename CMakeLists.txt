@@ -56,5 +56,6 @@ target_link_libraries(runUnitTests gtest gtest_main cpvs_lib)
 target_link_libraries(runUnitTests ${OPENGL_LIBRARIES})
 target_link_libraries(runUnitTests ${OPENCL_LIBRARIES})
 target_link_libraries(runUnitTests ${GLEW_LIBRARIES})
+target_link_libraries(runUnitTests ${GLFW_STATIC_LIBRARIES})
 add_test(runUnitTests runUnitTests)
 

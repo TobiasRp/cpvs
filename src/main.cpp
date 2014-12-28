@@ -208,7 +208,7 @@ MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
 	cout << " done after ";
 	printDurationToNow(t0);
 
-	renderSystem->setShadowDAG(shadow->copyToBuffer());
+	renderSystem->setShadow(std::move(shadow));
 
 	return mm;
 }

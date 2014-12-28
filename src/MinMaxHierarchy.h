@@ -79,7 +79,7 @@ private:
 	 */
 	ImageF constructLevelFromRoot(const ImageF& in) const;
 
-	inline bool checkBounds(const ImageF& img, size_t x, size_t y) {
+	inline bool checkBounds(const ImageF& img, size_t x, size_t y) const {
 		return x < img.getWidth() && y < img.getHeight();
 	}
 

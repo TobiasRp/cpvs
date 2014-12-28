@@ -3,6 +3,9 @@
 #include "MinMaxHierarchy.h"
 #include "gtest/gtest.h"
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 std::vector<float> depths16x16 {
 	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
 	0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
@@ -45,9 +48,16 @@ protected:
 	}
 
 	virtual void SetUp() {
+		ASSERT_TRUE(glfwInit());
+		auto window = glfwCreateWindow(1, 1, "unit test", nullptr, nullptr);
+		glfwMakeContextCurrent(window);
+		auto err = glewInit();
+		ASSERT_EQ(GLEW_OK, err);
 	}
 
+
 	virtual void TearDown() {
+		glfwTerminate();
 	}
 protected:
 	ImageF img8;
@@ -95,6 +105,7 @@ TEST_F(CompressedShadowTest, testTraverse16x16) {
 	constexpr float step = 2.0f / 16.0f;
 
 	MinMaxHierarchy mm(img16);
+
 	auto csPtr = CompressedShadow::create(mm);
 	
 	auto vis = csPtr->traverse(vec3(1, 1, 0));
