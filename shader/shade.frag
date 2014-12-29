@@ -22,13 +22,14 @@ void main(void) {
 	float vis = 1.0f;
 	if (renderShadow != 0) {
 		vis = texture(visibilities, position).r;
+		vis = max(vis, 0.2);
 	}
 
 	vec4 positionTex = texture(positionBuffer, position);
 	vec3 pos = positionTex.xyz;
 
 	vec4 normalTex = texture(normalBuffer, position);
-	vec3 N = normalize(normalTex.xyz);
+	vec3 N = normalTex.xyz;
 
 	vec3 L = normalize(light.direction);
 	vec4 diffuse_color = texture(diffuseBuffer, position);

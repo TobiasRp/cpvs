@@ -5,7 +5,7 @@ const vec3 up(0, 1, 0);
 
 mat4 DirectionalLight::calcLightView() const {
 	vec3 position = distance * direction;
-	return glm::lookAt(position, vec3(0, 0, 0), up);
+	return glm::lookAt(position, direction, up);
 }
 
 mat4 DirectionalLight::calcLightProj() const {

@@ -42,7 +42,7 @@ void DeferredRenderer::loadShaders() {
 		std::terminate();
 	}
 
-	/* Add uniforms to the shader */
+	/* Add uniforms to the shaders */
 	m_geometry.addUniform("MVP");
 	m_geometry.addUniform("M");
 	m_geometry.addUniform("NormalMatrix");
