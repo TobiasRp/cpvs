@@ -3,16 +3,16 @@
 
 const vec3 up(0, 1, 0);
 
-mat4 DirectionalLight::getLightView() const {
+mat4 DirectionalLight::calcLightView() const {
 	vec3 position = distance * direction;
-	return glm::lookAt(position, direction, up);
+	return glm::lookAt(position, vec3(0, 0, 0), up);
 }
 
-mat4 DirectionalLight::getLightProj() const {
-	return glm::frustum(-1.0f, 1.0f, -1.0f, 1.0f, znear, zfar);
+mat4 DirectionalLight::calcLightProj() const {
+	return glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, znear, zfar);
+	//return glm::perspective(45.0f, 1.0f, znear, zfar);
 }
 
-mat4 DirectionalLight::getLightViewProj() const {
-	return getLightProj() * getLightView();
+void DirectionalLight::updateLightViewProj() {
+	lightViewProj = calcLightProj() * calcLightView();
 }
-

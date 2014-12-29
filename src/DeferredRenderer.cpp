@@ -7,7 +7,7 @@
 using namespace std;
 
 DeferredRenderer::DeferredRenderer(const DirectionalLight& light, GLuint width, GLuint height) 
-	: m_fullscreenQuad(vec2(-1.0, -1.0), vec2(1.0, 1.0)),
+	: m_fullscreenQuad(vec2(-1.0), vec2(1.0)),
 	m_gBuffer(width, height, true), m_imgBuffer(width, height, false),
 	m_dirLight(light)
 {
@@ -99,8 +99,10 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 
 	glViewport(0, 0, size, size);
 
-	mat4 lightView = m_dirLight.getLightView();
-	mat4 lightProj = m_dirLight.getLightProj();
+	mat4 lightView = m_dirLight.calcLightView();
+	mat4 lightProj = m_dirLight.calcLightProj();
+
+	m_dirLight.lightViewProj = lightProj * lightView;
 
 	RenderProperties smProps(lightView, lightProj);
 	smProps.setShaderProgram(&m_create_sm);
@@ -122,7 +124,7 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
-void DeferredRenderer::renderTexture(shared_ptr<Texture2D> tex) {
+void DeferredRenderer::renderTexture(const Texture2D* tex) {
 	GL_CHECK_ERROR("DeferredRenderer::renderTexture - begin: ");
 	tex->bindAt(0);
 
@@ -147,6 +149,12 @@ void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) 
 
 	properties.setRenderingOfMaterials(true);
 	renderScene(properties, scene);
+
+	/* Either write to screen or to image for further post processing */
+	if (m_postProcess.get() == nullptr)
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	else
+		m_imgBuffer.bind();
 
 	doAllShading(properties, scene);
 
@@ -176,12 +184,7 @@ void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* sc
 
 void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* scene) {
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - begin");
-
-	/* Either write to screen or to image for further post processing */
-	if (m_postProcess.get() == nullptr) {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	} else
-		m_imgBuffer.bind();
+	glViewport(0, 0, m_gBuffer.getWidth(), m_gBuffer.getHeight());
 
 	m_shade.bind();
 
@@ -196,7 +199,7 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	if (m_useShadowDag) {
 		glUniform1i(m_shade["renderShadow"], 1);
 
-		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.getLightViewProj(), m_visibilities.get());
+		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.lightViewProj, m_visibilities.get());
 		m_shade.bind();
 		m_visibilities->bindAt(3);
 	} else {

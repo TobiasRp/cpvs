@@ -8,15 +8,15 @@
  */
 class DirectionalLight {
 public:
-	DirectionalLight(vec3 col, vec3 dir, float dist = 900)
+	DirectionalLight(vec3 col, vec3 dir, float dist = 100)
 	   	: color(col), direction(dir), distance(dist), znear(1), zfar(1000) { }
 	~DirectionalLight() = default;
 
-	mat4 getLightView() const;
+	mat4 calcLightView() const;
 
-	mat4 getLightProj() const;
+	mat4 calcLightProj() const;
 
-	mat4 getLightViewProj() const;
+	void updateLightViewProj();
 
 public:
 	vec3 color;
@@ -27,6 +27,8 @@ public:
 
 	// For the shadow map rendering
 	float znear, zfar;
+
+	mat4 lightViewProj;
 };
 
 #endif

@@ -29,8 +29,8 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 8192;
-const float  lightDistance  = 650;
-const vec3   lightDirection = {-0.2, 1, 0};
+const float  lightDistance  = 25;
+const vec3   lightDirection = {0.05, 1, 0};
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 1000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
@@ -44,6 +44,11 @@ struct Settings {
 };
 
 Settings uiSettings;
+
+void initCamera() {
+	cam.setSpeed(3.0f);
+	cam.setPosition(vec3(-4, 5, 0));
+}
 
 void resize(GLFWwindow* window, int width, int height) {
 	cam.setAspectRatio(width, height);
@@ -149,11 +154,6 @@ void initTweakBar() {
 	TwAddVarRW(twBar, "Draw shadows", TW_TYPE_BOOLCPP, &uiSettings.useShadows, nullptr);
 }
 
-void initCamera() {
-	cam.setSpeed(3.0f);
-	cam.setPosition(vec3(10, 10, 10));
-}
-
 void printDurationToNow(high_resolution_clock::time_point start) {
 	auto t1 = high_resolution_clock::now();
 	cout << duration_cast<milliseconds>(t1 - start).count() << "msec\n";
@@ -191,7 +191,6 @@ void initRenderSystem() {
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
-	renderSystem->setPostProcess(fxaa);
 }
 
 MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
@@ -227,15 +226,15 @@ int main(int argc, char **argv) {
 
 	auto mm = createPrecomputedShadows(scene.get());
 
-	auto level     = mm.getLevel(1);
+	auto level     = mm.getLevel(0);
 	auto texLevel  = std::make_shared<Texture2D>(*level);
-	uint lastLevel = 1;
+	uint lastLevel = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());
 
 		if (uiSettings.smLevel != lastLevel) {
-			// update sm texture (only when necessary)
+			// update sm texture only when necessary
 			level = mm.getLevel(uiSettings.smLevel);
 			texLevel = std::make_shared<Texture2D>(*level);
 			lastLevel = uiSettings.smLevel;
@@ -244,7 +243,7 @@ int main(int argc, char **argv) {
 		renderSystem->useShadows(uiSettings.useShadows);
 
 		if (uiSettings.renderShadowMap)
-			renderSystem->renderTexture(texLevel);
+			renderSystem->renderTexture(texLevel.get());
 		else
 			renderSystem->render(properties, scene.get());
 		

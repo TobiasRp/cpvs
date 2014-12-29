@@ -28,7 +28,7 @@ public:
 	 */
 	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int size);
 
-	void renderTexture(shared_ptr<Texture2D> tex);
+	void renderTexture(const Texture2D* tex);
 
 	inline DirectionalLight& getLight() {
 		return m_dirLight;

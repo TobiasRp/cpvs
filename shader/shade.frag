@@ -30,7 +30,7 @@ void main(void) {
 	vec4 normalTex = texture(normalBuffer, position);
 	vec3 N = normalize(normalTex.xyz);
 
-	vec3 L = normalize( - light.direction);
+	vec3 L = normalize(light.direction);
 	vec4 diffuse_color = texture(diffuseBuffer, position);
 	float diffuse = max(0.0, dot(N, L));
 
