@@ -36,7 +36,7 @@ void CompressedShadow::initShaderAndKernels() {
 		std::terminate();
 	}
 
-	m_traverseCS.addUniform("shadowProj");
+	m_traverseCS.addUniform("lightViewProj");
 	m_traverseCS.addUniform("width");
 	m_traverseCS.addUniform("height");
 }
@@ -247,7 +247,7 @@ void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightVi
 	// Bind dag
 	m_deviceDag->bindAt(2);
 
-	glUniformMatrix4fv(m_traverseCS["shadowProj"], 1, GL_FALSE, glm::value_ptr(lightViewProj));
+	glUniformMatrix4fv(m_traverseCS["lightViewProj"], 1, GL_FALSE, glm::value_ptr(lightViewProj));
 
 	// Set width and height
 	const GLuint width = positionsWS->getWidth();

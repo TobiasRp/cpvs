@@ -171,7 +171,16 @@ TEST_F(CompressedShadowTest, testCompute8) {
 	ImageF resultImg(8, 8, 1);
 	glGetTexImage(GL_TEXTURE_2D, 0, result.getFormat(), result.getType(), resultImg.data());
 
-	// visibilites are now in resultImg, test them
+	/* visibilites are now in resultImg and they should be:
+	 * 00000001
+	 * 00000001
+	 * 00000001
+	 * 00000001
+	 * 11000001
+	 * 11000001
+	 * 11000001
+	 * 11000001
+	 */
 	for(size_t y = 0; y < 8; ++y) {
 		for (size_t x = 0; x < 8; ++x) {
 			// Test some visibilities (which are heaviliy influenced by the test positions above!)

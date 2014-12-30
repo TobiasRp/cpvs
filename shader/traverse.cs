@@ -7,7 +7,7 @@ layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
 uniform uint width;
 uniform uint height;
 
-uniform mat4 shadowProj;
+uniform mat4 lightViewProj;
 
 layout (rgba32f, binding = 0) uniform image2D positionsWS;
 layout (r8, binding = 1)      uniform image2D visibilities;
@@ -76,7 +76,7 @@ void main() {
 
 	vec3 posWS = imageLoad(positionsWS, index).xyz;
 
-	vec4 projPos = shadowProj * vec4(posWS, 1.0);
+	vec4 projPos = lightViewProj * vec4(posWS, 1.0);
 	projPos.xyz = projPos.xyz / projPos.w;
 
 	float vis = traverse(projPos.xyz);
