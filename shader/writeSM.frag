@@ -2,7 +2,7 @@
 
 layout (location = 0) out vec4 fragColor;
 
-in vec2 position;
+in vec2 texcoord;
 
 layout (binding  = 0) uniform sampler2D imageTex;
 
@@ -14,6 +14,6 @@ float linearizeDepth(in vec2 uv) {
 }
 
 void main() {
-	float d = linearizeDepth(position);
+	float d = linearizeDepth(texcoord);
 	fragColor = vec4(d, d, d, 1.0);
 }

@@ -2,10 +2,10 @@
 
 layout (location = 0) out vec4 fragColor;
 
-in vec2 position;
+in vec2 texcoord;
 
 layout (binding  = 0) uniform sampler2D imageTex;
 
 void main() {
-	fragColor = texture(imageTex, position);
+	fragColor = texture(imageTex, texcoord);
 }

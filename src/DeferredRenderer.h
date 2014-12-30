@@ -28,6 +28,8 @@ public:
 	 */
 	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int size);
 
+	void renderDepthTexture(const Texture2D* tex);
+
 	void renderTexture(const Texture2D* tex);
 
 	inline DirectionalLight& getLight() {
@@ -42,17 +44,23 @@ public:
 		m_postProcess.reset();
 	}
 
-	inline void useShadows(bool use) {
-		m_useShadowDag = use;
+	inline void useReferenceShadows(bool use) {
+		m_useReferenceShadow = use;
 	}
 
 	inline void setShadow(unique_ptr<CompressedShadow> shadowDag) {
 		m_shadowDag = std::move(shadowDag);
 	}
 
+	inline void setShadow(shared_ptr<Texture2D> shadowMap) {
+		m_shadowMap = std::move(shadowMap);
+	}
+
 private:
 	void loadShaders();
 	void initFbos();
+
+	static void renderQuad(const Quad& quad);
 
 	void renderScene(RenderProperties& properties, const Scene* scene);
 
@@ -60,7 +68,7 @@ private:
 
 private:
 	ShaderProgram m_geometry, m_shade;
-	ShaderProgram m_create_sm, m_writeImg;
+	ShaderProgram m_create_sm, m_writeSM, m_writeImg;
 
 	Fbo m_gBuffer;
 	Fbo m_imgBuffer;
@@ -70,9 +78,11 @@ private:
 
 	DirectionalLight m_dirLight;
 
-	bool m_useShadowDag;
+	bool m_useReferenceShadow;
 	unique_ptr<CompressedShadow> m_shadowDag;
 	unique_ptr<Texture2D> m_visibilities;
+
+	shared_ptr<Texture2D> m_shadowMap;
 };
 
 #endif

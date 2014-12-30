@@ -23,7 +23,10 @@ void DeferredRenderer::loadShaders() {
 		m_geometry.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/geometry.frag");
 		m_geometry.link();
 
-		m_shade.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
+		Shader passthrough(GL_VERTEX_SHADER);
+		passthrough.compileFile("../shader/passthrough.vert");
+
+		m_shade.addShader(passthrough);
 		m_shade.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/shade.frag");
 		m_shade.link();
 
@@ -31,9 +34,14 @@ void DeferredRenderer::loadShaders() {
 		m_create_sm.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/create_sm.frag");
 		m_create_sm.link();
 
-		m_writeImg.addShaderFromFile(GL_VERTEX_SHADER, "../shader/passthrough.vert");
-		m_writeImg.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeSM.frag");
+		m_writeSM.addShader(passthrough);
+		m_writeSM.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeSM.frag");
+		m_writeSM.link();
+
+		m_writeImg.addShader(passthrough);
+		m_writeImg.addShaderFromFile(GL_FRAGMENT_SHADER, "../shader/writeImg.frag");
 		m_writeImg.link();
+
 	} catch (ShaderException& exc) {
 		cout << exc.where() << " - " << exc.what() << endl;
 		std::terminate();
@@ -52,6 +60,7 @@ void DeferredRenderer::loadShaders() {
 	m_shade.addUniform("light.color");
 	m_shade.addUniform("light.direction");
 	m_shade.addUniform("renderShadow");
+	m_shade.addUniform("lightViewProj");
 
 	m_create_sm.addUniform("MVP");
 }
@@ -124,19 +133,33 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
-void DeferredRenderer::renderTexture(const Texture2D* tex) {
-	GL_CHECK_ERROR("DeferredRenderer::renderTexture - begin: ");
-	tex->bindAt(0);
-
+void DeferredRenderer::renderQuad(const Quad& quad) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	m_writeImg.bind();
 
 	glEnable(GL_TEXTURE_2D);
 	glDisable(GL_DEPTH_TEST);
 
-	m_fullscreenQuad.draw();
+	quad.draw();
+}
 
+void DeferredRenderer::renderDepthTexture(const Texture2D* tex) {
+	GL_CHECK_ERROR("DeferredRenderer::renderTexture - begin: ");
+	tex->bindAt(0);
+
+	m_writeSM.bind();
+	renderQuad(m_fullscreenQuad);
+	m_writeSM.release();
+
+	GL_CHECK_ERROR("DeferredRenderer::renderTexture - end: ");
+}
+
+void DeferredRenderer::renderTexture(const Texture2D* tex) {
+	GL_CHECK_ERROR("DeferredRenderer::renderTexture - begin: ");
+	tex->bindAt(0);
+
+	m_writeImg.bind();
+	renderQuad(m_fullscreenQuad);
 	m_writeImg.release();
 
 	GL_CHECK_ERROR("DeferredRenderer::renderTexture - end: ");
@@ -191,12 +214,9 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	glUniform3fv(m_shade["light.color"], 1, glm::value_ptr(m_dirLight.color));
 	glUniform3fv(m_shade["light.direction"], 1, glm::value_ptr(m_dirLight.direction));
 
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_TEXTURE_2D);
-
 	m_gBuffer.bindTextures();
 
-	if (m_useShadowDag) {
+	if (!m_useReferenceShadow) {
 		glUniform1i(m_shade["renderShadow"], 1);
 
 		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.lightViewProj, m_visibilities.get());
@@ -204,9 +224,12 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 		m_visibilities->bindAt(3);
 	} else {
 		glUniform1i(m_shade["renderShadow"], 0);
+		glUniformMatrix4fv(m_shade["lightViewProj"], 1, GL_FALSE, glm::value_ptr(m_dirLight.lightViewProj));
+
+		m_shadowMap->bindAt(4);
 	}
 
-	m_fullscreenQuad.draw();
+	renderQuad(m_fullscreenQuad);
 
 	m_shade.release();
 	GL_CHECK_ERROR("DeferredRenderer::doAllShading - end");

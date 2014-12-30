@@ -14,7 +14,7 @@ public:
 			m_stack = std::make_unique<MatrixStack>(mat4(1.0f));
 	}
 
-	void setShaderProgram(ShaderProgram *shader) {
+	void setShaderProgram(ShaderProgram *shader) noexcept {
 		m_shader = shader;
 	}
 
@@ -42,11 +42,11 @@ public:
 		return glm::transpose(glm::inverse(getM()));
 	}
 
-	void setRenderingOfMaterials(bool value) {
+	void setRenderingOfMaterials(bool value) noexcept {
 		m_renderMaterials = value;
 	}
 
-	bool renderMaterials() const {
+	bool renderMaterials() const noexcept {
 		return m_renderMaterials;
 	}
 

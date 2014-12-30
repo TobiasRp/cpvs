@@ -27,7 +27,6 @@ public:
 
 private:
 	shared_ptr<Texture2D> m_texture;
-
 };
 
 #endif

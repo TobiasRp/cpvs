@@ -3,10 +3,10 @@
 in vec4 vertex;
 in vec2 texcoords;
 
-out vec2 position;
+out vec2 texcoord;
 
 void main(void)
 {
     gl_Position = vertex;
-    position = texcoords;
+    texcoord = texcoords;
 }

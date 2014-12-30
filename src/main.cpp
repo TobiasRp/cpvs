@@ -29,8 +29,8 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 8192;
-const float  lightDistance  = 25;
-const vec3   lightDirection = {0.05, 1, 0};
+const float  lightDistance  = 580;
+const vec3   lightDirection = {0.25, 1, 0};
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 1000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
@@ -40,7 +40,7 @@ struct Settings {
 	bool renderShadowMap;
 	uint smLevel;
 
-	bool useShadows;
+	bool useReferenceShadows;
 };
 
 Settings uiSettings;
@@ -134,7 +134,7 @@ void initExtensions() {
 
 void initUiSettings() {
 	uiSettings.renderShadowMap = false;
-	uiSettings.useShadows = true;
+	uiSettings.useReferenceShadows = false;
 }
 
 void initTweakBar() {
@@ -151,7 +151,7 @@ void initTweakBar() {
 
 	TwAddSeparator(twBar, "firstSep", nullptr);
 
-	TwAddVarRW(twBar, "Draw shadows", TW_TYPE_BOOLCPP, &uiSettings.useShadows, nullptr);
+	TwAddVarRW(twBar, "Reference shadow mapping", TW_TYPE_BOOLCPP, &uiSettings.useReferenceShadows, nullptr);
 }
 
 void printDurationToNow(high_resolution_clock::time_point start) {
@@ -230,6 +230,8 @@ int main(int argc, char **argv) {
 	auto texLevel  = std::make_shared<Texture2D>(*level);
 	uint lastLevel = 0;
 
+	renderSystem->setShadow(texLevel);
+
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());
 
@@ -240,10 +242,10 @@ int main(int argc, char **argv) {
 			lastLevel = uiSettings.smLevel;
 		}
 
-		renderSystem->useShadows(uiSettings.useShadows);
+		renderSystem->useReferenceShadows(uiSettings.useReferenceShadows);
 
 		if (uiSettings.renderShadowMap)
-			renderSystem->renderTexture(texLevel.get());
+			renderSystem->renderDepthTexture(texLevel.get());
 		else
 			renderSystem->render(properties, scene.get());
 		

@@ -13,13 +13,12 @@ using namespace std;
 using namespace Assimp;
 
 AssimpScene::AssimpScene(const std::string file) {
-	// maybe test if file exists?
 	ifstream is(file);
 	if (!is.is_open()) {
 		throw FileNotFound("Specified file not found");
 	}
 	
-	auto scene = m_importer.ReadFile(file, aiProcessPreset_TargetRealtime_Quality);
+	auto scene = m_importer.ReadFile(file, aiProcessPreset_TargetRealtime_Fast);
 	if (!scene) {
 		throw LoadFileException("Assimp couldn't load file");
 	}

@@ -2,7 +2,7 @@
 
 layout (location = 0) out vec4 fragColor;
 
-in vec2 position;
+in vec2 texcoord;
 
 layout (binding  = 0) uniform sampler2D imageTex;
 
@@ -32,15 +32,15 @@ uniform int renderMode;
 vec3 fxaa()
 {
     /* Retrieve rgb colors of the 3x3 region */
-    vec3 rgbP  = texLod0(imageTex, position).rgb;
-    vec3 rgbN  = texLod0(imageTex, position + vec2(0.0,   pixelSize.y)).rgb;
-    vec3 rgbNW = texLod0(imageTex, position + vec2(- pixelSize.x, pixelSize.y)).rgb;
-    vec3 rgbW  = texLod0(imageTex, position + vec2(- pixelSize.x, 0.0)).rgb;
-    vec3 rgbSW = texLod0(imageTex, position + vec2(- pixelSize.x, - pixelSize.y)).rgb;
-    vec3 rgbS  = texLod0(imageTex, position + vec2(0.0, - pixelSize.y)).rgb;
-    vec3 rgbSE = texLod0(imageTex, position + vec2(  pixelSize.x, - pixelSize.y)).rgb;
-    vec3 rgbE  = texLod0(imageTex, position + vec2(  pixelSize.x, 0.0)).rgb;
-    vec3 rgbNE = texLod0(imageTex, position + vec2(  pixelSize.x, pixelSize.y)).rgb;
+    vec3 rgbP  = texLod0(imageTex, texcoord).rgb;
+    vec3 rgbN  = texLod0(imageTex, texcoord + vec2(0.0,   pixelSize.y)).rgb;
+    vec3 rgbNW = texLod0(imageTex, texcoord + vec2(- pixelSize.x, pixelSize.y)).rgb;
+    vec3 rgbW  = texLod0(imageTex, texcoord + vec2(- pixelSize.x, 0.0)).rgb;
+    vec3 rgbSW = texLod0(imageTex, texcoord + vec2(- pixelSize.x, - pixelSize.y)).rgb;
+    vec3 rgbS  = texLod0(imageTex, texcoord + vec2(0.0, - pixelSize.y)).rgb;
+    vec3 rgbSE = texLod0(imageTex, texcoord + vec2(  pixelSize.x, - pixelSize.y)).rgb;
+    vec3 rgbE  = texLod0(imageTex, texcoord + vec2(  pixelSize.x, 0.0)).rgb;
+    vec3 rgbNE = texLod0(imageTex, texcoord + vec2(  pixelSize.x, pixelSize.y)).rgb;
 
     vec3  luma   = vec3(0.299, 0.587, 0.114);
     float lumaP  = dot(rgbP, luma);
@@ -133,8 +133,8 @@ vec3 fxaa()
 
     /* Calculate the interpolated position of the 'pair' */
     vec2 posNeg;
-    posNeg.x = position.x + (horzSpan ? 0.0 : lengthSign * 0.5);
-    posNeg.y = position.y + (horzSpan ? lengthSign * 0.5 : 0.0);
+    posNeg.x = texcoord.x + (horzSpan ? 0.0 : lengthSign * 0.5);
+    posNeg.y = texcoord.y + (horzSpan ? lengthSign * 0.5 : 0.0);
 
     /* Control when to stop searching */
     gradient0 *= SEARCH_THRESHOLD;
@@ -180,11 +180,11 @@ vec3 fxaa()
     float dstNeg, dstPos;
 
     if (horzSpan) {
-        dstNeg = position.x - posNeg.x;
-        dstPos = posPos.x - position.x;
+        dstNeg = texcoord.x - posNeg.x;
+        dstPos = posPos.x - texcoord.x;
     } else {
-        dstNeg = position.y - posNeg.y;
-        dstPos = posPos.y - position.y;
+        dstNeg = texcoord.y - posNeg.y;
+        dstPos = posPos.y - texcoord.y;
     }
 
     bool direction = dstNeg < dstPos;
@@ -205,8 +205,8 @@ vec3 fxaa()
     float dst = direction ? dstNeg : dstPos;
     float subPixelOffset = (0.5 + (dst * (-1.0 / spanLength))) * lengthSign;
 
-    vec3 rgbF = texLod0(imageTex, vec2(position.x + (horzSpan ? 0.0 : subPixelOffset),
-                                       position.y + (horzSpan ? subPixelOffset : 0.0))).rgb;
+    vec3 rgbF = texLod0(imageTex, vec2(texcoord.x + (horzSpan ? 0.0 : subPixelOffset),
+                                       texcoord.y + (horzSpan ? subPixelOffset : 0.0))).rgb;
 
     // No subpixel aliasing
     //return rgbF;
@@ -218,5 +218,5 @@ vec3 fxaa()
 void main(void)
 {
     fragColor = vec4(fxaa(), 1.0);
-	//fragColor = texLod0(imageTex, position);
+	//fragColor = texLod0(imageTex, texcoord);
 }

@@ -13,7 +13,5 @@ out VARYINGS {
 
 void main()
 {
-	//todo normal: MV * (vNormal, 0)
-
 	gl_Position = MVP * vec4(position, 1.0);
 }
