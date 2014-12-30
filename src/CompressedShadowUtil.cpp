@@ -10,7 +10,7 @@ using namespace cs;
 uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset, size_t steps) {
 	assert(steps == 2 && "Haven't tested/implemented with steps != 2");
 
-	/* Size of the minMax level (levelHeight) */
+	/* Size of the minMax level */
 	size_t levelHeight = minMax.getLevel(level)->getHeight();
 
 	/* The y-axis of the image in the min-max hierarchy is inverted */
@@ -50,13 +50,16 @@ uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const iv
 	return childmask;
 }
 
-vector<ivec3> cs::getChildOffsets(uint childmask, const ivec3& parentOffset) {
+vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset) {
 	vector<ivec3> result;
 	for (uint i = 0; i < 8; ++i) {
 		if (isPartial(childmask, i)) {
-			uint maskX = (1 & i) ? 1 : 0;
-			uint maskY = (2 & i) ? 1 : 0;
-			uint maskZ = (4 & i) ? 1 : 0;
+			/* Decide whether to add 1 in the x, y, z direction.
+			 * This code relies on the order of the children (and has to...) */
+
+			uint maskX = (0x1 & i) ? 1 : 0; // maskX is 1 <=> i is 1, 3, 5, 7
+			uint maskY = (0x2 & i) ? 1 : 0; // maskY is 1 <=> i is 2, 3, 6, 7
+			uint maskZ = (0x4 & i) ? 1 : 0; // maskZ is 1 <=> i is 4, 5, 6, 7
 			ivec3 off((parentOffset.x + maskX) * 2, (parentOffset.y + maskY) * 2, (parentOffset.z + maskZ) * 2);
 
 			result.push_back(off);

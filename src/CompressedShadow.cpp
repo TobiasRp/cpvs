@@ -60,11 +60,11 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	m_dag.resize(NODE_SIZE + numChildren * NODE_SIZE);
 	m_dag[0] = rootmask;
 
-	vector<ivec3> childCoords = cs::getChildOffsets(rootmask, rootOffset);
+	vector<ivec3> childCoords = cs::getChildCoordinates(rootmask, rootOffset);
 	setChildrenOffsets(m_dag, 0, NODE_SIZE, numChildren);
 
-	size_t levelOffset     = NODE_SIZE;
-	size_t numLevelNodes = numChildren;
+	size_t levelOffset   = NODE_SIZE;   // Offset to the beginning of the current level
+	size_t numLevelNodes = numChildren; // Number of children in the current level
 
 	vector<ivec3> newChildrenCoords;
 
@@ -72,19 +72,21 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 
 	/* Create new levels from the highest to the lowest level */
 	while(level >= 0 && numLevelNodes > 0) {
-		size_t nextLevelOffset   = levelOffset + numLevelNodes * NODE_SIZE;
-		size_t newChildrenNodes  = 0;
-		size_t nextLevelProgress = 0;
+		// Offset to the beginning of the next level
+		size_t nextLevelOffset = levelOffset + numLevelNodes * NODE_SIZE;
+
+		size_t newChildrenNodes  = 0; // counts the number of new children in the next level
+		size_t nextLevelProgress = 0; // current index in the next level
 		newChildrenCoords.clear();
 
 		/* First calculate the number of new children nodes so we can resize the dag.
-		 * Thereby save all masks so we don't have to calculate them twice */
-		vector<uint64> masks(numLevelNodes);
+		 * Thereby set and save all masks so we don't have to calculate them twice */
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-			uint64 nodemask = cs::createChildmask(minMax, level, childCoords[nodeNr]);
-			numChildren     = cs::getNumChildren(nodemask);
+			size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
+			uint64 nodemask   = cs::createChildmask(minMax, level, childCoords[nodeNr]);
+			numChildren       = cs::getNumChildren(nodemask);
 
-			masks[nodeNr] = nodemask;
+			m_dag[nodeOffset] = nodemask;
 			newChildrenNodes += numChildren;
 		}
 
@@ -92,15 +94,14 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 			m_dag.resize(m_dag.size() + newChildrenNodes * NODE_SIZE, 0);
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-			size_t nodeOffset   = levelOffset + nodeNr * NODE_SIZE;
-			uint64 nodemask   = masks[nodeNr];
+			size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
+			uint64 nodemask   = m_dag[nodeOffset];
 			numChildren       = cs::getNumChildren(nodemask);
-			m_dag[nodeOffset] = nodemask;
 
 			if (numChildren > 0) {
 				assert(level != 0);
 
-				auto coords = cs::getChildOffsets(nodemask, childCoords[nodeNr]);
+				auto coords = cs::getChildCoordinates(nodemask, childCoords[nodeNr]);
 				size_t childOffset = nextLevelOffset + nextLevelProgress;
 
 				setChildrenOffsets(m_dag, nodeOffset, childOffset, numChildren);
@@ -146,7 +147,7 @@ void CompressedShadow::compress() {
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
 			const size_t nodeOffset = oldLevelOffset + nodeNr * NODE_SIZE;
-			const uint numChildren = getNumChildrenFromOffset(m_dag, nodeOffset);
+			const uint numChildren  = getNumChildrenFromOffset(m_dag, nodeOffset);
 
 			auto nodeIt = m_dag.begin() + nodeOffset;
 			newDag.insert(newDag.begin() + newDagOffset, nodeIt, nodeIt + numChildren + 1);
@@ -160,7 +161,8 @@ void CompressedShadow::compress() {
 		if (oldLastLevel != oldLevelOffset) {
 			// Parent(s) exist, so update the parent(s) offsets
 			size_t currentNewDagPos = newLastLevel;
-			size_t currentOldPos = oldLastLevel;
+			size_t currentOldPos    = oldLastLevel;
+
 			while (currentOldPos != oldLevelOffset) {
 				const uint numChildren = getNumChildrenFromOffset(m_dag, currentOldPos);
 

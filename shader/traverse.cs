@@ -46,10 +46,10 @@ float traverse(const vec3 projPos) {
 	int level = NUM_LEVELS;
 
 	while(level > 1) {
-		int lvlBit = 1 << (level - 2);
-		int childIndex = (bool(path.x & lvlBit) ? 2 : 0) +
-						 (bool(path.y & lvlBit) ? 4 : 0) +
-						 (bool(path.z & lvlBit) ? 8 : 0);
+		uint lvlBit = 1 << (level - 2);
+		uint childIndex = (bool(path.x & lvlBit) ? 2 : 0) +
+						  (bool(path.y & lvlBit) ? 4 : 0) +
+						  (bool(path.z & lvlBit) ? 8 : 0);
 
 		uint childmask = dag[offset];
 
@@ -77,7 +77,7 @@ void main() {
 	vec3 posWS = imageLoad(positionsWS, index).xyz;
 
 	vec4 projPos = lightViewProj * vec4(posWS, 1.0);
-	projPos.xyz = projPos.xyz / projPos.w;
+	projPos = projPos / projPos.w;
 
 	float vis = traverse(projPos.xyz);
 	imageStore(visibilities, index, vec4(vis));
