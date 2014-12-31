@@ -29,7 +29,7 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 8192;
-const float  lightDistance  = 580;
+const float  lightDistance  = 680;
 const vec3   lightDirection = {0.25, 1, 0};
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 1000.0f);
@@ -207,6 +207,7 @@ MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
 	cout << " done after ";
 	printDurationToNow(t0);
 
+	shadow->freeDagOnCPU();
 	renderSystem->setShadow(std::move(shadow));
 
 	return mm;

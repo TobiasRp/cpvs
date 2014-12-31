@@ -76,11 +76,23 @@ public:
 	 */
 	void compute(const Texture2D* positionsWS, const mat4& lightViewProj, Texture2D* visibilities);
 
+	/**
+	 * Frees all dynamically allocated memory for the DAG on the cpu.
+	 * All operations evaluating the shadow on the GPU are still valid, but the DAG can't be traversed
+	 * on the CPU or otherwise changed.
+	 */
+	inline void freeDagOnCPU() {
+		// Use the 'swap trick' to free all dynamic memory
+		std::vector<uint> tmp;
+		m_dag.swap(tmp);
+	}
+
 private:
 	/* Private member and helper functions */
 
-
 	void initShaderAndKernels();
+
+	void copyToGPU();
 
 	/**
 	 * Given the number of levels in the octree, this calculates the resolution.
@@ -101,18 +113,6 @@ private:
 	}
 
 	/**
-	 * During the construction of the SVO/DAG each node will have 8 pointers to its children.
-	 * This function will compress this structure by removing all unnecessary pointers.
-	 */
-	void compress();
-
-	/**
-	 * Merges common subtrees of an SVO to transform it into a directed acyclic graph (DAG).
-	 * \note Assumes an uncompressed SVO exists.
-	 */
-	void mergeSubtrees();
-
-	/**
 	 * Constructs the sparse voxel octree in a 1-dimensional array.
 	 * The resulting datastructure is not compressed, i.e. every node has 8 pointers even if they
 	 * are 0.
@@ -120,6 +120,18 @@ private:
 	 * \see mergeSubtrees
 	 */
 	void constructSvo(const MinMaxHierarchy& minMax);
+
+	/**
+	 * Merges common subtrees of an SVO to transform it into a directed acyclic graph (DAG).
+	 * \note Assumes an uncompressed SVO exists.
+	 */
+	void mergeCommonSubtrees();
+
+	/**
+	 * During the construction of the SVO/DAG each node will have 8 pointers to its children.
+	 * This function will compress this structure by removing all unnecessary pointers.
+	 */
+	void compress();
 
 private:
 	/* Private class members */

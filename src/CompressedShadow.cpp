@@ -7,13 +7,14 @@
 #include <numeric>
 #include <cmath>
 #include <unordered_map>
+#include <future>
 using namespace cs;
 using namespace std;
 
 #include <glm/ext.hpp>
 #include <iostream>
 
-constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointer will be removed later)
+constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointers will be removed with 'compress')
 
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
@@ -21,10 +22,7 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 
 	constructSvo(minMax);
 
-	compress();
-
 	initShaderAndKernels();
-	m_deviceDag = make_unique<SSBO>(m_dag, GL_STATIC_READ);
 }
 
 void CompressedShadow::initShaderAndKernels() {
@@ -39,6 +37,25 @@ void CompressedShadow::initShaderAndKernels() {
 	m_traverseCS.addUniform("lightViewProj");
 	m_traverseCS.addUniform("width");
 	m_traverseCS.addUniform("height");
+}
+
+void CompressedShadow::copyToGPU() {
+	m_deviceDag = make_unique<SSBO>(m_dag, GL_STATIC_READ);
+}
+
+unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
+	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax));
+
+	cs->mergeCommonSubtrees();
+	cs->compress();
+	cs->copyToGPU();
+
+	return cs;
+}
+
+unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap) {
+	MinMaxHierarchy minMax(shadowMap.createImageF());
+	return create(minMax);
 }
 
 /**
@@ -118,7 +135,17 @@ void CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 
 		level--;
 	}
-	m_dag.shrink_to_fit();
+}
+
+void CompressedShadow::mergeCommonSubtrees() {
+	vector<uint> newDag(m_dag.size());
+
+	/* Merge common subtrees bottom up */
+	for (uint level = 0; level < m_numLevels; ++level) {
+
+	}
+
+	//m_dag.swap(newDag);
 }
 
 /** Helper function which simplifies getting the number of children */
@@ -187,15 +214,6 @@ void CompressedShadow::compress() {
 
 	m_dag.swap(newDag);
 	m_dag.shrink_to_fit();
-}
-
-unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
-	return unique_ptr<CompressedShadow>(new CompressedShadow(minMax));
-}
-
-unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap) {
-	MinMaxHierarchy minMax(shadowMap.createImageF());
-	return create(minMax);
 }
 
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {
