@@ -38,8 +38,9 @@ public:
 		return m_stack->top();
 	}
 
-	mat4 getNormalMatrix() const {
-		return glm::transpose(glm::inverse(getM()));
+	mat3 getNormalMatrix() const {
+		mat3 M = mat3(getM());
+		return glm::transpose(glm::inverse(M));
 	}
 
 	void setRenderingOfMaterials(bool value) noexcept {
