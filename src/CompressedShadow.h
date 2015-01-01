@@ -116,16 +116,17 @@ private:
 	 * Constructs the sparse voxel octree in a 1-dimensional array.
 	 * The resulting datastructure is not compressed, i.e. every node has 8 pointers even if they
 	 * are 0.
-	 * \see compress
-	 * \see mergeSubtrees
+	 * @see compress
+	 * @see mergeSubtrees
+	 * @return Returns offsets to all levels for further processing.
 	 */
-	void constructSvo(const MinMaxHierarchy& minMax);
+	vector<uint> constructSvo(const MinMaxHierarchy& minMax);
 
 	/**
 	 * Merges common subtrees of an SVO to transform it into a directed acyclic graph (DAG).
-	 * \note Assumes an uncompressed SVO exists.
+	 * @note Assumes an uncompressed SVO exists.
 	 */
-	void mergeCommonSubtrees();
+	void mergeCommonSubtrees(const vector<uint>& levelOffsets);
 
 	/**
 	 * During the construction of the SVO/DAG each node will have 8 pointers to its children.
