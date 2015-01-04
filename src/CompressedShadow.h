@@ -129,6 +129,12 @@ private:
 	void mergeCommonSubtrees(const vector<uint>& levelOffsets);
 
 	/**
+	 * Helper function for merging common subtrees which updates the child pointers of the parent level
+	 * according to a given mapping.
+	 */
+	void updateParentPointers(const vector<uint>& levelOffsets, unordered_map<uint, uint> mapping, uint parentLevel);
+
+	/**
 	 * During the construction of the SVO/DAG each node will have 8 pointers to its children.
 	 * This function will compress this structure by removing all unnecessary pointers.
 	 */

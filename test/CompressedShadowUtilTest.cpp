@@ -47,3 +47,35 @@ TEST(getChildCoordinatesTest, testChild7) {
 	ivec3 parentOffset(0, 0, 0);
 	ASSERT_EQ(ivec3(2, 2, 2), getChildCoordinates(mask, parentOffset)[0]); 
 }
+
+
+TEST(isEqualSubtreeTest, testEqual) {
+	vector<uint> node { 0xAAAA, 10, 42, 0, 0, 1, 2, 3, 4 };
+
+	// Compare node with itself, which should be true
+	ASSERT_TRUE(isEqualSubtree(node.begin(), node.begin()));
+}
+
+TEST(isEqualSubtreeTest, testUnEqual) {
+	vector<uint> node1 { 0xAAAA, 10, 42, 0, 0, 1, 2, 3, 4 };
+	vector<uint> node2 { 0xAAA0, 10, 42, 0, 0, 1, 2, 3, 4 };
+	vector<uint> node3 { 0xAAAA, 10, 42, 0, 0, 1, 2, 3, 0 };
+
+	ASSERT_FALSE(isEqualSubtree(node1.begin(), node2.begin()));
+	ASSERT_FALSE(isEqualSubtree(node1.begin(), node3.begin()));
+}
+
+TEST(mergeLevelTest, testSimpleLevel) {
+	vector<uint> dag {
+		0xAAAA, 10, 42, 0, 0, 1, 2, 3, 4,
+		0xAAA0, 10, 0, 0, 0, 0, 0, 0, 0,
+		0xAAAA, 10, 42, 0, 0, 1, 2, 3, 4};
+
+	vector<uint> res(NODE_SIZE * 2);
+	auto mapping = mergeLevel(dag.begin(), dag.end(), res.begin());
+
+	ASSERT_EQ(0, mapping[0]);
+	ASSERT_EQ(NODE_SIZE, mapping[NODE_SIZE]);
+
+	ASSERT_EQ(0xAAA0, res[NODE_SIZE]);
+}

@@ -7,6 +7,8 @@
 
 namespace cs {
 
+	constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointers will be removed with 'compress')
+
 	/**
 	 * Calculates the childmask, i.e. the visibility for every child, for a node given by it's global offset and level.
 	 *
@@ -80,6 +82,56 @@ namespace cs {
 	 */
 	inline bool isShadowed(uint64 childmask, uint childIndex) {
 		return !isVisible(childmask, childIndex) && !isPartial(childmask, childIndex);
+	}
+
+
+	/**
+	 * Compares two nodes and decides whether they are identical subtrees and can thus be merged.
+	 */
+	template<typename It1, typename It2>
+	inline bool isEqualSubtree(It1 leftNode, It2 rightNode) {
+		for (uint i = 0; i < NODE_SIZE; ++i, ++leftNode, ++rightNode) {
+			/* Compare childmask and all pointers for equality */
+			if (*leftNode != *rightNode)
+				return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Merges all identical subtrees in one level and writes them to ItNew.
+	 * @result Maps the old offsets to the nodes to the new ones, so the parents can be updated.
+	 *
+	 * @note The mapping is in the range [0, number of nodes * NODE_SIZE); you may need
+	 * to add the level offset.
+	 */
+	template<typename It1, typename It2, typename NewIt>
+	unordered_map<uint, uint> mergeLevel(It1 oldBegin, It2 oldEnd, NewIt newBegin) {
+		unordered_map<uint, uint> result;
+
+		NewIt newCurrent = newBegin;
+		NewIt newPos; // for finding merging opportunities, i.e. will be iterated up to newCurrent
+		uint pos; // similar to newPos but contains an offset in the level for creating the result map
+
+		It1 oldCurrent = oldBegin;
+
+		for (uint i = 0; oldCurrent != oldEnd; oldCurrent += NODE_SIZE, i += NODE_SIZE) {
+
+			for (pos = 0, newPos = newBegin; newPos != newCurrent; newPos += NODE_SIZE, pos += NODE_SIZE) {
+				if (isEqualSubtree(oldCurrent, newPos)) {
+					break;
+				}
+			}
+			result[i] = pos;
+
+			if (newPos == newCurrent) {
+				// Insert the node since it can't be merged
+				std::copy(oldCurrent, oldCurrent + NODE_SIZE, newCurrent);
+				newCurrent += NODE_SIZE;
+			}
+		}
+
+		return result;
 	}
 };
 
