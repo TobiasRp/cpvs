@@ -3,6 +3,30 @@
 
 using namespace cs;
 
+MinMaxHierarchy getTestHierarchy() {
+	ImageF img8(8, 8, 1);
+	img8.setAll(vector<float>{ 
+			0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
+			0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
+			0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
+			0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
+			1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
+			1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
+			1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
+			1, 1, 0, 0, 0.1, 0.0, 0.2, 1.0});
+	return MinMaxHierarchy(img8);
+}
+
+TEST(testCreateChildmask, test8x8) {
+	auto mm = getTestHierarchy();
+
+	uint mask1 = createChildmask(mm, 1, ivec3(2, 0, 0));
+	ASSERT_EQ(0x88aa, mask1);
+
+	uint mask2 = createChildmask(mm, 0, ivec3(4, 0, 0));
+	ASSERT_EQ(0, mask2);
+}
+
 TEST(getNumChildrenTest, testDifferentValues) {
 	uint mask = 2;
 	ASSERT_EQ(1, getNumChildren(mask));
@@ -72,7 +96,8 @@ TEST(mergeLevelTest, testSimpleLevel) {
 		0xAAAA, 10, 42, 0, 0, 1, 2, 3, 4};
 
 	vector<uint> res(NODE_SIZE * 2);
-	auto mapping = mergeLevel(dag.begin(), dag.end(), res.begin());
+	uint nodes;
+	auto mapping = mergeLevel(dag.begin(), dag.end(), res.begin(), &nodes);
 
 	ASSERT_EQ(0, mapping[0]);
 	ASSERT_EQ(NODE_SIZE, mapping[NODE_SIZE]);

@@ -121,6 +121,15 @@ TEST_F(CompressedShadowTest, testTraverse16x16) {
 
 	vis = csPtr->traverse(vec3(-1, 1, -1));
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = csPtr->traverse(vec3(0, 0, -.9));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(vec3(0 + step, 0, .9));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = csPtr->traverse(vec3(0 + 3 * step, 0, -.9));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 }
 
 TEST_F(CompressedShadowTest, testCompute8) {

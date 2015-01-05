@@ -45,7 +45,7 @@ void CompressedShadow::copyToGPU() {
 unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
 	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax));
 
-	cs->compress();
+//	cs->compress();
 	cs->copyToGPU();
 
 	return cs;
@@ -81,8 +81,6 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	size_t levelOffset   = NODE_SIZE;   // Offset to the beginning of the current level
 	size_t numLevelNodes = numChildren; // Number of children in the current level
 
-	vector<ivec3> newChildrenCoords;
-
 	/* Save level offsets so we can later traverse bottom up efficiently */
 	vector<uint> levelOffsets(m_numLevels - 1, 0);
 	levelOffsets[m_numLevels - 2] = 0;
@@ -98,7 +96,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 
 		size_t newChildrenNodes  = 0; // counts the number of new children in the next level
 		size_t nextLevelProgress = 0; // current index in the next level
-		newChildrenCoords.clear();
+		vector<ivec3> newChildrenCoords;
 
 		/* First calculate the number of new children nodes so we can resize the dag.
 		 * Thereby set and save all masks so we don't have to calculate them twice */
@@ -135,7 +133,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 		levelOffset += numLevelNodes * NODE_SIZE;
 		
 		numLevelNodes = newChildrenNodes;
-		childCoords   = newChildrenCoords;
+		childCoords.swap(newChildrenCoords);
 
 		level--;
 	}
@@ -155,38 +153,97 @@ size_t getLevelSize(const vector<uint>& dag, const vector<uint>& levelOffsets, u
 }
 
 void CompressedShadow::mergeCommonSubtrees(const vector<uint>& levelOffsets) {
+//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
+//	cout << endl;
+//	cout << endl;
+
+	vector<uint> nodesPerLevel(m_numLevels - 2);
+
 	/* Merge common subtrees bottom up (but don't merge the root node...) */
 	for (uint level = 0; level < m_numLevels - 2; ++level) {
 		const size_t levelSize = getLevelSize(m_dag, levelOffsets, level);
-		vector<uint> tempLevel(levelSize);
+		vector<uint> tempLevel(levelSize, 0);
 
 		const size_t levelOffset = levelOffsets[level];
-
 		const size_t nextLevelOffset = levelOffset + levelSize;
-		auto mapping = mergeLevel(m_dag.begin() + levelOffset, m_dag.begin() + nextLevelOffset, tempLevel.begin());
+
+		auto mapping = mergeLevel(m_dag.begin() + levelOffset, m_dag.begin() + nextLevelOffset,
+				tempLevel.begin(), &nodesPerLevel[level]);
 
 		std::copy(tempLevel.begin(), tempLevel.end(), m_dag.begin() + levelOffset);
 
-		/* Update parents child pointers */
 		updateParentPointers(levelOffsets, mapping, level + 1);
 	}
+
+//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
+//	cout << endl;
+//	cout << endl;
+
+	removeUnusedNodes(levelOffsets, nodesPerLevel);
+
+//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
+//	cout << endl;
+//	cout << endl;
 }
 
-void CompressedShadow::updateParentPointers(const vector<uint>& levelOffsets, unordered_map<uint, uint> mapping, uint parentLevel) {
+void CompressedShadow::updateParentPointers(const vector<uint>& levelOffsets, unordered_map<uint, uint>& mapping,
+		uint parentLevel) {
 	const size_t childLevelOffset  = levelOffsets[parentLevel - 1];
 
 	const size_t parentLevelOffset = levelOffsets[parentLevel];
 	const size_t parentLevelSize   = getLevelSize(m_dag, levelOffsets, parentLevel);
-	for (size_t nodeOffset = parentLevelOffset; nodeOffset < parentLevelOffset + parentLevelSize; nodeOffset += NODE_SIZE) {
 
+	for (size_t nodeOffset = parentLevelOffset; nodeOffset < parentLevelOffset + parentLevelSize; nodeOffset += NODE_SIZE) {
+		/* Update child pointers which are not null */
 		for (uint child = 1; child < NODE_SIZE; ++child) {
 			const uint oldOffset = m_dag[nodeOffset + child];
-			if (oldOffset == 0)
-				continue;
-
-			m_dag[nodeOffset + child] = childLevelOffset + mapping[oldOffset - childLevelOffset];
+			if (oldOffset != 0)
+				m_dag[nodeOffset + child] = childLevelOffset + mapping[oldOffset - childLevelOffset];
 		}
 	}
+}
+
+/* Insert val at the end of the vector and maybe applies the offset */
+void insertWithCorrectOffset(vector<uint>& newDag, uint val, uint offset, size_t i) {
+	/* Correct offset if val is not the childmask and not 0 */
+	if ((i % NODE_SIZE != 0) && val != 0) {
+		assert((long)val - (long)offset > 0);
+		val -= offset;
+	}
+	newDag.push_back(val);
+}
+
+void CompressedShadow::removeUnusedNodes(const vector<uint>& levelOffsets, const vector<uint>& numNodesPerLevel) {
+	vector<uint> newDag;
+
+	// Insert root node in new dag unconditionally
+	newDag.insert(newDag.end(), m_dag.begin(), m_dag.begin() + NODE_SIZE);
+
+	size_t levelOffset = NODE_SIZE;
+	int level = m_numLevels - 3;
+
+	uint offsetCorrection = 0;
+
+	while(level >= 0) {
+		const size_t levelSize = getLevelSize(m_dag, levelOffsets, level);
+		const size_t mergedLevelSize = numNodesPerLevel[level] * NODE_SIZE;
+
+		offsetCorrection += levelSize - mergedLevelSize;
+
+		if (level == 0 || offsetCorrection == 0) {
+			newDag.insert(newDag.end(), m_dag.begin() + levelOffset, m_dag.begin() + levelOffset + mergedLevelSize);
+		} else {
+			/* Copy nodes from m_dag to newDag and correct offsets */
+			for (auto i = levelOffset; i < levelOffset + mergedLevelSize; ++i) {
+				insertWithCorrectOffset(newDag, m_dag[i], offsetCorrection, i);
+			}
+		}
+
+		levelOffset += levelSize;
+		--level;
+	}
+
+	m_dag.swap(newDag);
 }
 
 void CompressedShadow::compress() {
@@ -194,11 +251,11 @@ void CompressedShadow::compress() {
 
 	int level = m_numLevels - 2;
 
-	size_t numLevelNodes  = 1; // Number of nodes in the current level
-	size_t oldLevelOffset = 0; // m_dag: An offset to the current level
-	size_t oldLastLevel   = 0; // m_dag: An offset to the last level (i.e. an offset to the parent nodes)
-	size_t newDagOffset   = 0; // newDag: Current offset in the dag for construction
-	size_t newLastLevel   = 0; // newDag: Save an offset to the last level
+	size_t numLevelNodes     = 1; // Number of nodes in the current level
+	size_t oldDagLevelOffset = 0; // m_dag: An offset to the current level
+	size_t oldDagLastLevel   = 0; // m_dag: An offset to the last level (i.e. an offset to the parent nodes)
+	size_t newDagOffset      = 0; // newDag: Current offset in the dag for construction
+	size_t newDagLastLevel   = 0; // newDag: Save an offset to the last level
 
 	while(level >= 0 && numLevelNodes > 0) {
 		const size_t newDagLevel = newDagOffset; // the beginning of the current level in the new DAG
@@ -208,7 +265,7 @@ void CompressedShadow::compress() {
 		unordered_map<size_t, size_t> oldToNewOffset;
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-			const size_t nodeOffset = oldLevelOffset + nodeNr * NODE_SIZE;
+			const size_t nodeOffset = oldDagLevelOffset + nodeNr * NODE_SIZE;
 			const uint mask         = m_dag[nodeOffset];
 			const uint numChildren  = cs::getNumChildren(mask);
 
@@ -216,40 +273,44 @@ void CompressedShadow::compress() {
 			newDag.insert(newDag.begin() + newDagOffset, nodeIt, nodeIt + numChildren + 1);
 
 			oldToNewOffset[nodeOffset] = newDagOffset;
+			newDagOffset += numChildren + 1;
 
-			newDagOffset     += numChildren + 1;
-			newChildrenNodes += numChildren;
+			newChildrenNodes += getNumberOfUniqueElements(nodeIt + 1, nodeIt + numChildren + 1);
 		}
 
-		if (oldLastLevel != oldLevelOffset) {
+		if (oldDagLastLevel != oldDagLevelOffset) {
 			// Parent(s) exist, so update the parent(s) offsets
-			size_t currentNewDagPos = newLastLevel;
+			size_t currentNewDagPos = newDagLastLevel;
 
-			for (size_t currentOldPos = oldLastLevel; currentOldPos < oldLevelOffset; currentOldPos += NODE_SIZE) {
+			for (size_t currentOldPos = oldDagLastLevel; currentOldPos < oldDagLevelOffset; currentOldPos += NODE_SIZE) {
 				const uint mask = m_dag[currentOldPos];
 				const uint numChildren = cs::getNumChildren(mask);
 
 				for (size_t childNr = 0; childNr < numChildren; ++childNr) {
 					/* Update offsets of all children */
 					size_t oldOffset = m_dag[currentOldPos + childNr + 1];
-					if (oldOffset != 0)
+					if (oldOffset != 0) {
 						newDag[currentNewDagPos + childNr + 1] = oldToNewOffset[oldOffset];
+					}
 				}
 
 				currentNewDagPos += numChildren + 1;
 			}
 		}
 
-		oldLastLevel    = oldLevelOffset;
-		oldLevelOffset += numLevelNodes * NODE_SIZE;
-		newLastLevel    = newDagLevel;
-		numLevelNodes   = newChildrenNodes;
+		oldDagLastLevel    = oldDagLevelOffset;
+		oldDagLevelOffset += numLevelNodes * NODE_SIZE;
+		newDagLastLevel    = newDagLevel;
+		numLevelNodes      = newChildrenNodes;
 
 		level--;
 	}
 
 	m_dag.swap(newDag);
 	m_dag.shrink_to_fit();
+
+	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
+	cout << endl;
 }
 
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {

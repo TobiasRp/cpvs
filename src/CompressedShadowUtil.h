@@ -4,9 +4,9 @@
 #include "cpvs.h"
 #include "MinMaxHierarchy.h"
 #include "CompressedShadow.h"
+#include <unordered_set>
 
 namespace cs {
-
 	constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointers will be removed with 'compress')
 
 	/**
@@ -18,7 +18,7 @@ namespace cs {
 	extern uint64 createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset, size_t steps = 2);
 
 	/**
-	 * Given the parents childmask and coordinates, this returns the coordinates of the children.
+	 * Given the parents childmask and coordinates, this returns the coordinates of all partially visible children.
 	 * Basically this returns the parents offset + minimum point of the childs AABB for all children.
 	 */
 	extern vector<ivec3> getChildCoordinates(uint childmask, const ivec3& parentOffset);
@@ -84,6 +84,15 @@ namespace cs {
 		return !isVisible(childmask, childIndex) && !isPartial(childmask, childIndex);
 	}
 
+	/**
+	 * Returns the number of unique elements in the given sequence [first, last).
+	 */
+	template<typename It>
+	size_t getNumberOfUniqueElements(It first, It last) {
+		unordered_set<typename iterator_traits<It>::value_type> children;
+		children.insert(first, last);
+		return children.size();
+	}
 
 	/**
 	 * Compares two nodes and decides whether they are identical subtrees and can thus be merged.
@@ -105,16 +114,15 @@ namespace cs {
 	 * @note The mapping is in the range [0, number of nodes * NODE_SIZE); you may need
 	 * to add the level offset.
 	 */
-	template<typename It1, typename It2, typename NewIt>
-	unordered_map<uint, uint> mergeLevel(It1 oldBegin, It2 oldEnd, NewIt newBegin) {
+	template<typename ItOld, typename ItNew>
+	unordered_map<uint, uint> mergeLevel(ItOld oldBegin, ItOld oldEnd, ItNew newBegin, uint* numNodesLeft) {
 		unordered_map<uint, uint> result;
 
-		NewIt newCurrent = newBegin;
-		NewIt newPos; // for finding merging opportunities, i.e. will be iterated up to newCurrent
+		ItNew newCurrent = newBegin;
+		ItNew newPos; // for finding merging opportunities, i.e. will be repeatedly iterated up to newCurrent
 		uint pos; // similar to newPos but contains an offset in the level for creating the result map
-
-		It1 oldCurrent = oldBegin;
-
+		
+		ItOld oldCurrent = oldBegin;
 		for (uint i = 0; oldCurrent != oldEnd; oldCurrent += NODE_SIZE, i += NODE_SIZE) {
 
 			for (pos = 0, newPos = newBegin; newPos != newCurrent; newPos += NODE_SIZE, pos += NODE_SIZE) {
@@ -130,6 +138,7 @@ namespace cs {
 				newCurrent += NODE_SIZE;
 			}
 		}
+		*numNodesLeft = std::distance(newBegin, newCurrent) / NODE_SIZE;
 
 		return result;
 	}
