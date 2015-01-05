@@ -4,7 +4,6 @@
 #include "cpvs.h"
 #include "MinMaxHierarchy.h"
 #include "CompressedShadow.h"
-#include <unordered_set>
 
 namespace cs {
 	constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointers will be removed with 'compress')
@@ -82,16 +81,6 @@ namespace cs {
 	 */
 	inline bool isShadowed(uint64 childmask, uint childIndex) {
 		return !isVisible(childmask, childIndex) && !isPartial(childmask, childIndex);
-	}
-
-	/**
-	 * Returns the number of unique elements in the given sequence [first, last).
-	 */
-	template<typename It>
-	size_t getNumberOfUniqueElements(It first, It last) {
-		unordered_set<typename iterator_traits<It>::value_type> children;
-		children.insert(first, last);
-		return children.size();
 	}
 
 	/**
