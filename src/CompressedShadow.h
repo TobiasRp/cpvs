@@ -49,7 +49,6 @@ public:
 	 * @see Section 6.1 
 	 *
 	 * @note Possible optimizations:
-	 * 		- Merge three lowest level and store leaves as 4x4x4-bit grids
 	 * 		- Store top of the DAG in a grid structure
 	 * 		- Closed objects optimization
 	 * 		- Create DAG from SVO on the GPU (as outlined in Kaempte et al. 2013)
@@ -90,8 +89,14 @@ public:
 private:
 	/* Private member and helper functions */
 
+	/**
+	 * Initialize all shader and kernels
+	 */
 	void initShaderAndKernels();
 
+	/**
+	 * Copy m_dag to m_deviceDag
+	 */
 	void copyToGPU();
 
 	/**
