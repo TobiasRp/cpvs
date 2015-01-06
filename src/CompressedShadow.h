@@ -122,6 +122,9 @@ private:
 	 */
 	vector<uint> constructSvo(const MinMaxHierarchy& minMax);
 
+	/**
+	 * Constructs the last 3 levels of the SVO using 64-bit leafmasks.
+	 */
 	void constructLastLevels(const MinMaxHierarchy& minMax, size_t levelOffset, size_t numNodes,
 			const vector<ivec3>& childCoords);
 

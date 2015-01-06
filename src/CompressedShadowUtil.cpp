@@ -7,21 +7,18 @@
 using namespace std;
 using namespace cs;
 
-uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset, size_t steps) {
-	assert(steps == 2 && "Haven't tested/implemented with steps != 2");
-
+uint cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset) {
 	/* Size of the minMax level */
 	size_t levelHeight = minMax.getLevel(level)->getHeight();
 
 	/* The y-axis of the image in the min-max hierarchy is inverted */
 	size_t invertedY = levelHeight - offset.y - 1;
 
-	uint64 childmask = 0;
-	for (uint z = 0; z < steps; ++z) {
-		for (uint y = 0; y < steps; ++y) {
-			for (uint x = 0; x < steps; ++x) {
-				float depthHalf = 2.0f / static_cast<float>(steps);
-				float offZ = z * depthHalf + offset.z;
+	uint childmask = 0;
+	for (uint z = 0; z < 2; ++z) {
+		for (uint y = 0; y < 2; ++y) {
+			for (uint x = 0; x < 2; ++x) {
+				float offZ = z + offset.z;
 				size_t offY = invertedY - y;
 				size_t offX = x + offset.x;
 
@@ -30,17 +27,17 @@ uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const iv
 
 				uint64 bits;
 				if (level > 0) {
-					bits = visible(offZ, offZ + depthHalf, min * levelHeight, max * levelHeight);
+					bits = visible(offZ, offZ + 1, min * levelHeight, max * levelHeight);
 				} else {
 					// At level 0 we want to be sure about the visibility
 					assert(abs(min - max) < 1e-6f);
-					bits = absoluteVisible(offZ, offZ + depthHalf, min * levelHeight);
+					bits = absoluteVisible(offZ, offZ + 1, min * levelHeight);
 				}
 
 				/* Combine x, y, z to get the index of the child we just calculated the visibility for */
-				uint64 childNr = x;
-				childNr |= y << (steps / 2);
-				childNr |= z << steps;
+				uint childNr = x;
+				childNr |= y << 1;
+				childNr |= z << 2;
 
 				/* Now set the two bits we've just calculated at the right position */
 				childmask |= bits << (childNr * 2);
@@ -48,6 +45,10 @@ uint64 cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const iv
 		}
 	}
 	return childmask;
+}
+
+uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
+	return 0;
 }
 
 vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset) {

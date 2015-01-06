@@ -7,14 +7,17 @@
 
 namespace cs {
 	constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointers will be removed with 'compress')
+	constexpr uint LEAF_SIZE = 17; // childmask + 8 64-bit leafmask
 
 	/**
 	 * Calculates the childmask, i.e. the visibility for every child, for a node given by it's global offset and level.
-	 *
-	 * @param steps Controls the number of subdivision steps in the x,y and z axis. Thus, steps = 2 will correspond to
-	 * an octree. A step size not equal to 2 can be useful in the creation of leafmasks.
 	 */
-	extern uint64 createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset, size_t steps = 2);
+	extern uint createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset);
+
+	/**
+	 * Calculates a 64-bit leafmask which stores 4x4x4 visibility values (visible, shadow but not partial)
+	 */
+	extern uint64 createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset);
 
 	/**
 	 * Given the parents childmask and coordinates, this returns the coordinates of all partially visible children.
@@ -87,8 +90,8 @@ namespace cs {
 	 * Compares two nodes and decides whether they are identical subtrees and can thus be merged.
 	 */
 	template<typename It1, typename It2>
-	inline bool isEqualSubtree(It1 leftNode, It2 rightNode) {
-		for (uint i = 0; i < NODE_SIZE; ++i, ++leftNode, ++rightNode) {
+	inline bool isEqualSubtree(It1 leftNode, It2 rightNode, uint nodeSize) {
+		for (uint i = 0; i < nodeSize; ++i, ++leftNode, ++rightNode) {
 			/* Compare childmask and all pointers for equality */
 			if (*leftNode != *rightNode)
 				return false;
@@ -104,7 +107,8 @@ namespace cs {
 	 * to add the level offset.
 	 */
 	template<typename ItOld, typename ItNew>
-	unordered_map<uint, uint> mergeLevel(ItOld oldBegin, ItOld oldEnd, ItNew newBegin, uint* numNodesLeft) {
+	unordered_map<uint, uint> mergeLevel(ItOld oldBegin, ItOld oldEnd, ItNew newBegin, uint nodeSize,
+			uint* numNodesLeft) {
 		unordered_map<uint, uint> result;
 
 		ItNew newCurrent = newBegin;
@@ -112,10 +116,10 @@ namespace cs {
 		uint pos; // similar to newPos but contains an offset in the level for creating the result map
 		
 		ItOld oldCurrent = oldBegin;
-		for (uint i = 0; oldCurrent != oldEnd; oldCurrent += NODE_SIZE, i += NODE_SIZE) {
+		for (uint i = 0; oldCurrent != oldEnd; oldCurrent += nodeSize, i += nodeSize) {
 
-			for (pos = 0, newPos = newBegin; newPos != newCurrent; newPos += NODE_SIZE, pos += NODE_SIZE) {
-				if (isEqualSubtree(oldCurrent, newPos)) {
+			for (pos = 0, newPos = newBegin; newPos != newCurrent; newPos += nodeSize, pos += nodeSize) {
+				if (isEqualSubtree(oldCurrent, newPos, nodeSize)) {
 					break;
 				}
 			}
@@ -123,11 +127,11 @@ namespace cs {
 
 			if (newPos == newCurrent) {
 				// Insert the node since it can't be merged
-				std::copy(oldCurrent, oldCurrent + NODE_SIZE, newCurrent);
-				newCurrent += NODE_SIZE;
+				std::copy(oldCurrent, oldCurrent + nodeSize, newCurrent);
+				newCurrent += nodeSize;
 			}
 		}
-		*numNodesLeft = std::distance(newBegin, newCurrent) / NODE_SIZE;
+		*numNodesLeft = std::distance(newBegin, newCurrent) / nodeSize;
 
 		return result;
 	}

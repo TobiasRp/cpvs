@@ -21,6 +21,7 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 
 	auto levels = constructSvo(minMax);
 	mergeCommonSubtrees(levels);
+	//compress();
 
 	initShaderAndKernels();
 }
@@ -46,9 +47,7 @@ void CompressedShadow::copyToGPU() {
 unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
 	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax));
 
-	cs->compress();
 	cs->copyToGPU();
-
 	return cs;
 }
 
@@ -61,10 +60,32 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap
  * Given a node through it's offset and a pointer to the beginning of it's children, this helper
  * function sets the nodes pointers to it's children in the dag.
  */
-inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren) {
+inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren,
+		uint nodeSize) {
 	for (uint i = 0; i < numChildren; ++i) {
-		dag[nodeOffset + 1 + i] = childrenOffset + i * NODE_SIZE;
+		dag[nodeOffset + 1 + i] = childrenOffset + i * nodeSize;
 	}
+}
+
+/* Decides whether to use 64-bit leafmaks */
+bool useLeafmasks(size_t numLevels) {
+	// always use leafsmasks except when there arent't enough levels
+	// To enable leafmasks, simply return false here
+	return (numLevels - 3) >= 2;
+}
+
+/* Returns the minimum level (which is not 0 when leafmasks are used) */
+inline uint getMinLevel(size_t m_numLevels) {
+	return useLeafmasks(m_numLevels) ? 2 : 0;
+}
+
+/* Returns the size of a node, which can be bigger when leafmasks are used */
+inline uint getNodeSize(size_t m_numLevels, uint level) {
+	bool leafs = useLeafmasks(m_numLevels);
+	if (leafs && level == 2)
+		return LEAF_SIZE;
+	else
+		return NODE_SIZE;
 }
 
 vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
@@ -73,11 +94,11 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	uint numChildren = cs::getNumChildren(rootmask);
  
 	// Resize so root and children fit in
-	m_dag.resize(NODE_SIZE + numChildren * NODE_SIZE);
+	m_dag.resize(NODE_SIZE + numChildren * getNodeSize(m_numLevels, m_numLevels - 3));
 	m_dag[0] = rootmask;
 
 	vector<ivec3> childCoords = cs::getChildCoordinates(rootmask, rootOffset);
-	setChildrenOffsets(m_dag, 0, NODE_SIZE, numChildren);
+	setChildrenOffsets(m_dag, 0, NODE_SIZE, numChildren, getNodeSize(m_numLevels, m_numLevels - 3));
 
 	size_t levelOffset   = NODE_SIZE;   // Offset to the beginning of the current level
 	size_t numLevelNodes = numChildren; // Number of nodes in the current level
@@ -87,10 +108,15 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	levelOffsets[m_numLevels - 2] = 0;
 
 	int level = m_numLevels - 3;
+	int lastLevel = useLeafmasks(m_numLevels) ? 3 : 0; // if lastLevel is 3 64-bit leafmasks are used
 
 	/* Create new levels from the highest to the lowest level */
-	while(level > 0 && numLevelNodes > 0) {
+	while(level >= lastLevel && numLevelNodes > 0) {
 		levelOffsets[level] = levelOffset;
+
+		/* We now that the current node is of size NODE_SIZE, but the children could be leaves.
+		 * So always use this if the size of a child node is needed. */
+		const uint childNodeSize = getNodeSize(m_numLevels, level - 1);
 
 		// Offset to the beginning of the next level
 		size_t nextLevelOffset = levelOffset + numLevelNodes * NODE_SIZE;
@@ -111,7 +137,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 		}
 
 		if (level != 0)
-			m_dag.resize(m_dag.size() + newChildrenNodes * NODE_SIZE, 0);
+			m_dag.resize(m_dag.size() + newChildrenNodes * childNodeSize, 0);
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
 			size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
@@ -119,15 +145,13 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 			numChildren       = cs::getNumChildren(nodemask);
 
 			if (numChildren > 0) {
-				assert(level != 0);
-
 				auto coords = cs::getChildCoordinates(nodemask, childCoords[nodeNr]);
 				size_t childOffset = nextLevelOffset + nextLevelProgress;
 
-				setChildrenOffsets(m_dag, nodeOffset, childOffset, numChildren);
+				setChildrenOffsets(m_dag, nodeOffset, childOffset, numChildren, childNodeSize);
 				newChildrenCoords.insert(newChildrenCoords.end(), coords.begin(), coords.end());
 
-				nextLevelProgress += numChildren * NODE_SIZE;
+				nextLevelProgress += numChildren * childNodeSize;
 			}
 		}
 
@@ -139,29 +163,47 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 		level--;
 	}
 
-	levelOffsets[level] = levelOffset;
+	/* Construct leave nodes if not done already */
+	if (useLeafmasks(m_numLevels)) {
+		levelOffsets[level]     = levelOffset;
+		levelOffsets[level - 1] = m_dag.size();
 
-	constructLastLevels(minMax, levelOffset, numLevelNodes, childCoords);
+		constructLastLevels(minMax, levelOffset, numLevelNodes, childCoords);
+	}
 
 	return levelOffsets;
 }
 
 void CompressedShadow::constructLastLevels(const MinMaxHierarchy& minMax, size_t levelOffset, size_t numNodes,
 		const vector<ivec3>& childCoords) {
-	const uint level = 0;
+	const uint level = 2;
 
 	for (size_t nodeNr = 0; nodeNr < numNodes; ++nodeNr) {
-		size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
+		size_t nodeOffset = levelOffset + nodeNr * LEAF_SIZE;
 		uint64 nodemask   = cs::createChildmask(minMax, level, childCoords[nodeNr]);
 		m_dag[nodeOffset] = nodemask;
+
+		size_t numChildren = cs::getNumChildren(nodemask);
+		if (numChildren > 0) {
+			auto coords = cs::getChildCoordinates(nodemask, childCoords[nodeNr]);
+
+			for (uint childNr = 0; childNr < numChildren; ++childNr) {
+				uint64 leafmask = cs::createLeafmask(minMax, coords[childNr]);
+				const uint index = childNr * 2 + 1;
+				m_dag[nodeOffset + index] = leafmask;
+				m_dag[nodeOffset + index + 1] = leafmask >> 32;
+			}
+		}
 	}
+
+	//for_each(m_dag.begin() + levelOffset, m_dag.end(), [](auto val) { cout << val << ", "; });
 }
 
 /**
  * Given a vector of offsets to the beginning of a level and a level nr, this returns the size of the level.
  * The size of the DAG is needed for the special case level 0.
  */
-size_t getLevelSize(const vector<uint>& dag, const vector<uint>& levelOffsets, uint level) {
+inline size_t getLevelSize(const vector<uint>& dag, const vector<uint>& levelOffsets, uint level) {
 	if (level == 0) {
 		return (dag.size() - levelOffsets[0]);
 	} else {
@@ -172,16 +214,23 @@ size_t getLevelSize(const vector<uint>& dag, const vector<uint>& levelOffsets, u
 void CompressedShadow::mergeCommonSubtrees(const vector<uint>& levelOffsets) {
 	vector<uint> nodesPerLevel(m_numLevels - 2);
 
+	uint startLevel = getMinLevel(m_numLevels);
+
+//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
+//	cout << endl;
+
+
 	/* Merge common subtrees bottom up (but don't merge the root node...) */
-	for (uint level = 0; level < m_numLevels - 2; ++level) {
+	for (uint level = startLevel; level < m_numLevels - 2; ++level) {
 		const size_t levelSize = getLevelSize(m_dag, levelOffsets, level);
 		vector<uint> tempLevel(levelSize, 0);
 
 		const size_t levelOffset = levelOffsets[level];
 		const size_t nextLevelOffset = levelOffset + levelSize;
 
+		const uint nodeSize = getNodeSize(m_numLevels, level);
 		auto mapping = mergeLevel(m_dag.begin() + levelOffset, m_dag.begin() + nextLevelOffset,
-				tempLevel.begin(), &nodesPerLevel[level]);
+				tempLevel.begin(), nodeSize, &nodesPerLevel[level]);
 
 		std::copy(tempLevel.begin(), tempLevel.end(), m_dag.begin() + levelOffset);
 
@@ -189,6 +238,11 @@ void CompressedShadow::mergeCommonSubtrees(const vector<uint>& levelOffsets) {
 	}
 
 	removeUnusedNodes(levelOffsets, nodesPerLevel);
+
+//	cout << endl;
+//	cout << endl;
+//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
+//	cout << endl;
 }
 
 void CompressedShadow::updateParentPointers(const vector<uint>& levelOffsets, unordered_map<uint, uint>& mapping,
@@ -202,6 +256,7 @@ void CompressedShadow::updateParentPointers(const vector<uint>& levelOffsets, un
 		/* Update child pointers which are not null */
 		for (uint child = 1; child < NODE_SIZE; ++child) {
 			const uint oldOffset = m_dag[nodeOffset + child];
+
 			if (oldOffset != 0)
 				m_dag[nodeOffset + child] = childLevelOffset + mapping[oldOffset - childLevelOffset];
 		}
@@ -226,16 +281,18 @@ void CompressedShadow::removeUnusedNodes(const vector<uint>& levelOffsets, const
 
 	size_t levelOffset = NODE_SIZE;
 	int level = m_numLevels - 3;
+	int startLevel = getMinLevel(m_numLevels);
 
 	uint offsetCorrection = 0;
 
-	while(level >= 0) {
+	while(level >= startLevel) {
+		const uint nodeSize = getNodeSize(m_numLevels, level);
 		const size_t levelSize = getLevelSize(m_dag, levelOffsets, level);
-		const size_t mergedLevelSize = numNodesPerLevel[level] * NODE_SIZE;
+		const size_t mergedLevelSize = numNodesPerLevel[level] * nodeSize;
 
 		offsetCorrection += levelSize - mergedLevelSize;
 
-		if (level == 0 || offsetCorrection == 0) {
+		if (level == startLevel || offsetCorrection == 0) {
 			newDag.insert(newDag.end(), m_dag.begin() + levelOffset, m_dag.begin() + levelOffset + mergedLevelSize);
 		} else {
 			/* Copy nodes from m_dag to newDag and correct offsets */
