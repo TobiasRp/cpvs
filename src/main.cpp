@@ -32,7 +32,7 @@ const GLuint SM_SIZE        = 8192;
 const float  lightDistance  = 680;
 const vec3   lightDirection = {0.25, 1, 0};
 
-FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 1000.0f);
+FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 100'000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
 shared_ptr<PostProcess> fxaa;
 

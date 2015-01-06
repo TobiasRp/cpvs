@@ -9,8 +9,8 @@ mat4 DirectionalLight::calcLightView() const {
 }
 
 mat4 DirectionalLight::calcLightProj() const {
-	//return glm::ortho(-500.0f, 500.0f, -500.0f, 500.0f, znear, zfar);
-	return glm::perspective(45.0f, 1.0f, znear, zfar);
+	return glm::ortho(-5000.0f, 5000.0f, -5000.0f, 5000.0f, znear, zfar);
+	//return glm::perspective(45.0f, 1.0f, znear, zfar);
 }
 
 void DirectionalLight::updateLightViewProj() {
