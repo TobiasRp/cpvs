@@ -61,7 +61,7 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap
  * Given a node through it's offset and a pointer to the beginning of it's children, this helper
  * function sets the nodes pointers to it's children in the dag.
  */
-void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren) {
+inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren) {
 	for (uint i = 0; i < numChildren; ++i) {
 		dag[nodeOffset + 1 + i] = childrenOffset + i * NODE_SIZE;
 	}
@@ -80,7 +80,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	setChildrenOffsets(m_dag, 0, NODE_SIZE, numChildren);
 
 	size_t levelOffset   = NODE_SIZE;   // Offset to the beginning of the current level
-	size_t numLevelNodes = numChildren; // Number of children in the current level
+	size_t numLevelNodes = numChildren; // Number of nodes in the current level
 
 	/* Save level offsets so we can later traverse bottom up efficiently */
 	vector<uint> levelOffsets(m_numLevels - 1, 0);
@@ -89,7 +89,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	int level = m_numLevels - 3;
 
 	/* Create new levels from the highest to the lowest level */
-	while(level >= 0 && numLevelNodes > 0) {
+	while(level > 0 && numLevelNodes > 0) {
 		levelOffsets[level] = levelOffset;
 
 		// Offset to the beginning of the next level
@@ -138,7 +138,23 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 
 		level--;
 	}
+
+	levelOffsets[level] = levelOffset;
+
+	constructLastLevels(minMax, levelOffset, numLevelNodes, childCoords);
+
 	return levelOffsets;
+}
+
+void CompressedShadow::constructLastLevels(const MinMaxHierarchy& minMax, size_t levelOffset, size_t numNodes,
+		const vector<ivec3>& childCoords) {
+	const uint level = 0;
+
+	for (size_t nodeNr = 0; nodeNr < numNodes; ++nodeNr) {
+		size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
+		uint64 nodemask   = cs::createChildmask(minMax, level, childCoords[nodeNr]);
+		m_dag[nodeOffset] = nodemask;
+	}
 }
 
 /**
@@ -299,6 +315,8 @@ void CompressedShadow::compress() {
 
 	m_dag.swap(newDag);
 	m_dag.shrink_to_fit();
+
+	for_each(m_dag.begin(), m_dag.end(), [](auto val){ cout << val << ", ";});
 }
 
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {

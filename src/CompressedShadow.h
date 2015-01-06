@@ -122,6 +122,9 @@ private:
 	 */
 	vector<uint> constructSvo(const MinMaxHierarchy& minMax);
 
+	void constructLastLevels(const MinMaxHierarchy& minMax, size_t levelOffset, size_t numNodes,
+			const vector<ivec3>& childCoords);
+
 	/**
 	 * Merges common subtrees of an SVO to transform it into a directed acyclic graph (DAG).
 	 * @note Assumes an uncompressed SVO exists.
