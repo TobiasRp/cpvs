@@ -41,7 +41,13 @@ uint popcount(uint x) {
 }
 
 float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
-	return 1.0; //TODO correctly evaluate leafmask
+	int index = (path.x & 0x3) + 4 * (path.y & 0x3) + 16 * (path.z & 0x3);
+
+	if (index < 31) {
+		return float(lowerHalf & (1 << index));
+	} else {
+		return float(upperHalf & (1 << index));
+	}
 }
 
 float traverse(const vec3 projPos) {

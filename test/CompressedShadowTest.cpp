@@ -185,14 +185,14 @@ TEST_F(CompressedShadowTest, testCompute8) {
 	glGetTexImage(GL_TEXTURE_2D, 0, result.getFormat(), result.getType(), resultImg.data());
 
 	/* visibilites are now in resultImg and they should be:
-	 * 00000001
-	 * 00000001
-	 * 00000001
-	 * 00000001
-	 * 11000001
-	 * 11000001
-	 * 11000001
-	 * 11000001
+	 * 0 0 0 0 0 0 0 1
+	 * 0 0 0 0 0 0 0 1
+	 * 0 0 0 0 0 0 0 1
+	 * 0 0 0 0 0 0 0 1
+	 * 1 1 0 0 0 0 0 1
+	 * 1 1 0 0 0 0 0 1
+	 * 1 1 0 0 0 0 0 1
+	 * 1 1 0 0 0 0 0 1
 	 */
 	for(size_t y = 0; y < 8; ++y) {
 		for (size_t x = 0; x < 8; ++x) {

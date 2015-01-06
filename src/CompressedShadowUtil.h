@@ -12,7 +12,7 @@ namespace cs {
 	/**
 	 * Calculates the childmask, i.e. the visibility for every child, for a node given by it's global offset and level.
 	 */
-	extern uint createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset);
+	extern uint createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3& offset);
 
 	/**
 	 * Calculates a 64-bit leafmask which stores 4x4x4 visibility values (visible, shadow but not partial)

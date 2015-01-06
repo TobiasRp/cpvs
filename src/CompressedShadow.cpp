@@ -188,15 +188,14 @@ void CompressedShadow::constructLastLevels(const MinMaxHierarchy& minMax, size_t
 			auto coords = cs::getChildCoordinates(nodemask, childCoords[nodeNr]);
 
 			for (uint childNr = 0; childNr < numChildren; ++childNr) {
-				uint64 leafmask = cs::createLeafmask(minMax, coords[childNr]);
+				uint64 leafmask  = cs::createLeafmask(minMax, coords[childNr]);
 				const uint index = childNr * 2 + 1;
-				m_dag[nodeOffset + index] = leafmask;
+
+				m_dag[nodeOffset + index]     = leafmask;
 				m_dag[nodeOffset + index + 1] = leafmask >> 32;
 			}
 		}
 	}
-
-	//for_each(m_dag.begin() + levelOffset, m_dag.end(), [](auto val) { cout << val << ", "; });
 }
 
 /**
@@ -216,10 +215,6 @@ void CompressedShadow::mergeCommonSubtrees(const vector<uint>& levelOffsets) {
 
 	uint startLevel = getMinLevel(m_numLevels);
 
-//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
-//	cout << endl;
-
-
 	/* Merge common subtrees bottom up (but don't merge the root node...) */
 	for (uint level = startLevel; level < m_numLevels - 2; ++level) {
 		const size_t levelSize = getLevelSize(m_dag, levelOffsets, level);
@@ -238,11 +233,6 @@ void CompressedShadow::mergeCommonSubtrees(const vector<uint>& levelOffsets) {
 	}
 
 	removeUnusedNodes(levelOffsets, nodesPerLevel);
-
-//	cout << endl;
-//	cout << endl;
-//	for_each(m_dag.begin(), m_dag.end(), [](auto val) { cout << val << ", "; });
-//	cout << endl;
 }
 
 void CompressedShadow::updateParentPointers(const vector<uint>& levelOffsets, unordered_map<uint, uint>& mapping,
@@ -320,7 +310,7 @@ template<typename ItOld>
 size_t copyNodeInNewDag(vector<uint>& newDag, uint newCurrent, ItOld oldItNode, uint numChildren, size_t numLevels, int level) {
 	uint elems = 1 + numChildren;
 
-	// If leafmaks are used
+	// If leafmaks are used the node size is different
 	if (useLeafmasks(numLevels) && level == getMinLevel(numLevels)) {
 		elems = 1 + 2 * numChildren;
 	}
@@ -351,7 +341,7 @@ void CompressedShadow::compress() {
 		unordered_set<uint> childrenNodesIndices;
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-			const uint nodeSize = getNodeSize(m_numLevels, level);
+			const uint nodeSize     = getNodeSize(m_numLevels, level);
 			const size_t nodeOffset = oldDagLevelOffset + nodeNr * nodeSize;
 			const uint mask         = m_dag[nodeOffset];
 			const uint numChildren  = cs::getNumChildren(mask);
@@ -400,14 +390,14 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 	const ivec3 path = getPathFromNDC(std::move(position), m_numLevels);
 
 	size_t offset = 0;
-	int level     = m_numLevels;
-	while(level > 1) {
-		int lvlBit = 1 << (level - 2);
+	int level     = m_numLevels - 2;
+	while(level >= 0) {
+		int lvlBit = 1 << level;
 		int childIndex = ((path.x & lvlBit) ? 1 : 0) +
 		                 ((path.y & lvlBit) ? 2 : 0) +
 						 ((path.z & lvlBit) ? 4 : 0);
 
-		uint64 childmask = m_dag[offset];
+		uint childmask = m_dag[offset];
 
 		if(isVisible(childmask, childIndex)) {
 			return VISIBLE;
@@ -422,6 +412,27 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 
 			// Count the bits set, this is the correct offset
 			uint childOffset = POPCOUNT(maskedChildMask);
+
+			// Read from leafmask
+			if (level == 2 && useLeafmasks(m_numLevels)) {
+				uint index = offset + childOffset * 2 + 1;
+
+				int maskedX = (path.x & 0x3);
+				int maskedY = (path.y & 0x3);
+				int maskedZ = (path.z & 0x3);
+
+				int maskIndex = maskedX + 4 * maskedY + 16 * maskedZ;
+				//cout << dec << maskIndex << " and leaf1 = " << hex << m_dag[index] << " leaf2 = " << m_dag[index+1] << endl;
+				uint vis = 0;
+				if (maskIndex < 31) {
+					uint leafmask1 = m_dag[index];
+					vis = leafmask1 & (1 << maskIndex);
+				} else {
+					uint leafmask2 = m_dag[index + 1];
+					vis = leafmask2 & (1 << (maskIndex - 32));
+				}
+				return (vis == 0) ? SHADOW : VISIBLE;
+			}
 
 			offset = m_dag[offset + 1 + childOffset];
 		}

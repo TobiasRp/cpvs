@@ -7,25 +7,33 @@
 using namespace std;
 using namespace cs;
 
-uint cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec3& offset) {
-	/* Size of the minMax level */
-	size_t levelHeight = minMax.getLevel(level)->getHeight();
 
-	/* The y-axis of the image in the min-max hierarchy is inverted */
-	size_t invertedY = levelHeight - offset.y - 1;
+inline uint getLevelHeight(const MinMaxHierarchy& minMax, uint level) {
+	return minMax.getLevel(level)->getHeight();
+}
+
+/* The y-axis of the image in the min-max hierarchy is inverted in comparision to our ordereding here
+ */
+inline uint getInvertedY(uint levelHeight, float offsetY) {
+	return levelHeight - offsetY - 1;
+}
+
+uint cs::createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3& offset) {
+	auto levelHeight = getLevelHeight(minMax, level);
+	auto invertedY = getInvertedY(levelHeight, offset.y);
 
 	uint childmask = 0;
 	for (uint z = 0; z < 2; ++z) {
 		for (uint y = 0; y < 2; ++y) {
 			for (uint x = 0; x < 2; ++x) {
-				float offZ = z + offset.z;
-				size_t offY = invertedY - y;
-				size_t offX = x + offset.x;
+				uint offZ = z + offset.z;
+				uint offY = invertedY - y;
+				uint offX = x + offset.x;
 
 				auto min = minMax.getMin(level, offX, offY);
 				auto max = minMax.getMax(level, offX, offY);
 
-				uint64 bits;
+				uint bits;
 				if (level > 0) {
 					bits = visible(offZ, offZ + 1, min * levelHeight, max * levelHeight);
 				} else {
@@ -48,7 +56,29 @@ uint cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec
 }
 
 uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
-	return 0; //TODO
+	const ivec3 offCorrected = offset * 2;
+
+	auto levelHeight = getLevelHeight(minMax, 0);
+	auto invertedY = getInvertedY(levelHeight, offCorrected.y);
+
+	uint64 leafmask = 0;
+	uint index = 0;
+	for (uint z = 0; z < 4; ++z) {
+		for (uint y = 0; y < 4; ++y) {
+			for (uint x = 0; x < 4; ++x) {
+				float offX = offCorrected.x + x;
+				float offY = invertedY - y;
+				float offZ = offCorrected.z + z;
+
+				auto min = minMax.getMin(0, offX, offY);
+				uint64 bits = absoluteVisible(offZ, offZ + 1, min * levelHeight);
+				leafmask |= bits << (index);
+
+				++index;
+			}
+		}
+	}
+	return leafmask;
 }
 
 vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset) {
@@ -61,9 +91,9 @@ vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset)
 			uint maskX = (0x1 & i) ? 1 : 0; // maskX is 1 <=> i is 1, 3, 5, 7
 			uint maskY = (0x2 & i) ? 1 : 0; // maskY is 1 <=> i is 2, 3, 6, 7
 			uint maskZ = (0x4 & i) ? 1 : 0; // maskZ is 1 <=> i is 4, 5, 6, 7
-			ivec3 off((parentOffset.x + maskX) * 2, (parentOffset.y + maskY) * 2, (parentOffset.z + maskZ) * 2);
 
-			result.push_back(off);
+			result.emplace_back(ivec3((parentOffset.x + maskX) * 2,
+						(parentOffset.y + maskY) * 2, (parentOffset.z + maskZ) * 2));
 		}
 	}
 	return result;
