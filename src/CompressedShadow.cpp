@@ -21,7 +21,7 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 
 	auto levels = constructSvo(minMax);
 	mergeCommonSubtrees(levels);
-	//compress();
+	compress();
 
 	initShaderAndKernels();
 }
@@ -308,6 +308,26 @@ void CompressedShadow::removeUnusedNodes(const vector<uint>& levelOffsets, const
 	m_dag.swap(newDag);
 }
 
+/**
+ * Copies a node from the old dag to the specified new dag. Takes different nodes sizes into account.
+ *
+ * @param newCurrent An offset into the new dag
+ * @param oldItNode An iterator from the old dag at the beginning of the node to copy.
+ * @param numLevels Number of levels from the dag, i.e. m_numLevels. Needed for useLeafmasks(...)
+ * @return The updated offset into the new dag
+ */
+template<typename ItOld>
+size_t copyNodeInNewDag(vector<uint>& newDag, uint newCurrent, ItOld oldItNode, uint numChildren, size_t numLevels, int level) {
+	uint elems = 1 + numChildren;
+
+	// If leafmaks are used
+	if (useLeafmasks(numLevels) && level == getMinLevel(numLevels)) {
+		elems = 1 + 2 * numChildren;
+	}
+	newDag.insert(newDag.begin() + newCurrent, oldItNode, oldItNode + elems);
+	return elems;
+}
+
 void CompressedShadow::compress() {
 	vector<uint> newDag(NODE_SIZE);
 
@@ -319,7 +339,9 @@ void CompressedShadow::compress() {
 	size_t newDagOffset      = 0; // newDag: Current offset in the dag for construction
 	size_t newDagLastLevel   = 0; // newDag: Save an offset to the last level
 
-	while(level >= 0 && numLevelNodes > 0) {
+	const int minLevel = getMinLevel(m_numLevels);
+
+	while(level >= minLevel && numLevelNodes > 0) {
 		const size_t newDagLevel = newDagOffset; // the beginning of the current level in the new DAG
 
 		// Maps old offsets from m_dag to new offsets in newDag
@@ -329,15 +351,15 @@ void CompressedShadow::compress() {
 		unordered_set<uint> childrenNodesIndices;
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
-			const size_t nodeOffset = oldDagLevelOffset + nodeNr * NODE_SIZE;
+			const uint nodeSize = getNodeSize(m_numLevels, level);
+			const size_t nodeOffset = oldDagLevelOffset + nodeNr * nodeSize;
 			const uint mask         = m_dag[nodeOffset];
 			const uint numChildren  = cs::getNumChildren(mask);
 
-			auto nodeIt = m_dag.begin() + nodeOffset;
-			newDag.insert(newDag.begin() + newDagOffset, nodeIt, nodeIt + numChildren + 1);
-
 			oldToNewOffset[nodeOffset] = newDagOffset;
-			newDagOffset += numChildren + 1;
+
+			auto nodeIt = m_dag.begin() + nodeOffset;
+			newDagOffset += copyNodeInNewDag(newDag, newDagOffset, nodeIt, numChildren, m_numLevels, level);
 
 			childrenNodesIndices.insert(nodeIt + 1, nodeIt + numChildren + 1);
 		}
