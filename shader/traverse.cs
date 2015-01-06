@@ -40,13 +40,17 @@ uint popcount(uint x) {
     return x & 0x0000003F;
 }
 
+float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
+	return 1.0; //TODO correctly evaluate leafmask
+}
+
 float traverse(const vec3 projPos) {
 	ivec3 path = getPathFromNDC(projPos);
 	uint offset = 0;
-	int level = NUM_LEVELS;
+	int level = NUM_LEVELS - 2;
 
-	while(level > 1) {
-		uint lvlBit = 1 << (level - 2);
+	while(level >= 0) {
+		uint lvlBit = 1 << (level);
 		uint childIndex = (bool(path.x & lvlBit) ? 2 : 0) +
 						  (bool(path.y & lvlBit) ? 4 : 0) +
 						  (bool(path.z & lvlBit) ? 8 : 0);
@@ -61,6 +65,13 @@ float traverse(const vec3 projPos) {
 
 		uint maskedChildmask = childmask & (0xAAAA >> (16 - childIndex));
 		uint childOffset = popcount(maskedChildmask);
+
+		if (level == 2) {
+			// Test visibility using the 64-bit leafmask, encoded as two 32-bit values
+			uint index = offset + childOffset * 2 + 1;
+			return testLeafmask(path, dag[index], dag[index + 1]);
+		}
+
 		offset = dag[offset + 1 + childOffset];
 
 		level -= 1;

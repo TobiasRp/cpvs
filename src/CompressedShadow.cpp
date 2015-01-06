@@ -394,8 +394,6 @@ void CompressedShadow::compress() {
 
 	m_dag.swap(newDag);
 	m_dag.shrink_to_fit();
-
-	for_each(m_dag.begin(), m_dag.end(), [](auto val){ cout << val << ", ";});
 }
 
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {

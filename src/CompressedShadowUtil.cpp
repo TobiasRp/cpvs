@@ -48,7 +48,7 @@ uint cs::createChildmask(const MinMaxHierarchy& minMax, size_t level, const ivec
 }
 
 uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
-	return 0;
+	return 0; //TODO
 }
 
 vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset) {
