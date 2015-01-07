@@ -13,7 +13,6 @@ using namespace std::chrono;
 #include "ShaderProgram.h"
 #include "Camera.h"
 #include "DeferredRenderer.h"
-#include "PostProcess.h"
 
 #include "AssimpScene.h"
 
@@ -34,7 +33,6 @@ const vec3   lightDirection = {0.25, 1, 0};
 
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 100'000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
-shared_ptr<PostProcess> fxaa;
 
 struct Settings {
 	bool renderShadowMap;
@@ -47,7 +45,7 @@ Settings uiSettings;
 
 void initCamera() {
 	cam.setSpeed(3.0f);
-	cam.setPosition(vec3(-4, 5, 0));
+	cam.setPosition(vec3(-150, -5, 0));
 }
 
 void resize(GLFWwindow* window, int width, int height) {
@@ -83,13 +81,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 		break;
 	case GLFW_KEY_X:
 		cam.lift(-1);
-		break;
-	case GLFW_KEY_F1:
-			renderSystem->setPostProcess(fxaa);
-			break;
-	case GLFW_KEY_F2:
-		/* Disables post process (if one exists) */
-		renderSystem->removePostProcess();
 		break;
 	case GLFW_KEY_ESCAPE:
 		glfwSetWindowShouldClose(window, GL_TRUE);
@@ -189,8 +180,6 @@ void initRenderSystem() {
 	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction, lightDistance);
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-	fxaa = PostProcess::createFXAA(WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
 MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {

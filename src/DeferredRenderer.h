@@ -8,7 +8,6 @@
 #include "Fbo.h"
 #include "Light.h"
 #include "ShadowMap.h"
-#include "PostProcess.h"
 #include "CompressedShadow.h"
 
 class Scene;
@@ -34,14 +33,6 @@ public:
 
 	inline DirectionalLight& getLight() {
 		return m_dirLight;
-	}
-
-	inline void setPostProcess(shared_ptr<PostProcess> pp) {
-		m_postProcess = pp;
-	}
-
-	inline void removePostProcess() {
-		m_postProcess.reset();
 	}
 
 	inline void useReferenceShadows(bool use) {
@@ -71,10 +62,8 @@ private:
 	ShaderProgram m_create_sm, m_writeSM, m_writeImg;
 
 	Fbo m_gBuffer;
-	Fbo m_imgBuffer;
 
 	const Quad m_fullscreenQuad;
-	shared_ptr<PostProcess> m_postProcess;
 
 	DirectionalLight m_dirLight;
 

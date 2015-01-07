@@ -7,9 +7,7 @@
 using namespace std;
 
 DeferredRenderer::DeferredRenderer(const DirectionalLight& light, GLuint width, GLuint height) 
-	: m_fullscreenQuad(vec2(-1.0), vec2(1.0)),
-	m_gBuffer(width, height, true), m_imgBuffer(width, height, false),
-	m_dirLight(light)
+	: m_fullscreenQuad(vec2(-1.0), vec2(1.0)), m_gBuffer(width, height, true), m_dirLight(light)
 {
 	loadShaders();
 	initFbos();
@@ -76,23 +74,10 @@ void DeferredRenderer::initFbos() {
 	auto gBuffers = m_gBuffer.getColorAttachments();
 	glDrawBuffers(gBuffers.size(), gBuffers.data());
 	m_gBuffer.release();
-
-	/* Image with 4x32bit FP */
-	m_imgBuffer.bind();
-	m_imgBuffer.addTexture(GL_RGBA32F, GL_RGBA, GL_FLOAT);
-	m_imgBuffer.getTexture(0)->setMinMagFiltering(GL_LINEAR, GL_LINEAR);
-
-	auto imgBuffers = m_imgBuffer.getColorAttachments();
-	glDrawBuffers(imgBuffers.size(), imgBuffers.data());
-	m_imgBuffer.release();
 }
 
 void DeferredRenderer::resize(GLuint width, GLuint height) {
 	m_gBuffer.resize(width, height);
-	m_imgBuffer.resize(width, height);
-
-	if (m_postProcess.get() != nullptr)
-		m_postProcess->resize(width, height);
 
 	m_visibilities->resize(width, height);
 }
@@ -173,18 +158,9 @@ void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) 
 	properties.setRenderingOfMaterials(true);
 	renderScene(properties, scene);
 
-	/* Either write to screen or to image for further post processing */
-	if (m_postProcess.get() == nullptr)
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	else
-		m_imgBuffer.bind();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	doAllShading(properties, scene);
-
-	if (m_postProcess.get() != nullptr) {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		m_postProcess->render(m_gBuffer, m_imgBuffer, m_fullscreenQuad);
-	}
 }
 
 void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* scene) {
