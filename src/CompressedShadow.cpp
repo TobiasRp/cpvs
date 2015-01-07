@@ -15,6 +15,8 @@ using namespace std;
 #include <glm/ext.hpp>
 #include <iostream>
 
+#define LEAFMASKS
+
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
 	assert(m_numLevels > 3);
@@ -22,6 +24,9 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	auto levels = constructSvo(minMax);
 	mergeCommonSubtrees(levels);
 	compress();
+
+//	for_each(m_dag.begin(), m_dag.end(), [](auto val){cout << hex << val << ", "; });
+//	cout << endl;
 
 	initShaderAndKernels();
 }
@@ -70,8 +75,11 @@ inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t chil
 /* Decides whether to use 64-bit leafmaks */
 bool useLeafmasks(size_t numLevels) {
 	// always use leafsmasks except when there arent't enough levels
-	// To enable leafmasks, simply return false here
+#ifdef LEAFMASKS
 	return (numLevels - 3) >= 2;
+#else
+	return false;
+#endif
 }
 
 /* Returns the minimum level (which is not 0 when leafmasks are used) */
@@ -210,13 +218,23 @@ inline size_t getLevelSize(const vector<uint>& dag, const vector<uint>& levelOff
 	}
 }
 
+inline bool levelExists(const vector<uint>& dag, const vector<uint>& levelOffsets, uint level) {
+	if (level == 0)
+		return dag.size() > levelOffsets[0];
+	else
+		return levelOffsets[level - 1] > levelOffsets[level];
+}
+
 void CompressedShadow::mergeCommonSubtrees(const vector<uint>& levelOffsets) {
-	vector<uint> nodesPerLevel(m_numLevels - 2);
+	vector<uint> nodesPerLevel(m_numLevels - 2, 0);
 
 	uint startLevel = getMinLevel(m_numLevels);
 
 	/* Merge common subtrees bottom up (but don't merge the root node...) */
 	for (uint level = startLevel; level < m_numLevels - 2; ++level) {
+		if (!levelExists(m_dag, levelOffsets, level))
+			continue;
+
 		const size_t levelSize = getLevelSize(m_dag, levelOffsets, level);
 		vector<uint> tempLevel(levelSize, 0);
 
@@ -445,7 +463,6 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 
 void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightViewProj,
 		Texture2D* visibilities) {
-
 	GL_CHECK_ERROR("traverse - begin");
 	m_traverseCS.bind();
 
