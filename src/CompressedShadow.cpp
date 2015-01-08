@@ -21,10 +21,6 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
 	assert(m_numLevels > 3);
 
-	auto levels = constructSvo(minMax);
-	mergeCommonSubtrees(levels);
-	compress();
-
 	initShaderAndKernels();
 }
 
@@ -48,6 +44,10 @@ void CompressedShadow::copyToGPU() {
 
 unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
 	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax));
+
+	auto levels = cs->constructSvo(minMax);
+	cs->mergeCommonSubtrees(levels);
+	cs->compress();
 
 	cs->copyToGPU();
 	return cs;

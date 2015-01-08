@@ -7,27 +7,19 @@
 using namespace std;
 using namespace cs;
 
-
 inline uint getLevelHeight(const MinMaxHierarchy& minMax, uint level) {
 	return minMax.getLevel(level)->getHeight();
 }
 
-/* The y-axis of the image in the min-max hierarchy is inverted in comparision to our ordereding here
- */
-inline uint getInvertedY(uint levelHeight, float offsetY) {
-	return levelHeight - offsetY - 1;
-}
-
 uint cs::createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3& offset) {
 	auto levelHeight = getLevelHeight(minMax, level);
-	auto invertedY = getInvertedY(levelHeight, offset.y);
 
 	uint childmask = 0;
 	for (uint z = 0; z < 2; ++z) {
 		for (uint y = 0; y < 2; ++y) {
 			for (uint x = 0; x < 2; ++x) {
 				uint offZ = z + offset.z;
-				uint offY = invertedY - y;
+				uint offY = offset.y + y;
 				uint offX = x + offset.x;
 
 				auto min = minMax.getMin(level, offX, offY);
@@ -59,7 +51,6 @@ uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
 	const ivec3 offCorrected = offset * 2;
 
 	auto levelHeight = getLevelHeight(minMax, 0);
-	auto invertedY = getInvertedY(levelHeight, offCorrected.y);
 
 	uint64 leafmask = 0;
 	uint index = 0;
@@ -67,7 +58,7 @@ uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
 		for (uint y = 0; y < 4; ++y) {
 			for (uint x = 0; x < 4; ++x) {
 				float offX = offCorrected.x + x;
-				float offY = invertedY - y;
+				float offY = offset.y + y;
 				float offZ = offCorrected.z + z;
 
 				auto min = minMax.getMin(0, offX, offY);
