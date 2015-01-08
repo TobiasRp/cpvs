@@ -15,7 +15,7 @@ using namespace std;
 #include <glm/ext.hpp>
 #include <iostream>
 
-#define LEAFMASKS
+#define LEAFMASKS // Enable/disable leafmasks. Also has to be modified in traversal.cs
 
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
@@ -24,9 +24,6 @@ CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	auto levels = constructSvo(minMax);
 	mergeCommonSubtrees(levels);
 	compress();
-
-//	for_each(m_dag.begin(), m_dag.end(), [](auto val){cout << hex << val << ", "; });
-//	cout << endl;
 
 	initShaderAndKernels();
 }
@@ -116,7 +113,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 	levelOffsets[m_numLevels - 2] = 0;
 
 	int level = m_numLevels - 3;
-	int lastLevel = useLeafmasks(m_numLevels) ? 3 : 0; // if lastLevel is 3 64-bit leafmasks are used
+	int lastLevel = useLeafmasks(m_numLevels) ? 3 : 0; // if leafmask are used lastLevel is 3
 
 	/* Create new levels from the highest to the lowest level */
 	while(level >= lastLevel && numLevelNodes > 0) {
@@ -178,7 +175,6 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
 
 		constructLastLevels(minMax, levelOffset, numLevelNodes, childCoords);
 	}
-
 	return levelOffsets;
 }
 
@@ -218,6 +214,10 @@ inline size_t getLevelSize(const vector<uint>& dag, const vector<uint>& levelOff
 	}
 }
 
+/**
+ * Given a vector of offsets to the beginning of levels and a specific level, this tests if the level exists,
+ * i.e. is valid. Levels can stop to exist if the scene is very simple and the lower levels aren't needed.
+ */
 inline bool levelExists(const vector<uint>& dag, const vector<uint>& levelOffsets, uint level) {
 	if (level == 0)
 		return dag.size() > levelOffsets[0];
@@ -337,7 +337,7 @@ size_t copyNodeInNewDag(vector<uint>& newDag, uint newCurrent, ItOld oldItNode, 
 }
 
 void CompressedShadow::compress() {
-	vector<uint> newDag(NODE_SIZE);
+	vector<uint> newDag;
 
 	int level = m_numLevels - 2;
 
