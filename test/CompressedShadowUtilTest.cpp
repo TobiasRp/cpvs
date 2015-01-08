@@ -1,19 +1,13 @@
 #include "CompressedShadowUtil.h"
 #include "gtest/gtest.h"
 
+#include "TestImages.h"
+
 using namespace cs;
 
 MinMaxHierarchy getTestHierarchy() {
 	ImageF img8(8, 8, 1);
-	img8.setAll(vector<float>{ 
-			0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
-			0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
-			0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
-			0, 0, 0, 0, 0.1, 0.2, 0.2, 0.4,
-			1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
-			1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
-			1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
-			1, 1, 0, 0, 0.1, 0.0, 0.2, 1.0});
+	img8.setAll(getDepths8x8());
 	return MinMaxHierarchy(img8);
 }
 
