@@ -36,6 +36,9 @@ void CompressedShadow::initShaderAndKernels() {
 	m_traverseCS.addUniform("lightViewProj");
 	m_traverseCS.addUniform("width");
 	m_traverseCS.addUniform("height");
+	m_traverseCS.addUniform("num_levels");
+	m_traverseCS.bind();
+	glUniform1i(m_traverseCS["num_levels"], m_numLevels);
 }
 
 void CompressedShadow::copyToGPU() {

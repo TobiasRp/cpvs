@@ -7,6 +7,8 @@ layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
 uniform uint width;
 uniform uint height;
 
+uniform int num_levels;
+
 uniform mat4 lightViewProj;
 
 layout (rgba32f, binding = 0) uniform image2D positionsWS;
@@ -16,10 +18,7 @@ layout (std430, binding = 2) buffer shadowDag {
 	uint dag[];
 };
 
-/* Fix size of shadow here! Be sure to update if the size changes */
-const int NUM_LEVELS = 14;
-
-const int RESOLUTION = 1 << (NUM_LEVELS - 1);
+const int RESOLUTION = 1 << (num_levels - 1);
 
 ivec3 getPathFromNDC(vec3 ndc) {
 	uint max = RESOLUTION - 1;
@@ -53,7 +52,7 @@ float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
 float traverse(const vec3 projPos) {
 	ivec3 path = getPathFromNDC(projPos);
 	uint offset = 0;
-	int level = NUM_LEVELS - 2;
+	int level = num_levels - 2;
 
 	while(level >= 0) {
 		uint lvlBit = 1 << (level);
