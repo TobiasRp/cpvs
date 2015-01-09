@@ -2,14 +2,15 @@
 #define LIGHT_H
 
 #include "cpvs.h"
+#include "Scene.h"
 
 /**
  * Represents a directional Light.
  */
 class DirectionalLight {
 public:
-	DirectionalLight(vec3 col, vec3 dir, float dist = 100)
-	   	: color(col), direction(dir), distance(dist), znear(1), zfar(1000) { }
+	DirectionalLight(vec3 col, vec3 dir)
+	   	: color(col), direction(dir) { }
 	~DirectionalLight() = default;
 
 	mat4 calcLightView() const;
@@ -22,11 +23,7 @@ public:
 	vec3 color;
 	vec3 direction;
 
-	// Rendering of the shadow map needs a position, this is (0, 0, 0) + distance * direction
-	float distance; 
-
-	// For the shadow map rendering
-	float znear, zfar;
+	AABB sceneBoundingBox;
 
 	mat4 lightViewProj;
 };

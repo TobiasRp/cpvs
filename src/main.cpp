@@ -29,7 +29,6 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 8192;
-const float  lightDistance  = 680;
 const vec3   lightDirection = {0.25, 1, 0};
 
 /* Globals for camera and the deferred renderer */
@@ -179,9 +178,10 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 	}
 }
 
-void initRenderSystem() {
+void initRenderSystem(const Scene* scene) {
 	vec3 direction = glm::normalize(lightDirection);
-	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction, lightDistance);
+	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction);
+	light.sceneBoundingBox = scene->getBoundingBox();
 
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 }
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
 	auto scene = loadSceneFromArguments(argc, argv);
 
 	initCamera();
-	initRenderSystem();
+	initRenderSystem(scene.get());
 
 	auto mm = createPrecomputedShadows(scene.get());
 

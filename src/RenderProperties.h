@@ -4,7 +4,6 @@
 #include "cpvs.h"
 #include "MatrixStack.h"
 #include "ShaderProgram.h"
-#include "Light.h"
 
 class RenderProperties {
 public:

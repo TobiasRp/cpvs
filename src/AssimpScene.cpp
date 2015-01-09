@@ -4,8 +4,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext.hpp>
 
-//#include <IL/il.h>
-
 #include <iostream>
 #include <fstream>
 
@@ -32,6 +30,38 @@ void setMaterial(AssimpMesh& mesh, const aiMaterial* mat) {
 	mesh.color = vec3(diffColor.r, diffColor.g, diffColor.b);
 
 	mat->Get(AI_MATKEY_SHININESS, mesh.shininess);
+}
+
+void findBoundingBoxForNode(const aiScene* scene, const aiNode* node, aiVector3D* min, aiVector3D* max) {
+	for (uint m = 0; m < node->mNumMeshes; ++m) {
+		const aiMesh* mesh = scene->mMeshes[node->mMeshes[m]];
+		for (uint v = 0; v < mesh->mNumVertices; ++v) {
+			aiVector3D vertex = mesh->mVertices[v];
+
+			min->x = std::min(min->x, vertex.x);
+			min->y = std::min(min->y, vertex.y);
+			min->z = std::min(min->z, vertex.z);
+
+			max->x = std::max(max->x, vertex.x);
+			max->y = std::max(max->y, vertex.y);
+			max->z = std::max(max->z, vertex.z);
+		}
+	}
+	for (uint child = 0; child < node->mNumChildren; ++child) {
+		findBoundingBoxForNode(scene, node->mChildren[child], min, max);
+	}
+}
+
+AABB findBoundingBox(const aiScene* scene, const aiNode* root) {
+	aiVector3D min, max;
+	min.x = min.y = min.z = 0.1f;
+	max.x = max.y = max.z = 0.1f;
+	findBoundingBoxForNode(scene, root, &min, &max);
+
+	AABB result;
+	result.min = vec3(min.x, min.y, min.z);
+	result.max = vec3(max.x, max.y, max.z);
+	return result;
 }
 
 void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
@@ -92,6 +122,8 @@ void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
 
 		m_meshes.push_back(mesh);
 	}
+
+	m_boundingBox = findBoundingBox(scene, scene->mRootNode);
 }
 
 void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, const aiNode *node) const noexcept {
