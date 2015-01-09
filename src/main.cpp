@@ -19,21 +19,24 @@ using namespace std::chrono;
 #include "MinMaxHierarchy.h"
 #include "CompressedShadow.h"
 
+
 /* Settings and globals */
+
 const string defaultSceneFile = "../scenes/plane.obj";
 
 const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;
-
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 8192;
 const float  lightDistance  = 680;
 const vec3   lightDirection = {0.25, 1, 0};
 
+/* Globals for camera and the deferred renderer */
 FreeCamera cam(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1, 100'000.0f);
 unique_ptr<DeferredRenderer> renderSystem;
 
+/* Settings controlled by AntTweakBar */
 struct Settings {
 	bool renderShadowMap;
 	uint smLevel;
@@ -43,9 +46,10 @@ struct Settings {
 
 Settings uiSettings;
 
+
 void initCamera() {
 	cam.setSpeed(3.0f);
-	cam.setPosition(vec3(-150, -5, 0));
+	cam.setPosition(vec3(9, 5, 0));
 }
 
 void resize(GLFWwindow* window, int width, int height) {
@@ -171,7 +175,7 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 	} catch (FileNotFound& exc) {
 		cerr << "Specified scene file not found!\n";
 		glfwTerminate();
-		std::terminate();
+		std::exit(EXIT_FAILURE);
 	}
 }
 
@@ -220,6 +224,7 @@ int main(int argc, char **argv) {
 	auto texLevel  = std::make_shared<Texture2D>(*level);
 	uint lastLevel = 0;
 
+	// Set (reference) shadow map
 	renderSystem->setShadow(texLevel);
 
 	while (!glfwWindowShouldClose(window)) {
