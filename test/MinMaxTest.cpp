@@ -71,7 +71,6 @@ TEST_F(MinMaxTest, create4x4) {
 }
 
 bool cmpFloats(float x, float y) {
-	cout << y << endl;
 	return abs(x - y) < 1e-6f;
 }
 

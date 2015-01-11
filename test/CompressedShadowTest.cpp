@@ -25,19 +25,16 @@ protected:
 	}
 
 	virtual void SetUp() {
-		/* Uncomment to create an opengl context (and window..)
-
 		ASSERT_TRUE(glfwInit());
 		auto window = glfwCreateWindow(1, 1, "unit test", nullptr, nullptr);
 		glfwMakeContextCurrent(window);
 		auto err = glewInit();
 		ASSERT_EQ(GLEW_OK, err);
-		*/
 	}
 
 
 	virtual void TearDown() {
-		//glfwTerminate();
+		glfwTerminate();
 	}
 protected:
 	ImageF img8;
