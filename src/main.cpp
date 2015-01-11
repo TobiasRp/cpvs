@@ -187,7 +187,9 @@ void initRenderSystem(const Scene* scene) {
 }
 
 MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
+	glViewport(0, 0, SM_SIZE, SM_SIZE);
 	auto sm = renderSystem->renderShadowMap(scene, SM_SIZE);
+
 	cout << "Loading min-max hierarchy..."; cout.flush();
 	auto t0 = high_resolution_clock::now();
 	MinMaxHierarchy mm(sm->createImageF());
@@ -206,6 +208,14 @@ MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
 	return mm;
 }
 
+void clampShadowMap(Texture2D* tex) {
+	tex->bindAt(0);
+	tex->setWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+
+	float ones[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ones);
+}
+
 int main(int argc, char **argv) {
 	auto window = initAndCreateWindow();
 	initExtensions();
@@ -222,6 +232,7 @@ int main(int argc, char **argv) {
 
 	auto level     = mm.getLevel(0);
 	auto texLevel  = std::make_shared<Texture2D>(*level);
+	clampShadowMap(texLevel.get());
 	uint lastLevel = 0;
 
 	// Set (reference) shadow map
@@ -234,6 +245,7 @@ int main(int argc, char **argv) {
 			// update sm texture only when necessary
 			level = mm.getLevel(uiSettings.smLevel);
 			texLevel = std::make_shared<Texture2D>(*level);
+			clampShadowMap(texLevel.get());
 			lastLevel = uiSettings.smLevel;
 		}
 

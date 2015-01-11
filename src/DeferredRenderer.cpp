@@ -91,8 +91,6 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
 	glDrawBuffer(GL_NONE);
 
-	glViewport(0, 0, size, size);
-
 	mat4 lightView = m_dirLight.calcLightView();
 	mat4 lightProj = m_dirLight.calcLightProj();
 
@@ -115,6 +113,7 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int 
 
 	m_create_sm.release();
 
+	GL_CHECK_ERROR("DeferredRenderer::renderShadowMap - end: ");
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
