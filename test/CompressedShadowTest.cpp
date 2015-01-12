@@ -7,7 +7,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-// contains depths{16x16, 32x32}
+// contains test depths{8x8, 16x16, 32x32}
 #include "TestImages.h"
 
 class CompressedShadowTest : public ::testing::Test {
@@ -125,4 +125,15 @@ TEST_F(CompressedShadowTest, testTraverse32x32) {
 	
 	auto vis = csPtr->traverse(vec3(1, 1, 0));
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+}
+
+TEST_F(CompressedShadowTest, testCombiningShadows) {
+	vector<unique_ptr<CompressedShadow>> shadows;
+
+	MinMaxHierarchy mm(img16);
+	for (uint i = 0; i < 8; ++i) {
+		shadows.emplace_back(CompressedShadow::create(mm));
+	}
+
+	auto csPtr = CompressedShadow::create(shadows);
 }

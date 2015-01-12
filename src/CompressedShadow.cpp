@@ -52,13 +52,18 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& min
 	cs->mergeCommonSubtrees(levels);
 	cs->compress();
 
-	cs->copyToGPU();
 	return cs;
 }
 
 unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap& shadowMap) {
 	MinMaxHierarchy minMax(shadowMap.createImageF());
 	return create(minMax);
+}
+
+unique_ptr<CompressedShadow> CompressedShadow::create(const vector<unique_ptr<CompressedShadow>>& shadows) {
+	assert(shadows.size() % 8 == 0);
+
+
 }
 
 /**

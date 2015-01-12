@@ -62,6 +62,12 @@ public:
 	static unique_ptr<CompressedShadow> create(const ShadowMap& shadowMap);
 
 	/**
+	 * Creates a CompressedShadow by combining the specified shadows.
+	 * @param shadows Must be a multiple of 8 compressed shadows residing on the CPU.
+	 */
+	static unique_ptr<CompressedShadow> create(const vector<unique_ptr<CompressedShadow>>& shadows);
+
+	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position
 	 * in normal device coordinates, i.e. in [-1, 1]^3.
 	 *
@@ -86,6 +92,19 @@ public:
 		m_dag.swap(tmp);
 	}
 
+	/**
+	 * Copy m_dag to m_deviceDag.
+	 */
+	void copyToGPU();
+
+	/**
+	 * Combines copyToGPU and freeDagOnCPU.
+	 */
+	inline void moveToGPU() {
+		copyToGPU();
+		freeDagOnCPU();
+	}
+
 private:
 	/* Private member and helper functions */
 
@@ -93,11 +112,6 @@ private:
 	 * Initialize all shader and kernels
 	 */
 	void initShaderAndKernels();
-
-	/**
-	 * Copy m_dag to m_deviceDag
-	 */
-	void copyToGPU();
 
 	/**
 	 * Given the number of levels in the octree, this calculates the resolution.
