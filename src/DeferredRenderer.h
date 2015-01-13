@@ -24,10 +24,8 @@ public:
 	/**
 	 * Renders a shadow map for the directional light source.
 	 * @param size Must be a power of two.
-	 *
-	 * @note Be sure to set glViewport beforehand.
 	 */
-	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, int size);
+	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, uint size);
 
 	void renderDepthTexture(const Texture2D* tex);
 

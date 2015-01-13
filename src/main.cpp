@@ -29,6 +29,7 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 const GLuint SM_SIZE        = 8192;
+const GLuint REF_SM_SIZE    = 8192;
 const vec3   lightDirection = {0.25, 1, 0};
 
 /* Globals for camera and the deferred renderer */
@@ -38,8 +39,6 @@ unique_ptr<DeferredRenderer> renderSystem;
 /* Settings controlled by AntTweakBar */
 struct Settings {
 	bool renderShadowMap;
-	uint smLevel;
-
 	bool useReferenceShadows;
 };
 
@@ -139,12 +138,6 @@ void initTweakBar() {
 	auto twBar = TwNewBar("CPVS Settings");
 	TwAddVarRW(twBar, "Render shadow map", TW_TYPE_BOOLCPP, &uiSettings.renderShadowMap, nullptr);
 
-	string minMaxSettings("min=0 max=");
-	minMaxSettings.append(to_string((int)log2(SM_SIZE)));
-	TwAddVarRW(twBar, "Shadow map level", TW_TYPE_UINT32, &uiSettings.smLevel, minMaxSettings.c_str());
-
-	TwAddSeparator(twBar, "firstSep", nullptr);
-
 	TwAddVarRW(twBar, "Reference shadow mapping", TW_TYPE_BOOLCPP, &uiSettings.useReferenceShadows, nullptr);
 }
 
@@ -183,37 +176,22 @@ void initRenderSystem(const Scene* scene) {
 	DirectionalLight light(vec3(0.65, 0.65, 0.65), direction);
 	light.sceneBoundingBox = scene->getBoundingBox();
 
+	light.updateLightViewProj();
+
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
-MinMaxHierarchy createPrecomputedShadows(const Scene* scene) {
-	glViewport(0, 0, SM_SIZE, SM_SIZE);
+void createPrecomputedShadows(const Scene* scene) {
 	auto sm = renderSystem->renderShadowMap(scene, SM_SIZE);
 
-	cout << "Loading min-max hierarchy..."; cout.flush();
-	auto t0 = high_resolution_clock::now();
-	MinMaxHierarchy mm(sm->createImageF());
-	cout << " done after ";
-	printDurationToNow(t0);
-
 	cout << "Compressing shadow... "; cout.flush();
-	t0 = chrono::high_resolution_clock::now();
-	auto shadow = CompressedShadow::create(mm);
+	auto t0 = chrono::high_resolution_clock::now();
+	auto shadow = CompressedShadow::create(sm.get());
 	cout << " done after ";
 	printDurationToNow(t0);
 
 	shadow->moveToGPU();
 	renderSystem->setShadow(std::move(shadow));
-
-	return mm;
-}
-
-void clampShadowMap(Texture2D* tex) {
-	tex->bindAt(0);
-	tex->setWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
-
-	float ones[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ones);
 }
 
 int main(int argc, char **argv) {
@@ -228,31 +206,20 @@ int main(int argc, char **argv) {
 	initCamera();
 	initRenderSystem(scene.get());
 
-	auto mm = createPrecomputedShadows(scene.get());
+	createPrecomputedShadows(scene.get());
 
-	auto level     = mm.getLevel(0);
-	auto texLevel  = std::make_shared<Texture2D>(*level);
-	clampShadowMap(texLevel.get());
-	uint lastLevel = 0;
-
-	// Set (reference) shadow map
-	renderSystem->setShadow(texLevel);
+	// Render reference shadow map 
+	auto refSM  = renderSystem->renderShadowMap(scene.get(), REF_SM_SIZE);
+	auto refTex = refSM->getTexture(0);
+	renderSystem->setShadow(refTex);
 
 	while (!glfwWindowShouldClose(window)) {
 		RenderProperties properties(cam.getView(), cam.getProjection());
 
-		if (uiSettings.smLevel != lastLevel) {
-			// update sm texture only when necessary
-			level = mm.getLevel(uiSettings.smLevel);
-			texLevel = std::make_shared<Texture2D>(*level);
-			clampShadowMap(texLevel.get());
-			lastLevel = uiSettings.smLevel;
-		}
-
 		renderSystem->useReferenceShadows(uiSettings.useReferenceShadows);
 
 		if (uiSettings.renderShadowMap)
-			renderSystem->renderDepthTexture(texLevel.get());
+			renderSystem->renderDepthTexture(refTex.get());
 		else
 			renderSystem->render(properties, scene.get());
 		

@@ -59,13 +59,7 @@ public:
 	 * Creates a CompressedShadow from a shadow map.
 	 * @note This will create a temporary min-max hierarchy.
 	 */
-	static unique_ptr<CompressedShadow> create(const ShadowMap& shadowMap);
-
-	/**
-	 * Creates a CompressedShadow by combining the specified shadows.
-	 * @param shadows Must be a multiple of 8 compressed shadows residing on the CPU.
-	 */
-	static unique_ptr<CompressedShadow> create(const vector<unique_ptr<CompressedShadow>>& shadows);
+	static unique_ptr<CompressedShadow> create(const ShadowMap* shadowMap);
 
 	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position

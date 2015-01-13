@@ -82,39 +82,56 @@ void DeferredRenderer::resize(GLuint width, GLuint height) {
 	m_visibilities->resize(width, height);
 }
 
-unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, int size) {
+unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint size) {
 	assert(isPowerOfTwo(size));
 
-	/* Init Fbo to render shadow map into */
-	Fbo shadowFbo(size, size, false);
-	shadowFbo.bind();
-	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
-	glDrawBuffer(GL_NONE);
+	GLint maxSize;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+	if (size < maxSize) maxSize = size;
 
-	mat4 lightView = m_dirLight.calcLightView();
-	mat4 lightProj = m_dirLight.calcLightProj();
+	uint numTexs = size / maxSize;
 
-	m_dirLight.lightViewProj = lightProj * lightView;
+	glViewport(0, 0, maxSize, maxSize);
 
-	RenderProperties smProps(lightView, lightProj);
+	RenderProperties smProps;
 	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
 	glClearDepth(1.0f);
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.1f, 4.0f);
 
-	scene->render(smProps);
+	auto sm = make_unique<ShadowMap>();
+
+	for (uint y = 0; y < numTexs; ++y) {
+		for (uint x = 0; x < numTexs; ++x) {
+			/* Init Fbo to render shadow map into */
+			Fbo shadowFbo(maxSize, maxSize, false);
+			shadowFbo.bind();
+			shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
+			glDrawBuffer(GL_NONE);
+
+			mat4 lightView = m_dirLight.calcLightView();
+			mat4 lightProj = m_dirLight.calcLightProj();
+
+			smProps.V = lightView;
+			smProps.P = lightProj;
+
+			glClear(GL_DEPTH_BUFFER_BIT);
+			scene->render(smProps);
+
+			sm->add(shadowFbo.getDepthTexture());
+		}
+	}
 
 	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	m_create_sm.release();
 
 	GL_CHECK_ERROR("DeferredRenderer::renderShadowMap - end: ");
-	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
+	return sm;
 }
 
 void DeferredRenderer::renderQuad(const Quad& quad) {

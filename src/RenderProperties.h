@@ -7,6 +7,12 @@
 
 class RenderProperties {
 public:
+	RenderProperties()
+		: m_renderMaterials(false)
+	{
+			m_stack = std::make_unique<MatrixStack>(mat4(1.0f));
+	}
+
 	RenderProperties(const mat4 &matV, const mat4 &matP)
 		: V(matV), P(matP), m_renderMaterials(false)
 	{

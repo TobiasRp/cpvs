@@ -128,12 +128,4 @@ TEST_F(CompressedShadowTest, testTraverse32x32) {
 }
 
 TEST_F(CompressedShadowTest, testCombiningShadows) {
-	vector<unique_ptr<CompressedShadow>> shadows;
-
-	MinMaxHierarchy mm(img16);
-	for (uint i = 0; i < 8; ++i) {
-		shadows.emplace_back(CompressedShadow::create(mm));
-	}
-
-	auto csPtr = CompressedShadow::create(shadows);
 }
