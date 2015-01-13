@@ -27,18 +27,6 @@ ivec3 getPathFromNDC(vec3 ndc) {
 	return ivec3(ndc.x * max, ndc.y * max, ndc.z * max);
 }
 
-/* GLSL doesn't seem to support the popcount instruction, but the hardware probably does...
- * Emulate it for the time being.
- */
-uint popcount(uint x) {
-    x = x - ((x >> 1) & 0x55555555);
-    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-    x = (x + (x >> 4)) & 0x0F0F0F0F;
-    x = x + (x >> 8);
-    x = x + (x >> 16);
-    return x & 0x0000003F;
-}
-
 float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
 	int index = (path.x & 0x3) + 4 * (path.y & 0x3) + 16 * (path.z & 0x3);
 
@@ -69,7 +57,7 @@ float traverse(const vec3 projPos) {
 			return 1.0;
 
 		uint maskedChildmask = childmask & (0xAAAA >> (16 - childIndex));
-		uint childOffset = popcount(maskedChildmask);
+		uint childOffset = bitCount(maskedChildmask);
 
 		if (level == 2) {
 			// Test visibility using the 64-bit leafmask, encoded as two 32-bit values
