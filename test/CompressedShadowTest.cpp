@@ -127,27 +127,24 @@ TEST_F(CompressedShadowTest, testTraverse32x32) {
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 }
 
-TEST_F(CompressedShadowTest, testCombiningShadows) {
+unique_ptr<CompressedShadow> createShadow(const vector<float>& depths, uint size) {
+	ImageF img(size, size, 1);
+	img.setAll(depths);
+	MinMaxHierarchy mm(img);
+	return CompressedShadow::create(mm);
+}
+
+TEST_F(CompressedShadowTest, testCombining8) {
 	vector<unique_ptr<CompressedShadow>> shadows;
 	shadows.reserve(8);
 
 	// Fill (0, 0, 0) with 1's
-	{
-		ImageF ones(8, 8, 1);
-		ones.setAll(getOnes8x8());
-		MinMaxHierarchy mmOne(ones);
-		shadows.push_back(CompressedShadow::create(mmOne));
-	}
+	shadows.push_back(createShadow(getOnes8x8(), 8));
 
 	// Fill (1, 0, 0) with 0's
-	{
-		ImageF zeroes(8, 8, 1);
-		zeroes.setAll(getZeroes8x8());
-		MinMaxHierarchy mm(zeroes);
-		shadows.push_back(CompressedShadow::create(mm));
-	}
+	shadows.push_back(createShadow(getZeroes8x8(), 8));
 
-	// And the rest with the default test values, see TestImages.cpp
+	// And the rest with the default 8x8 test values, see TestImages.cpp
 	for (uint i = 2; i < 8; ++i) {
 		MinMaxHierarchy mm(img8);
 		shadows.push_back(CompressedShadow::create(mm));
@@ -175,5 +172,21 @@ TEST_F(CompressedShadowTest, testCombiningShadows) {
 
 	vis = combinedCS->traverse(vec3(-1.0, -0.95, 0.9), false);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+}
 
+TEST_F(CompressedShadowTest, testCombining64) {
+	vector<unique_ptr<CompressedShadow>> shadows;
+	shadows.reserve(64);
+
+	for (uint i = 0; i < 64; ++i) {
+		// Fill front of the 8x8 block with 1's, the back with 0's
+		if (i < 32) {
+			shadows.push_back(createShadow(getOnes8x8(), 8));
+		} else {
+			shadows.push_back(createShadow(getZeroes8x8(), 8));
+		}
+	}
+
+	//TODO
+	//auto cs = CompressedShadow::combine(shadows);
 }

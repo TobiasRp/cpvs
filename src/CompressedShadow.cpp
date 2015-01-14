@@ -79,43 +79,51 @@ inline void applyOffsetInRange(vector<uint>& dag, uint start, uint end, uint off
 	}
 }
 
+void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows, uint offset) {
+	auto sPos = shadows;
+
+	array<uint, 8> childmasks;
+	for (uint child = 0; child < 8; ++child) {
+		childmasks[child] = (*sPos)->m_dag[0];
+		++sPos;
+	}
+	uint rootmask = cs::createRootmask(childmasks);
+	uint numChildren = cs::getNumChildren(rootmask);
+
+	size_t currentOffset = offset + 1 + numChildren;
+	m_dag.resize(m_dag.size() + currentOffset);
+
+	m_dag[offset] = rootmask;
+
+	uint partialChildNr = 0;
+
+	sPos = shadows;
+	for (uint child = 0; child < 8; ++child) {
+		if (isPartial(rootmask, child)) {
+			// Set child offset and insert the child at currentOffset
+			m_dag[offset + 1 + partialChildNr] = currentOffset;
+			
+			m_dag.insert(m_dag.begin() + currentOffset,
+					(*sPos)->m_dag.begin(), (*sPos)->m_dag.end());
+
+			// Correct offsets
+			size_t childDagSize = (*sPos)->m_dag.size();
+			applyOffsetInRange(m_dag, currentOffset, currentOffset + childDagSize, currentOffset);
+
+			currentOffset += childDagSize;
+			++partialChildNr;
+			++sPos;
+		}
+	}
+}
+
 unique_ptr<CompressedShadow> CompressedShadow::combine(const vector<unique_ptr<CompressedShadow>>& shadows) {
-	//TODO
 	assert(shadows.size() == 8 && "Children size > 8 not yet implemented");
 
 	const uint numLevels = shadows[0]->m_numLevels + 1;
 	auto combinedCS = new CompressedShadow(numLevels);
 
-	array<uint, 8> childmasks;
-	for (uint child = 0; child < 8; ++child) {
-		childmasks[child] = shadows[child]->m_dag[0];
-	}
-	uint rootmask = cs::createRootmask(childmasks);
-
-	uint numChildren = cs::getNumChildren(rootmask);
-
-	size_t currentOffset = 1 + numChildren;
-	uint partialChildNr = 0;
-
-	combinedCS->m_dag.resize(currentOffset);
-	combinedCS->m_dag[0] = rootmask;
-
-	for (uint child = 0; child < 8; ++child) {
-		if (isPartial(rootmask, child)) {
-			// Set child offset and insert the child at currentOffset
-			combinedCS->m_dag[1 + partialChildNr] = currentOffset;
-			
-			combinedCS->m_dag.insert(combinedCS->m_dag.end(),
-					shadows[child]->m_dag.begin(), shadows[child]->m_dag.end());
-
-			// Correct offsets
-			size_t childDagSize = shadows[child]->m_dag.size();
-			applyOffsetInRange(combinedCS->m_dag, currentOffset, currentOffset + childDagSize, currentOffset);
-
-			currentOffset += childDagSize;
-			++partialChildNr;
-		}
-	}
+	combinedCS->combineShadows(shadows.begin());
 
 	return unique_ptr<CompressedShadow>(combinedCS);
 }

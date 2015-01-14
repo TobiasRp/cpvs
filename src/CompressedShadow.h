@@ -131,6 +131,14 @@ private:
 	}
 
 	/**
+	 * Constructs this shadows by combining 8 existing CompressedShadows.
+	 * @param shadows Must be an iterator to at least 8 shadows.
+	 * @param Offset for the resulting combined shadow into m_dag. Should only be != 0 if more
+	 * shadows are combined elsewhere.
+	 */
+	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows, uint offset = 0);
+
+	/**
 	 * Constructs the sparse voxel octree in a 1-dimensional array.
 	 * The resulting datastructure is not compressed, i.e. every node has 8 pointers even if they
 	 * are 0.
