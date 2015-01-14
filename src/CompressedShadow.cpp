@@ -62,9 +62,62 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap* shadowMap
 	return create(minMax);
 }
 
+/**
+ * Adds the offset to all elements in the range [start, end), except the node masks.
+ * @note dag[start] must be a node mask and the DAG is assumed to be compressed.
+ */
+inline void applyOffsetInRange(vector<uint>& dag, uint start, uint end, uint offset) {
+	uint pos = start;
+	while (pos < end) {
+		uint numChildren = cs::getNumChildren(dag[pos]);
+		++pos;
+
+		for (uint child = 0; child < numChildren; ++child) {
+			dag[pos] += offset;
+			++pos;
+		}
+	}
+}
+
 unique_ptr<CompressedShadow> CompressedShadow::combine(const vector<unique_ptr<CompressedShadow>>& shadows) {
 	//TODO
-	return nullptr;
+	assert(shadows.size() == 8 && "Children size > 8 not yet implemented");
+
+	const uint numLevels = shadows[0]->m_numLevels + 1;
+	auto combinedCS = new CompressedShadow(numLevels);
+
+	array<uint, 8> childmasks;
+	for (uint child = 0; child < 8; ++child) {
+		childmasks[child] = shadows[child]->m_dag[0];
+	}
+	uint rootmask = cs::createRootmask(childmasks);
+
+	uint numChildren = cs::getNumChildren(rootmask);
+
+	size_t currentOffset = 1 + numChildren;
+	uint partialChildNr = 0;
+
+	combinedCS->m_dag.resize(currentOffset);
+	combinedCS->m_dag[0] = rootmask;
+
+	for (uint child = 0; child < 8; ++child) {
+		if (isPartial(rootmask, child)) {
+			// Set child offset and insert the child at currentOffset
+			combinedCS->m_dag[1 + partialChildNr] = currentOffset;
+			
+			combinedCS->m_dag.insert(combinedCS->m_dag.end(),
+					shadows[child]->m_dag.begin(), shadows[child]->m_dag.end());
+
+			// Correct offsets
+			size_t childDagSize = shadows[child]->m_dag.size();
+			applyOffsetInRange(combinedCS->m_dag, currentOffset, currentOffset + childDagSize, currentOffset);
+
+			currentOffset += childDagSize;
+			++partialChildNr;
+		}
+	}
+
+	return unique_ptr<CompressedShadow>(combinedCS);
 }
 
 /**
@@ -413,7 +466,7 @@ void CompressedShadow::compress() {
 	m_dag.shrink_to_fit();
 }
 
-CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position) {
+CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position, bool tryLeafmasks) {
 	const ivec3 path = getPathFromNDC(std::move(position), m_numLevels);
 
 	size_t offset = 0;
@@ -441,7 +494,7 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 			uint childOffset = POPCOUNT(maskedChildMask);
 
 			// Read from leafmask
-			if (level == 2 && useLeafmasks(m_numLevels)) {
+			if (level == 2 && tryLeafmasks) {
 				uint index = offset + childOffset * 2 + 1;
 
 				int maskedX = (path.x & 0x3);
@@ -449,7 +502,6 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position)
 				int maskedZ = (path.z & 0x3);
 
 				int maskIndex = maskedX + 4 * maskedY + 16 * maskedZ;
-				//cout << dec << maskIndex << " and leaf1 = " << hex << m_dag[index] << " leaf2 = " << m_dag[index+1] << endl;
 				uint vis = 0;
 				if (maskIndex < 31) {
 					uint leafmask1 = m_dag[index];

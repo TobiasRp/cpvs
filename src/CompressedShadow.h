@@ -72,7 +72,7 @@ public:
 	 *
 	 * @note Useful for testing purposes!
 	 */
-	NodeVisibility traverse(const vec3 position);
+	NodeVisibility traverse(const vec3 position, bool tryLeafmasks = true);
 	
 	/**
 	 * Calculates the visibility/shadow of every world-space position in the given texture.

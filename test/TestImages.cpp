@@ -10,7 +10,6 @@ std::vector<float> depths8x8{
 				0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
 				0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4};
 
-
 std::vector<float> depths16x16 {
 	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
 	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
@@ -69,6 +68,16 @@ std::vector<float> depths32x32 {
 
 std::vector<float> getDepths8x8() {
 	return depths8x8;
+}
+
+std::vector<float> getOnes8x8() {
+	vector<float> ones(64, 1.0);
+	return ones;
+}
+
+std::vector<float> getZeroes8x8() {
+	vector<float> zeroes(64, 0.0);
+	return zeroes;
 }
 
 std::vector<float> getDepths16x16() {

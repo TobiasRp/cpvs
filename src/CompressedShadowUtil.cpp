@@ -72,6 +72,41 @@ uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
 	return leafmask;
 }
 
+/**
+ * Returns:
+ * 0x0 if all nodes in the mask are shadowed,
+ * 0x1 if all nodes are visible,
+ * 0x2 otherwise.
+ */
+uint getCombinedVisibility(uint mask) {
+	bool shadowed = true;
+	bool visible = true;
+
+	for (uint i = 0; i < 8; ++i) {
+		visible = visible && isVisible(mask, i);
+		shadowed = shadowed && isShadowed(mask, i);
+	}
+
+	if (visible)
+		return 0x1;
+	if (shadowed)
+		return 0x0;
+
+	return 0x2;
+}
+
+uint cs::createRootmask(const array<uint, 8>& childmasks) {
+	uint rootmask = 0;
+
+	for (uint childNr = 0; childNr < 8; ++childNr) {
+		uint childVis = getCombinedVisibility(childmasks[childNr]);
+
+		rootmask |= childVis << (childNr * 2);
+	}
+
+	return rootmask;
+}
+
 vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset) {
 	vector<ivec3> result;
 	for (uint i = 0; i < 8; ++i) {

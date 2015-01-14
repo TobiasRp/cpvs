@@ -53,37 +53,37 @@ TEST_F(CompressedShadowTest, testTraverse8x8) {
 	MinMaxHierarchy mm(img8);
 	auto csPtr = CompressedShadow::create(mm);
 	
-	auto vis = csPtr->traverse(vec3(-1, 1, -1));
+	auto vis = csPtr->traverse(vec3(-1, 1, -1), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(-1, -1, 0));
+	vis = csPtr->traverse(vec3(-1, -1, 0), false);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
-	vis = csPtr->traverse(vec3(1, 1, 0));
+	vis = csPtr->traverse(vec3(1, 1, 0), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(0, 0, 0));
+	vis = csPtr->traverse(vec3(0, 0, 0), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(0.5, 0.5, 0.5));
+	vis = csPtr->traverse(vec3(0.5, 0.5, 0.5), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(1, 1, -0.75));
+	vis = csPtr->traverse(vec3(1, 1, -0.75), false);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
-	vis = csPtr->traverse(vec3(1, 1, 0.5));
+	vis = csPtr->traverse(vec3(1, 1, 0.5), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(1, -1, 0.99));
+	vis = csPtr->traverse(vec3(1, -1, 0.99), false);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
-	vis = csPtr->traverse(vec3(0.7, -1, 0.99));
+	vis = csPtr->traverse(vec3(0.7, -1, 0.99), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(.45, -1, -0.9));
+	vis = csPtr->traverse(vec3(.45, -1, -0.9), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
-	vis = csPtr->traverse(vec3(0.1, -1.0, -0.9));
+	vis = csPtr->traverse(vec3(0.1, -1.0, -0.9), false);
 	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 }
 
@@ -128,4 +128,52 @@ TEST_F(CompressedShadowTest, testTraverse32x32) {
 }
 
 TEST_F(CompressedShadowTest, testCombiningShadows) {
+	vector<unique_ptr<CompressedShadow>> shadows;
+	shadows.reserve(8);
+
+	// Fill (0, 0, 0) with 1's
+	{
+		ImageF ones(8, 8, 1);
+		ones.setAll(getOnes8x8());
+		MinMaxHierarchy mmOne(ones);
+		shadows.push_back(CompressedShadow::create(mmOne));
+	}
+
+	// Fill (1, 0, 0) with 0's
+	{
+		ImageF zeroes(8, 8, 1);
+		zeroes.setAll(getZeroes8x8());
+		MinMaxHierarchy mm(zeroes);
+		shadows.push_back(CompressedShadow::create(mm));
+	}
+
+	// And the rest with the default test values, see TestImages.cpp
+	for (uint i = 2; i < 8; ++i) {
+		MinMaxHierarchy mm(img8);
+		shadows.push_back(CompressedShadow::create(mm));
+	}
+
+	auto combinedCS = CompressedShadow::combine(shadows);
+
+	// Test (0, 0, 0) - should be visible everywhere
+	auto vis = combinedCS->traverse(vec3(-1, -1, -0.1), false);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	// Test (1, 0, 0) - should be shadowed everywhere
+	vis = combinedCS->traverse(vec3(0.5, -0.5, -0.1), false);
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	// Test (0, 0, 1) - using the default 8x8 test values
+	vis = combinedCS->traverse(vec3(-0.05, -1, 0.3), false);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = combinedCS->traverse(vec3(-0.05, -0.05, 1.0), false);
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = combinedCS->traverse(vec3(-1.0, -0.05, 0.9), false);
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = combinedCS->traverse(vec3(-1.0, -0.95, 0.9), false);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
 }
