@@ -30,7 +30,7 @@ private:
 	/**
 	 * Use the 'create' factory functions.
 	 */
-	CompressedShadow(const MinMaxHierarchy& minMax);
+	CompressedShadow(uint numLevels);
 
 public:
 	~CompressedShadow() = default;
@@ -171,7 +171,7 @@ private:
 
 private:
 	/* Private class members */
-	size_t m_numLevels;
+	uint m_numLevels;
 
 	vector<uint> m_dag;
 

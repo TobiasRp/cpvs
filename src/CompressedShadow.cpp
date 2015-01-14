@@ -17,8 +17,9 @@ using namespace std;
 
 #define LEAFMASKS // Enable/disable leafmasks. Also has to be modified in traversal.cs
 
-CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
-	m_numLevels = minMax.getNumLevels();
+CompressedShadow::CompressedShadow(uint numLevels)
+	: m_numLevels(numLevels)
+{
 	assert(m_numLevels > 3);
 }
 
@@ -47,7 +48,7 @@ void CompressedShadow::copyToGPU() {
 }
 
 unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
-	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax));
+	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax.getNumLevels()));
 
 	auto levels = cs->constructSvo(minMax);
 	cs->mergeCommonSubtrees(levels);
@@ -78,7 +79,7 @@ inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t chil
 }
 
 /* Decides whether to use 64-bit leafmaks */
-bool useLeafmasks(size_t numLevels) {
+bool useLeafmasks(uint numLevels) {
 	// always use leafsmasks except when there arent't enough levels
 #ifdef LEAFMASKS
 	return (numLevels - 3) >= 2;
@@ -88,12 +89,12 @@ bool useLeafmasks(size_t numLevels) {
 }
 
 /* Returns the minimum level (which is not 0 when leafmasks are used) */
-inline uint getMinLevel(size_t m_numLevels) {
+inline uint getMinLevel(uint m_numLevels) {
 	return useLeafmasks(m_numLevels) ? 2 : 0;
 }
 
 /* Returns the size of a node, which can be bigger when leafmasks are used */
-inline uint getNodeSize(size_t m_numLevels, uint level) {
+inline uint getNodeSize(uint m_numLevels, uint level) {
 	bool leafs = useLeafmasks(m_numLevels);
 	if (leafs && level == 2)
 		return LEAF_SIZE;
@@ -333,7 +334,7 @@ void CompressedShadow::removeUnusedNodes(const vector<uint>& levelOffsets, const
  * @return The updated offset into the new dag
  */
 template<typename ItOld>
-size_t copyNodeInNewDag(vector<uint>& newDag, uint newCurrent, ItOld oldItNode, uint numChildren, size_t numLevels, int level) {
+size_t copyNodeInNewDag(vector<uint>& newDag, uint newCurrent, ItOld oldItNode, uint numChildren, uint numLevels, int level) {
 	uint elems = 1 + numChildren;
 
 	// If leafmaks are used the node size is different
