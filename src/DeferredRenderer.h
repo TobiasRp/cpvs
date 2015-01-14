@@ -27,6 +27,8 @@ public:
 	 */
 	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, uint size);
 
+	void precomputeShadows(const Scene* scene, uint size);
+
 	void renderDepthTexture(const Texture2D* tex);
 
 	void renderTexture(const Texture2D* tex);
@@ -37,10 +39,6 @@ public:
 
 	inline void useReferenceShadows(bool use) {
 		m_useReferenceShadow = use;
-	}
-
-	inline void setShadow(unique_ptr<CompressedShadow> shadowDag) {
-		m_shadowDag = std::move(shadowDag);
 	}
 
 	inline void setShadow(shared_ptr<Texture2D> shadowMap) {

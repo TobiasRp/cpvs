@@ -14,33 +14,19 @@ public:
 	 * @note The width must be equal to the height and both must be a power of two!
 	 */
 	ShadowMap(shared_ptr<Texture2D> tex);
-
-	/**
-	 * Creates a Shadow Map from multiple 2-dimensional textures.
-	 */
-	ShadowMap(const vector<shared_ptr<Texture2D>>& textures)
-		: m_textures(textures) { }
-
-	ShadowMap() = default;
 	~ShadowMap() = default;
 
-	shared_ptr<Texture2D> getTexture(uint index) const {
-		return m_textures[index];
+	shared_ptr<Texture2D> getTexture() const {
+		return m_texture;
 	}
 
-	size_t getNumTextures() const {
-		return m_textures.size();
-	}
-
-	void add(shared_ptr<Texture2D> tex);
-	
 	/**
 	 * Copies the specified texture of the shadow map to an image in the host memory.
 	 */
-	ImageF createImageF(uint index) const;
+	ImageF createImageF() const;
 
 private:
-	vector<shared_ptr<Texture2D>> m_textures;
+	shared_ptr<Texture2D> m_texture;
 };
 
 #endif

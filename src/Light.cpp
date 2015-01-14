@@ -14,7 +14,6 @@ inline float getSceneSizeMax(const AABB& bbox) {
 }
 
 mat4 DirectionalLight::calcLightView() const {
-	//TODO 'origin' shouldn't be (0, 0, 0) but the middle of the bounding box
 	vec3 position = direction * getSceneSizeMax(sceneBoundingBox) * 1.5f;
 	return glm::lookAt(position, direction, up);
 }
@@ -45,22 +44,44 @@ std::pair<uint, uint> getScreenXY(const vec3& direction) {
 	return make_pair(screenX, screenY);
 }
 
-mat4 DirectionalLight::calcLightProj() const {
+void DirectionalLight::getMinMaxValues(float* minX, float* minY, float* maxX, float* maxY, float* zfar) const {
 	constexpr float margin = 2.5f;
 
 	auto screen = getScreenXY(direction);
 	uint screenX = get<0>(screen);
 	uint screenY = get<1>(screen);
 		
-	float minX = sceneBoundingBox.min[screenX] * margin;
-	float minY = sceneBoundingBox.min[screenY] * margin;
+	*minX = sceneBoundingBox.min[screenX] * margin;
+	*minY = sceneBoundingBox.min[screenY] * margin;
 
-	float maxX = sceneBoundingBox.max[screenX] * margin;
-	float maxY = sceneBoundingBox.max[screenY] * margin;
+	*maxX = sceneBoundingBox.max[screenX] * margin;
+	*maxY = sceneBoundingBox.max[screenY] * margin;
 
-	float zfar = getSceneSizeMax(sceneBoundingBox) * margin;
+	*zfar = getSceneSizeMax(sceneBoundingBox) * margin;
+}
+
+mat4 DirectionalLight::calcLightProj() const {
+	float minX, minY, maxX, maxY, zfar;
+	getMinMaxValues(&minX, &minY, &maxX, &maxY, &zfar);
 
 	return glm::ortho(minX, maxX, minY, maxY, 1.0f, zfar);
+}
+
+mat4 DirectionalLight::calcLightProj(uint x, uint y, uint z, uint resolution) const {
+	float minX, minY, maxX, maxY, zfar;
+	getMinMaxValues(&minX, &minY, &maxX, &maxY, &zfar);
+
+	float sizeX = std::abs(maxX - minX) / resolution;
+	float sizeY = std::abs(maxY - minY) / resolution;
+	float sizeZ = std::abs(zfar - 1.0f) / resolution;
+
+	float subMinX = minX + sizeX * x;
+	float subMaxX = subMinX + sizeX;
+
+	float subMinY = minY + sizeY * y;
+	float subMaxY = subMinY + sizeY;;
+
+	return glm::ortho(subMinX, subMaxX, subMinY, subMaxY, 1.0f + sizeZ * z, 1.0f + sizeZ * (z + 1));
 }
 
 void DirectionalLight::updateLightViewProj() {

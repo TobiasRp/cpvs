@@ -28,7 +28,7 @@ const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
-const GLuint SM_SIZE        = 8192;
+const GLuint CPVS_SIZE      = 8192;
 const GLuint REF_SM_SIZE    = 8192;
 const vec3   lightDirection = {0.25, 1, 0};
 
@@ -141,7 +141,7 @@ void initTweakBar() {
 	TwAddVarRW(twBar, "Reference shadow mapping", TW_TYPE_BOOLCPP, &uiSettings.useReferenceShadows, nullptr);
 }
 
-void printDurationToNow(high_resolution_clock::time_point start) {
+inline void printDurationToNow(high_resolution_clock::time_point start) {
 	auto t1 = high_resolution_clock::now();
 	cout << duration_cast<milliseconds>(t1 - start).count() << "msec\n";
 }
@@ -182,16 +182,11 @@ void initRenderSystem(const Scene* scene) {
 }
 
 void createPrecomputedShadows(const Scene* scene) {
-	auto sm = renderSystem->renderShadowMap(scene, SM_SIZE);
-
-	cout << "Compressing shadow... "; cout.flush();
+	cout << "Precomputing shadows... "; cout.flush();
 	auto t0 = chrono::high_resolution_clock::now();
-	auto shadow = CompressedShadow::create(sm.get());
+	renderSystem->precomputeShadows(scene, CPVS_SIZE);
 	cout << " done after ";
 	printDurationToNow(t0);
-
-	shadow->moveToGPU();
-	renderSystem->setShadow(std::move(shadow));
 }
 
 int main(int argc, char **argv) {
@@ -210,7 +205,7 @@ int main(int argc, char **argv) {
 
 	// Render reference shadow map 
 	auto refSM  = renderSystem->renderShadowMap(scene.get(), REF_SM_SIZE);
-	auto refTex = refSM->getTexture(0);
+	auto refTex = refSM->getTexture();
 	renderSystem->setShadow(refTex);
 
 	while (!glfwWindowShouldClose(window)) {

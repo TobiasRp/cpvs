@@ -84,14 +84,58 @@ void DeferredRenderer::resize(GLuint width, GLuint height) {
 
 unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint size) {
 	assert(isPowerOfTwo(size));
+	glViewport(0, 0, size, size);
 
+	/* Init Fbo to render shadow map into */
+	Fbo shadowFbo(size, size, false);
+	shadowFbo.bind();
+	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
+	glDrawBuffer(GL_NONE);
+
+	mat4 lightView = m_dirLight.calcLightView();
+	mat4 lightProj = m_dirLight.calcLightProj();
+
+	RenderProperties smProps(lightView, lightProj);
+	smProps.setShaderProgram(&m_create_sm);
+	m_create_sm.bind();
+
+	glClearDepth(1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1.1f, 4.0f);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	scene->render(smProps);
+
+	glDisable(GL_POLYGON_OFFSET_FILL);
+
+	m_create_sm.release();
+
+	GL_CHECK_ERROR("DeferredRenderer::renderShadowMap - end: ");
+	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
+}
+
+void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	GLint maxSize;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+
+	//DEBUGGING ONLY
+	//maxSize = 2048;
+	//maxSize = 4096;
+	//maxSize = 8192;
+
 	if (size < maxSize) maxSize = size;
 
 	uint numTexs = size / maxSize;
 
 	glViewport(0, 0, maxSize, maxSize);
+
+	/* Init Fbo to render shadow map into */
+	Fbo shadowFbo(maxSize, maxSize, false);
+	shadowFbo.bind();
+	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
+	glDrawBuffer(GL_NONE);
 
 	RenderProperties smProps;
 	smProps.setShaderProgram(&m_create_sm);
@@ -103,35 +147,35 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.1f, 4.0f);
 
-	auto sm = make_unique<ShadowMap>();
+	vector<unique_ptr<CompressedShadow>> shadows;
 
 	for (uint y = 0; y < numTexs; ++y) {
 		for (uint x = 0; x < numTexs; ++x) {
-			/* Init Fbo to render shadow map into */
-			Fbo shadowFbo(maxSize, maxSize, false);
-			shadowFbo.bind();
-			shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
-			glDrawBuffer(GL_NONE);
+			for (uint z = 0; z < numTexs; ++z) {
+				mat4 lightView = m_dirLight.calcLightView();
+				mat4 lightProj = m_dirLight.calcLightProj(x, y, z, numTexs);
 
-			mat4 lightView = m_dirLight.calcLightView();
-			mat4 lightProj = m_dirLight.calcLightProj();
+				smProps.V = lightView;
+				smProps.P = lightProj;
 
-			smProps.V = lightView;
-			smProps.P = lightProj;
+				GL_CHECK_ERROR("DeferredRenderer::precomputeShadows - before rendering: ");
 
-			glClear(GL_DEPTH_BUFFER_BIT);
-			scene->render(smProps);
+				glClear(GL_DEPTH_BUFFER_BIT);
+				scene->render(smProps);
 
-			sm->add(shadowFbo.getDepthTexture());
+				ShadowMap sm(shadowFbo.getDepthTexture());
+				shadows.emplace_back(std::move(CompressedShadow::create(&sm)));
+			}
 		}
 	}
+
+	m_shadowDag = std::move(shadows[0]);//CompressedShadow::combine(shadows);
+	m_shadowDag->moveToGPU();
 
 	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	m_create_sm.release();
-
-	GL_CHECK_ERROR("DeferredRenderer::renderShadowMap - end: ");
-	return sm;
+	GL_CHECK_ERROR("DeferredRenderer::precomputeShadows - end: ");
 }
 
 void DeferredRenderer::renderQuad(const Quad& quad) {

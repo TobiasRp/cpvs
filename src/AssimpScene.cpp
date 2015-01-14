@@ -171,6 +171,7 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 	}
 
 	for (unsigned n = 0; n < node->mNumChildren; ++n) {
+		GL_CHECK_ERROR("recursiveRender (before calling recursively): ");
 		recursiveRender(props, sc, node->mChildren[n]);
 	}
 
@@ -180,6 +181,7 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 }
 
 void AssimpScene::render(RenderProperties &props) const noexcept {
+	GL_CHECK_ERROR("AssimpScene::render - begin : ");
 	auto scene = m_importer.GetScene();
 
 	recursiveRender(props, scene, scene->mRootNode);

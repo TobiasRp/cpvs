@@ -62,6 +62,11 @@ public:
 	static unique_ptr<CompressedShadow> create(const ShadowMap* shadowMap);
 
 	/**
+	 * Creates a new CompressedShadow by combining the given shadows.
+	 */
+	static unique_ptr<CompressedShadow> combine(const vector<unique_ptr<CompressedShadow>>& shadows);
+
+	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position
 	 * in normal device coordinates, i.e. in [-1, 1]^3.
 	 *
@@ -103,9 +108,9 @@ private:
 	/* Private member and helper functions */
 
 	/**
-	 * Initialize all shader and kernels
+	 * Initialize traverse shader which evaluates the DAG on the GPU.
 	 */
-	void initShaderAndKernels();
+	void initShader();
 
 	/**
 	 * Given the number of levels in the octree, this calculates the resolution.

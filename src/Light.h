@@ -17,7 +17,16 @@ public:
 
 	mat4 calcLightProj() const;
 
+	/**
+	 * Calculates the light projection for the sub-frustum at (x, y, z)
+	 * with x, y, z in [0, resolution)
+	 */
+	mat4 calcLightProj(uint x, uint y, uint z, uint resolution) const;
+
 	void updateLightViewProj();
+
+private:
+	void getMinMaxValues(float* minX, float* minY, float* maxX, float* maxY, float* zfar) const;
 
 public:
 	vec3 color;

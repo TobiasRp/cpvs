@@ -20,11 +20,10 @@ using namespace std;
 CompressedShadow::CompressedShadow(const MinMaxHierarchy& minMax) {
 	m_numLevels = minMax.getNumLevels();
 	assert(m_numLevels > 3);
-
-	initShaderAndKernels();
 }
 
-void CompressedShadow::initShaderAndKernels() {
+// Is called when the DAG is copied to the GPU
+void CompressedShadow::initShader() {
 	try {
 		m_traverseCS.addShaderFromFile(GL_COMPUTE_SHADER, "../shader/traverse.cs");
 		m_traverseCS.link();
@@ -42,6 +41,8 @@ void CompressedShadow::initShaderAndKernels() {
 }
 
 void CompressedShadow::copyToGPU() {
+	initShader();
+
 	m_deviceDag = make_unique<SSBO>(m_dag, GL_STATIC_READ);
 }
 
@@ -56,10 +57,13 @@ unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& min
 }
 
 unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap* shadowMap) {
-
-	//TODO
-	MinMaxHierarchy minMax(shadowMap->createImageF(0));
+	MinMaxHierarchy minMax(shadowMap->createImageF());
 	return create(minMax);
+}
+
+unique_ptr<CompressedShadow> CompressedShadow::combine(const vector<unique_ptr<CompressedShadow>>& shadows) {
+	//TODO
+	return nullptr;
 }
 
 /**
