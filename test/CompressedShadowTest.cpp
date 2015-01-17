@@ -174,19 +174,34 @@ TEST_F(CompressedShadowTest, testCombining8) {
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 }
 
-TEST_F(CompressedShadowTest, testCombining64) {
+TEST_F(CompressedShadowTest, testCombining16) {
 	vector<unique_ptr<CompressedShadow>> shadows;
-	shadows.reserve(64);
+	shadows.reserve(8);
 
-	for (uint i = 0; i < 64; ++i) {
-		// Fill front of the 8x8 block with 1's, the back with 0's
-		if (i < 32) {
-			shadows.push_back(createShadow(getOnes8x8(), 8));
-		} else {
-			shadows.push_back(createShadow(getZeroes8x8(), 8));
-		}
+	for (uint i = 0; i < 8; ++i) {
+		shadows.push_back(createShadow(getDepths16x16(), 16));
 	}
+	auto cs = CompressedShadow::combine(shadows);
 
-	//TODO
-	//auto cs = CompressedShadow::combine(shadows);
+	auto vis = cs->traverse(vec3(1, -1, -0.5), true);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = cs->traverse(vec3(1, -1, 0.5), true);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+}
+
+TEST_F(CompressedShadowTest, testCombining32) {
+	vector<unique_ptr<CompressedShadow>> shadows;
+	shadows.reserve(8);
+
+	for (uint i = 0; i < 8; ++i) {
+		shadows.push_back(createShadow(getDepths32x32(), 32));
+	}
+	auto cs = CompressedShadow::combine(shadows);
+
+	auto vis = cs->traverse(vec3(1, -1, -0.5), true);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = cs->traverse(vec3(1, -1, 0.5), true);
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 }

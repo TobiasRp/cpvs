@@ -122,7 +122,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 	//DEBUGGING ONLY
 	//maxSize = 2048;
-	//maxSize = 4096;
+	maxSize = 4096;
 	//maxSize = 8192;
 
 	if (size < maxSize) maxSize = size;
@@ -169,7 +169,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 		}
 	}
 
-	m_shadowDag = std::move(shadows[0]);//CompressedShadow::combine(shadows);
+	m_shadowDag = CompressedShadow::combine(shadows);
 	m_shadowDag->moveToGPU();
 
 	glDisable(GL_POLYGON_OFFSET_FILL);

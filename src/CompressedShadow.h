@@ -133,10 +133,15 @@ private:
 	/**
 	 * Constructs this shadows by combining 8 existing CompressedShadows.
 	 * @param shadows Must be an iterator to at least 8 shadows.
-	 * @param Offset for the resulting combined shadow into m_dag. Should only be != 0 if more
 	 * shadows are combined elsewhere.
 	 */
-	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows, uint offset = 0);
+	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows);
+
+	/** (Helper function for combineShadows)
+	 * Copies the DAG from the given compressed shadow at the end of the specified target and
+	 * applies the offset.
+	 */
+	void copyDagAndApplyOffset(const CompressedShadow *source, vector<uint>& target, uint offset);
 
 	/**
 	 * Constructs the sparse voxel octree in a 1-dimensional array.
