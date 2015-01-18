@@ -15,12 +15,13 @@ using namespace std;
 #include <glm/ext.hpp>
 #include <iostream>
 
-#define LEAFMASKS // Enable/disable leafmasks. Also has to be modified in traversal.cs
+// Enable/disable leafmasks. Also has to be modified in traversal.cs
+#define LEAFMASKS
 
 /* Decides whether to use 64-bit leafmaks */
 bool useLeafmasks(uint numLevels) {
-	// always use leafsmasks except when there arent't enough levels
 #ifdef LEAFMASKS
+	// Use leafmasks except when there arent't enough levels
 	return (numLevels - 3) >= 2;
 #else
 	return false;
@@ -105,15 +106,16 @@ void CompressedShadow::copyDagAndApplyOffset(const CompressedShadow* source, vec
 			uint nodemask = *sourceIt;
 			uint numChildren = cs::getNumChildren(nodemask);
 			target.push_back(nodemask);
+			++sourceIt;
 
+			// If we're on the last level were leafmasks are stored, there are 2x 32bit values stores.
 			if (isLeafmaskLevel(minLevel, level))
 				numChildren *= 2;
-
-			++sourceIt;
 
 			for (uint childNr = 0; childNr < numChildren; ++childNr) {
 				assert(sourceIt != source->m_dag.end());
 
+				// Do not apply an offset to a leafmask!
 				if (isLeafmaskLevel(minLevel, level))
 					target.push_back(*sourceIt);
 				else
@@ -124,15 +126,15 @@ void CompressedShadow::copyDagAndApplyOffset(const CompressedShadow* source, vec
 			}
 		}
 
-		// Use a set to get the number of new unique child nodes in the next level
+		// Use an unordered_set to get the number of new unique child nodes in the next level
 		numLevelNodes = childrenNodesIndices.size();
 		--level;
 	}
 	assert(sourceIt == source->m_dag.end());
 }
 
-void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows) {
-	auto sPos = shadows;
+void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt) {
+	auto sPos = shadowIt;
 
 	array<uint, 8> childmasks;
 	for (uint child = 0; child < 8; ++child) {
@@ -146,10 +148,9 @@ void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::cons
 	m_dag.resize(m_dag.size() + currentOffset);
 
 	m_dag[0] = rootmask;
-
 	uint partialChildNr = 0;
+	sPos = shadowIt;
 
-	sPos = shadows;
 	for (uint child = 0; child < 8; ++child, ++sPos) {
 		if (isPartial(rootmask, child)) {
 			// Set child offset and insert the child at currentOffset

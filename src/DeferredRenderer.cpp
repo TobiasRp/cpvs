@@ -149,9 +149,9 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 	vector<unique_ptr<CompressedShadow>> shadows;
 
-	for (uint y = 0; y < numTexs; ++y) {
-		for (uint x = 0; x < numTexs; ++x) {
-			for (uint z = 0; z < numTexs; ++z) {
+	for (uint z = 0; z < numTexs; ++z) {
+		for (uint y = 0; y < numTexs; ++y) {
+			for (uint x = 0; x < numTexs; ++x) {
 				mat4 lightView = m_dirLight.calcLightView();
 				mat4 lightProj = m_dirLight.calcLightProj(x, y, z, numTexs);
 
@@ -169,7 +169,11 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 		}
 	}
 
-	m_shadowDag = CompressedShadow::combine(shadows);
+	if (shadows.size() == 1)
+		m_shadowDag = std::move(shadows[0]);
+	else
+		m_shadowDag = CompressedShadow::combine(shadows);
+
 	m_shadowDag->moveToGPU();
 
 	glDisable(GL_POLYGON_OFFSET_FILL);
