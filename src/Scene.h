@@ -6,6 +6,11 @@
 
 struct AABB {
 	vec3 min, max;
+
+	vec3 getCenter() const {
+		vec3 dist = max - min;
+		return min + (dist * 0.5f);
+	}
 };
 
 class Scene {

@@ -13,7 +13,6 @@ layout(binding=4) uniform sampler2D shadowMap;
 uniform mat4 lightViewProj;
 
 struct Light {
-	vec3 color;
 	vec3 direction;
 };
 
@@ -46,7 +45,7 @@ void main(void) {
 	vec4 diffuse_color = texture(diffuseBuffer, texcoord);
 	float diffuse = max(0.0, dot(N, L));
 
-	vec3 scatteredLight = ambient_color + light.color * diffuse;
+	vec3 scatteredLight = ambient_color + diffuse;
 
 	fragColor = vec4(vis * scatteredLight * diffuse_color.rgb, diffuse_color.a);
 }

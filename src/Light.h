@@ -9,32 +9,40 @@
  */
 class DirectionalLight {
 public:
-	DirectionalLight(vec3 col, vec3 dir)
-	   	: color(col), direction(dir) { }
-	~DirectionalLight() = default;
+	DirectionalLight(const vec3& direction, const AABB& bbox) : m_direction(direction) {
+		calcViewTransform(bbox);
+		calcProjection(bbox);
+		m_viewProj = m_proj * m_view;
+	}
 
-	mat4 calcLightView() const;
+	inline vec3 getDirection() const {
+		return m_direction;
+	}
 
-	mat4 calcLightProj() const;
+	inline mat4 getViewTransform() const {
+		return m_view;
+	}
 
-	/**
-	 * Calculates the light projection for the sub-frustum at (x, y, z)
-	 * with x, y, z in [0, resolution)
-	 */
-	mat4 calcLightProj(uint x, uint y, uint z, uint resolution) const;
+	inline mat4 getProjection() const {
+		return m_proj;
+	}
 
-	void updateLightViewProj();
+	inline mat4 getViewProj() const {
+		return m_viewProj;
+	}
+
+	mat4 getSubProjection(const AABB& bbox, uint x, uint y, uint z, uint resolution);
 
 private:
-	void getMinMaxValues(float* minX, float* minY, float* maxX, float* maxY, float* zfar) const;
+	void calcViewTransform(const AABB& bbox);
+	
+	void calcProjection(const AABB& bbox);
 
-public:
-	vec3 color;
-	vec3 direction;
-
-	AABB sceneBoundingBox;
-
-	mat4 lightViewProj;
+private:
+	const vec3 m_direction;
+	mat4 m_view;
+	mat4 m_proj;
+	mat4 m_viewProj;
 };
 
 #endif

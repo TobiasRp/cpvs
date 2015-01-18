@@ -92,8 +92,8 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
 	glDrawBuffer(GL_NONE);
 
-	mat4 lightView = m_dirLight.calcLightView();
-	mat4 lightProj = m_dirLight.calcLightProj();
+	mat4 lightView = m_dirLight.getViewTransform();
+	mat4 lightProj = m_dirLight.getProjection();
 
 	RenderProperties smProps(lightView, lightProj);
 	smProps.setShaderProgram(&m_create_sm);
@@ -122,7 +122,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 	//DEBUGGING ONLY
 	//maxSize = 2048;
-	maxSize = 4096;
+	//maxSize = 4096;
 	//maxSize = 8192;
 
 	if (size < maxSize) maxSize = size;
@@ -152,8 +152,8 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	for (uint z = 0; z < numTexs; ++z) {
 		for (uint y = 0; y < numTexs; ++y) {
 			for (uint x = 0; x < numTexs; ++x) {
-				mat4 lightView = m_dirLight.calcLightView();
-				mat4 lightProj = m_dirLight.calcLightProj(x, y, z, numTexs);
+				mat4 lightView = m_dirLight.getViewTransform();
+				mat4 lightProj = m_dirLight.getSubProjection(scene->getBoundingBox(), x, y, z, numTexs);
 
 				smProps.V = lightView;
 				smProps.P = lightProj;
@@ -251,20 +251,19 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 
 	m_shade.bind();
 
-	glUniform3fv(m_shade["light.color"], 1, glm::value_ptr(m_dirLight.color));
-	glUniform3fv(m_shade["light.direction"], 1, glm::value_ptr(m_dirLight.direction));
+	glUniform3fv(m_shade["light.direction"], 1, glm::value_ptr(m_dirLight.getDirection()));
 
 	m_gBuffer.bindTextures();
 
 	if (!m_useReferenceShadow) {
 		glUniform1i(m_shade["renderShadow"], 1);
 
-		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.lightViewProj, m_visibilities.get());
+		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.getViewProj(), m_visibilities.get());
 		m_shade.bind();
 		m_visibilities->bindAt(3);
 	} else {
 		glUniform1i(m_shade["renderShadow"], 0);
-		glUniformMatrix4fv(m_shade["lightViewProj"], 1, GL_FALSE, glm::value_ptr(m_dirLight.lightViewProj));
+		glUniformMatrix4fv(m_shade["lightViewProj"], 1, GL_FALSE, glm::value_ptr(m_dirLight.getViewProj()));
 
 		m_shadowMap->bindAt(4);
 	}
