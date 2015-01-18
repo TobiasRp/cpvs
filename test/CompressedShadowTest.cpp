@@ -139,10 +139,10 @@ TEST_F(CompressedShadowTest, testCombining8) {
 	shadows.reserve(8);
 
 	// Fill (0, 0, 0) with 1's
-	shadows.push_back(createShadow(getOnes8x8(), 8));
+	shadows.push_back(createShadow(getOnes(8), 8));
 
 	// Fill (1, 0, 0) with 0's
-	shadows.push_back(createShadow(getZeroes8x8(), 8));
+	shadows.push_back(createShadow(getZeroes(8), 8));
 
 	// And the rest with the default 8x8 test values, see TestImages.cpp
 	for (uint i = 2; i < 8; ++i) {
@@ -178,13 +178,22 @@ TEST_F(CompressedShadowTest, testCombining16) {
 	vector<unique_ptr<CompressedShadow>> shadows;
 	shadows.reserve(8);
 
-	for (uint i = 0; i < 8; ++i) {
+	// Fill (0, 0, 0) with 1's
+	shadows.push_back(createShadow(getOnes(16), 16));
+
+	// Fill (1, 0, 0) with 0's
+	shadows.push_back(createShadow(getZeroes(16), 16));
+
+	for (uint i = 2; i < 8; ++i) {
 		shadows.push_back(createShadow(getDepths16x16(), 16));
 	}
 	auto cs = CompressedShadow::combine(shadows);
 
-	auto vis = cs->traverse(vec3(1, -1, -0.5), true);
+	auto vis = cs->traverse(vec3(1, 1, -0.1), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = cs->traverse(vec3(1, -1, -0.1), true);
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
 
 	vis = cs->traverse(vec3(1, -1, 0.5), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);

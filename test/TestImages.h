@@ -2,17 +2,18 @@
 #define TEST_IMAGES_H
 #include "cpvs.h"
 
-// 8x8 
-extern std::vector<float> getDepths8x8();
+extern vector<float> getDepths8x8();
 
-extern std::vector<float> getOnes8x8();
+extern vector<float> getDepths16x16();
 
-extern std::vector<float> getZeroes8x8();
+extern vector<float> getDepths32x32();
 
-// 16x16
-extern std::vector<float> getDepths16x16();
+inline vector<float> getZeroes(uint dimension) {
+	return vector<float>(dimension * dimension, 0.0);
+}
 
-// 32x32
-extern std::vector<float> getDepths32x32();
+inline vector<float> getOnes(uint dimension) {
+	return vector<float>(dimension * dimension, 1.0);
+}
 
 #endif

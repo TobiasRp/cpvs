@@ -1,6 +1,6 @@
 #include "TestImages.h"
 
-std::vector<float> depths8x8{ 
+vector<float> depths8x8{ 
 				1, 1, 0, 0, 0.1, 0.0, 0.2, 1.0,
 				1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
 				1, 1, 0, 0, 0.1, 0.0, 0.2, 0.4,
@@ -10,7 +10,7 @@ std::vector<float> depths8x8{
 				0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4,
 				0, 0, 0, 0, 0.1, 0.2, 0.3, 0.4};
 
-std::vector<float> depths16x16 {
+vector<float> depths16x16 {
 	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
 	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
 	0.4, 0.3, 0.2, 0.4, 0.4, 0.3, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
@@ -30,7 +30,7 @@ std::vector<float> depths16x16 {
 };
 
 
-std::vector<float> depths32x32 {
+vector<float> depths32x32 {
 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -66,25 +66,15 @@ std::vector<float> depths32x32 {
 };
 
 
-std::vector<float> getDepths8x8() {
+vector<float> getDepths8x8() {
 	return depths8x8;
 }
 
-std::vector<float> getOnes8x8() {
-	vector<float> ones(64, 1.0);
-	return ones;
-}
-
-std::vector<float> getZeroes8x8() {
-	vector<float> zeroes(64, 0.0);
-	return zeroes;
-}
-
-std::vector<float> getDepths16x16() {
+vector<float> getDepths16x16() {
 	return depths16x16;
 }
 
-std::vector<float> getDepths32x32() {
+vector<float> getDepths32x32() {
 	return depths32x32;
 }
 
