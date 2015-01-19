@@ -116,13 +116,19 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
+vector<shared_ptr<Texture2D>> sms;
+
+void DeferredRenderer::renderDEBUG(uint x) {
+	renderDepthTexture(sms[x].get());
+}
+
 void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	GLint maxSize;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
 
 	//DEBUGGING ONLY
 	//maxSize = 2048;
-	//maxSize = 4096;
+	maxSize = 4096;
 	//maxSize = 8192;
 
 	if (size < maxSize) maxSize = size;
@@ -149,14 +155,12 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 	vector<unique_ptr<CompressedShadow>> shadows;
 
+	smProps.V = m_dirLight.getViewTransform();
+
 	for (uint z = 0; z < numTexs; ++z) {
 		for (uint y = 0; y < numTexs; ++y) {
 			for (uint x = 0; x < numTexs; ++x) {
-				mat4 lightView = m_dirLight.getViewTransform();
-				mat4 lightProj = m_dirLight.getSubProjection(scene->getBoundingBox(), x, y, z, numTexs);
-
-				smProps.V = lightView;
-				smProps.P = lightProj;
+				smProps.P = m_dirLight.getSubProjection(scene->getBoundingBox(), smProps.V, vec3(x, y, z), numTexs);
 
 				GL_CHECK_ERROR("DeferredRenderer::precomputeShadows - before rendering: ");
 
@@ -165,6 +169,9 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 				ShadowMap sm(shadowFbo.getDepthTexture());
 				shadows.emplace_back(std::move(CompressedShadow::create(&sm)));
+
+				ImageF img = sm.createImageF();
+				sms.push_back(make_shared<Texture2D>(img));
 			}
 		}
 	}

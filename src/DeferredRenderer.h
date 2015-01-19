@@ -31,6 +31,8 @@ public:
 
 	void renderDepthTexture(const Texture2D* tex);
 
+	void renderDEBUG(uint x);
+
 	void renderTexture(const Texture2D* tex);
 
 	inline DirectionalLight& getLight() {

@@ -23,6 +23,9 @@ public:
 		return m_view;
 	}
 
+	// UNUSED
+	mat4 getSubViewTransform(const AABB& bbox, const vec3 subPos, uint numSubDivisions);
+
 	inline mat4 getProjection() const {
 		return m_proj;
 	}
@@ -31,7 +34,7 @@ public:
 		return m_viewProj;
 	}
 
-	mat4 getSubProjection(const AABB& bbox, uint x, uint y, uint z, uint resolution);
+	mat4 getSubProjection(const AABB& bbox, const mat4& viewTransform, const vec3 subPos, uint numSubDivisions);
 
 private:
 	void calcViewTransform(const AABB& bbox);
