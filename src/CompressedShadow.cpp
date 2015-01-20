@@ -16,7 +16,7 @@ using namespace std;
 #include <iostream>
 
 // Enable/disable leafmasks. Also has to be modified in traversal.cs
-#define LEAFMASKS
+//#define LEAFMASKS
 
 /* Decides whether to use 64-bit leafmaks */
 bool useLeafmasks(uint numLevels) {
@@ -169,7 +169,7 @@ void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::cons
 }
 
 unique_ptr<CompressedShadow> CompressedShadow::combine(const vector<unique_ptr<CompressedShadow>>& shadows) {
-	assert(shadows.size() == 8 && "Children size > 8 not yet implemented");
+	assert(shadows.size() == 8);
 
 	const uint numLevels = shadows[0]->m_numLevels + 1;
 	auto combinedCS = new CompressedShadow(numLevels);

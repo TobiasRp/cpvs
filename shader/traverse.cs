@@ -59,11 +59,11 @@ float traverse(const vec3 projPos) {
 		uint maskedChildmask = childmask & (0xAAAA >> (16 - childIndex));
 		uint childOffset = bitCount(maskedChildmask);
 
-		if (level == 2) {
-			// Test visibility using the 64-bit leafmask, encoded as two 32-bit values
-			uint index = offset + childOffset * 2 + 1;
-			return testLeafmask(path, dag[index], dag[index + 1]);
-		}
+//		if (level == 2) {
+//			// Test visibility using the 64-bit leafmask, encoded as two 32-bit values
+//			uint index = offset + childOffset * 2 + 1;
+//			return testLeafmask(path, dag[index], dag[index + 1]);
+//		}
 
 		offset = dag[offset + 1 + childOffset];
 
