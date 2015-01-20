@@ -7,8 +7,14 @@
 using namespace std;
 using namespace cs;
 
+uint depthOffset = 1;
+
+void cs::setDepthOffset(uint off) {
+	depthOffset = off;
+}
+
 inline uint getLevelHeight(const MinMaxHierarchy& minMax, uint level) {
-	return minMax.getLevel(level)->getHeight();
+	return minMax.getLevel(level)->getHeight() * depthOffset;
 }
 
 uint cs::createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3& offset) {
@@ -49,7 +55,6 @@ uint cs::createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3&
 
 uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
 	const ivec3 offCorrected = offset * 2;
-
 	auto levelHeight = getLevelHeight(minMax, 0);
 
 	uint64 leafmask = 0;

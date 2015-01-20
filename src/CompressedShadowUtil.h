@@ -9,6 +9,8 @@ namespace cs {
 	constexpr uint NODE_SIZE = 9; // childmask + 8 pointers (unused pointers will be removed with 'compress')
 	constexpr uint LEAF_SIZE = 17; // childmask + 8 64-bit leafmask
 
+	extern void setDepthOffset(uint off);
+
 	/**
 	 * Calculates the childmask, i.e. the visibility for every child, for a node given by it's global offset and level.
 	 */

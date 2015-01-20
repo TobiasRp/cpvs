@@ -7,7 +7,8 @@
 using namespace std;
 
 DeferredRenderer::DeferredRenderer(const DirectionalLight& light, GLuint width, GLuint height) 
-	: m_fullscreenQuad(vec2(-1.0), vec2(1.0)), m_gBuffer(width, height, true), m_dirLight(light)
+	: m_fullscreenQuad(vec2(-1.0), vec2(1.0)), m_gBuffer(width, height, true), m_dirLight(light),
+	m_useReferenceShadow(false)
 {
 	loadShaders();
 	initFbos();
@@ -82,6 +83,20 @@ void DeferredRenderer::resize(GLuint width, GLuint height) {
 	m_visibilities->resize(width, height);
 }
 
+inline void setShadowMappingOpenGL() {
+	glClearDepth(1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1.1f, 4.0f);
+}
+
+inline void renderSceneForSM(const Scene* scene, RenderProperties& props) {
+	GL_CHECK_ERROR("DeferredRenderer::renderSceneForSM: ");
+	glClear(GL_DEPTH_BUFFER_BIT);
+	scene->render(props);
+}
+
 unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint size) {
 	assert(isPowerOfTwo(size));
 	glViewport(0, 0, size, size);
@@ -99,14 +114,9 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
-	glClearDepth(1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1.1f, 4.0f);
+	setShadowMappingOpenGL();
 
-	glClear(GL_DEPTH_BUFFER_BIT);
-	scene->render(smProps);
+	renderSceneForSM(scene, smProps);
 
 	glDisable(GL_POLYGON_OFFSET_FILL);
 
@@ -114,12 +124,6 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 
 	GL_CHECK_ERROR("DeferredRenderer::renderShadowMap - end: ");
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
-}
-
-vector<shared_ptr<Texture2D>> sms;
-
-void DeferredRenderer::renderDEBUG(uint x) {
-	renderDepthTexture(sms[x].get());
 }
 
 void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
@@ -144,45 +148,38 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	glDrawBuffer(GL_NONE);
 
 	RenderProperties smProps;
+	smProps.V = m_dirLight.getViewTransform();
 	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
-	glClearDepth(1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1.1f, 4.0f);
+	setShadowMappingOpenGL();
 
-	vector<unique_ptr<CompressedShadow>> shadows;
+	vector<unique_ptr<CompressedShadow>> shadows(8);
 
-	smProps.V = m_dirLight.getViewTransform();
+	if (numTexs == 1) {
+		smProps.P = m_dirLight.getProjection();
 
-	for (uint z = 0; z < numTexs; ++z) {
-		for (uint y = 0; y < numTexs; ++y) {
-			for (uint x = 0; x < numTexs; ++x) {
-				smProps.P = m_dirLight.getSubProjection(scene->getBoundingBox(), smProps.V, vec3(x, y, z), numTexs);
+		renderSceneForSM(scene, smProps);
+		ShadowMap sm(shadowFbo.getDepthTexture());
+		m_shadowDag = CompressedShadow::create(&sm);
+	} else {
+		//TODO more than 8 tiles
+		for (uint y = 0; y < 2; ++y) {
+			for (uint x = 0; x < 2; ++x) {
+				smProps.P = m_dirLight.getSubProjection(scene->getBoundingBox(), smProps.V, x, y, numTexs);
 
-				GL_CHECK_ERROR("DeferredRenderer::precomputeShadows - before rendering: ");
-
-				glClear(GL_DEPTH_BUFFER_BIT);
-				scene->render(smProps);
+				renderSceneForSM(scene, smProps);
 
 				ShadowMap sm(shadowFbo.getDepthTexture());
-				shadows.emplace_back(std::move(CompressedShadow::create(&sm)));
-
-				ImageF img = sm.createImageF();
-				sms.push_back(make_shared<Texture2D>(img));
+				shadows[2*y + x] = std::move(CompressedShadow::create(&sm, 0, 2));
+				shadows[4 + 2*y + x] = std::move(CompressedShadow::create(&sm, 1, 2));
+				//TODO parallize
 			}
 		}
+		m_shadowDag = CompressedShadow::combine(shadows);
 	}
 
-	if (shadows.size() == 1)
-		m_shadowDag = std::move(shadows[0]);
-	else
-		m_shadowDag = CompressedShadow::combine(shadows);
-
 	m_shadowDag->moveToGPU();
-
 	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	m_create_sm.release();

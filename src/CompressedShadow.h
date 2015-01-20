@@ -46,20 +46,18 @@ public:
 	 * This will first create a Sparse Voxel Octree (SVO) from the min-max hierarchy,
 	 * then merge common subtrees to create the final DAG.
 	 *
-	 * @see Section 6.1 
-	 *
-	 * @note Possible optimizations:
-	 * 		- Store top of the DAG in a grid structure
-	 * 		- Closed objects optimization
-	 * 		- Create DAG from SVO on the GPU (as outlined in Kaempte et al. 2013)
+	 * @param zTileIndex Index in [0, zTileNum) which specifies which z-tile to create.
+	 * @param zTileNum Number of total z-tiles.
 	 */
-	static unique_ptr<CompressedShadow> create(const MinMaxHierarchy& minMax);
+	static unique_ptr<CompressedShadow> create(const MinMaxHierarchy& minMax,
+			uint zTileIndex = 0, uint zTileNum = 1);
 
 	/**
 	 * Creates a CompressedShadow from a shadow map.
 	 * @note This will create a temporary min-max hierarchy.
 	 */
-	static unique_ptr<CompressedShadow> create(const ShadowMap* shadowMap);
+	static unique_ptr<CompressedShadow> create(const ShadowMap* shadowMap,
+			uint zTileIndex = 0, uint zTileNum = 1);
 
 	/**
 	 * Creates a new CompressedShadow by combining the given shadows.
@@ -151,7 +149,7 @@ private:
 	 * @see mergeSubtrees
 	 * @return Returns offsets to all levels for further processing.
 	 */
-	vector<uint> constructSvo(const MinMaxHierarchy& minMax);
+	vector<uint> constructSvo(const MinMaxHierarchy& minMax, const ivec3 rootOffset);
 
 	/**
 	 * Constructs the last 3 levels of the SVO using 64-bit leafmasks.

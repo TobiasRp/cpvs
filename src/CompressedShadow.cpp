@@ -72,19 +72,22 @@ void CompressedShadow::copyToGPU() {
 	m_deviceDag = make_unique<SSBO>(m_dag, GL_STATIC_READ);
 }
 
-unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax) {
+unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax,
+		uint zTileIndex, uint zTileNum) {
 	auto cs = unique_ptr<CompressedShadow>(new CompressedShadow(minMax.getNumLevels()));
 
-	auto levels = cs->constructSvo(minMax);
+	cs::setDepthOffset(zTileNum);
+	auto levels = cs->constructSvo(minMax, ivec3(0, 0, zTileIndex * 2));
 	cs->mergeCommonSubtrees(levels);
 	cs->compress();
 
 	return cs;
 }
 
-unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap* shadowMap) {
+unique_ptr<CompressedShadow> CompressedShadow::create(const ShadowMap* shadowMap, 
+		uint zTileIndex, uint zTileNum) {
 	MinMaxHierarchy minMax(shadowMap->createImageF());
-	return create(minMax);
+	return create(minMax, zTileIndex, zTileNum);
 }
 
 inline bool isLeafmaskLevel(int minLevel, int level) {
@@ -187,8 +190,7 @@ inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t chil
 	}
 }
 
-vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax) {
-	const ivec3 rootOffset(0, 0, 0);
+vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const ivec3 rootOffset) {
 	uint64 rootmask  = cs::createChildmask(minMax, m_numLevels - 2, rootOffset);
 	uint numChildren = cs::getNumChildren(rootmask);
  

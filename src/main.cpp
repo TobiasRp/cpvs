@@ -40,7 +40,6 @@ unique_ptr<DeferredRenderer> renderSystem;
 struct Settings {
 	bool renderShadowMap;
 	bool useReferenceShadows;
-	uint shadowMapId;
 };
 
 Settings uiSettings;
@@ -140,8 +139,6 @@ void initTweakBar() {
 	TwAddVarRW(twBar, "Render shadow map", TW_TYPE_BOOLCPP, &uiSettings.renderShadowMap, nullptr);
 
 	TwAddVarRW(twBar, "Reference shadow mapping", TW_TYPE_BOOLCPP, &uiSettings.useReferenceShadows, nullptr);
-
-	TwAddVarRW(twBar, "shadow map", TW_TYPE_UINT32, &uiSettings.shadowMapId, "min=0 max=7 step=1");
 }
 
 inline void printDurationToNow(high_resolution_clock::time_point start) {
@@ -213,8 +210,7 @@ int main(int argc, char **argv) {
 		renderSystem->useReferenceShadows(uiSettings.useReferenceShadows);
 
 		if (uiSettings.renderShadowMap)
-			//renderSystem->renderDepthTexture(refTex.get());
-			renderSystem->renderDEBUG(uiSettings.shadowMapId);
+			renderSystem->renderDepthTexture(refTex.get());
 		else
 			renderSystem->render(properties, scene.get());
 		
