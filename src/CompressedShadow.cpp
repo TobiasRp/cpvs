@@ -501,7 +501,7 @@ void CompressedShadow::compress() {
 }
 
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position, bool tryLeafmasks) {
-	const ivec3 path = getPathFromNDC(std::move(position), m_numLevels);
+	const ivec3 path = cs::getPathFromNDC(std::move(position), m_numLevels);
 
 	size_t offset = 0;
 	int level     = m_numLevels - 2;

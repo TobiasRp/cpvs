@@ -58,6 +58,25 @@ namespace cs {
 	}
 
 	/**
+	 * Given the number of levels in an octree, this calculates the resolution.
+	 */
+	inline size_t getResolution(size_t numLevels) {
+		return 1 << (numLevels - 1);
+	}
+
+	/**
+	 * Given a point in normalized device coordinates, this calculates 
+	 * the corresponding discrete coordinates within a 3-dimensional grid.
+	 */
+	inline ivec3 getPathFromNDC(vec3 ndc, size_t numLevels) {
+		int resolution = getResolution(numLevels) - 1;
+		ndc += vec3(1.0f, 1.0f, 1.0f);
+		ndc *= 0.5f;
+		return ivec3(ndc.x * resolution, ndc.y * resolution, ndc.z * resolution);
+	}
+
+
+	/**
 	 * Returns the number of partially visible children in a 16-bit childmask.
 	 */
 	inline uint getNumChildren(uint childmask) {

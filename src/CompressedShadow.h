@@ -4,10 +4,10 @@
 #include "cpvs.h"
 #include "Buffer.h"
 #include "ShaderProgram.h"
-#include "Texture.h"
 
 class MinMaxHierarchy;
 class ShadowMap;
+class Texture2D;
 
 /**
  * This central datastructure of the CPVS represents the DAG of voxels
@@ -27,9 +27,6 @@ public:
 	};
 
 private:
-	/**
-	 * Use the 'create' factory functions.
-	 */
 	CompressedShadow(uint numLevels);
 
 public:
@@ -61,6 +58,9 @@ public:
 
 	/**
 	 * Creates a new CompressedShadow by combining the given shadows.
+	 *
+	 * @note The order of the shadows is important with the first shadow being at the
+	 * bottom-left in the front and the last shadow at the top-right in the back.
 	 */
 	static unique_ptr<CompressedShadow> combine(const vector<unique_ptr<CompressedShadow>>& shadows);
 
@@ -111,33 +111,14 @@ private:
 	void initShader();
 
 	/**
-	 * Given the number of levels in the octree, this calculates the resolution.
-	 */
-	inline static size_t getResolution(size_t numLevels) {
-		return 1 << (numLevels - 1);
-	}
-
-	/**
-	 * Given a point in normalized device coordinates, this calculates 
-	 * the corresponding discrete coordinates within a 3-dimensional grid.
-	 */
-	inline static ivec3 getPathFromNDC(vec3 ndc, size_t numLevels) {
-		int resolution = getResolution(numLevels) - 1;
-		ndc += vec3(1.0f, 1.0f, 1.0f);
-		ndc *= 0.5f;
-		return ivec3(ndc.x * resolution, ndc.y * resolution, ndc.z * resolution);
-	}
-
-	/**
-	 * Constructs this shadows by combining 8 existing CompressedShadows.
+	 * Constructs a shadow by combining 8 existing CompressedShadows.
 	 * @param shadows Must be an iterator to at least 8 shadows.
-	 * shadows are combined elsewhere.
 	 */
 	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows);
 
 	/** (Helper function for combineShadows)
 	 * Copies the DAG from the given compressed shadow at the end of the specified target and
-	 * applies the offset.
+	 * applies the offset if necessary.
 	 */
 	void copyDagAndApplyOffset(const CompressedShadow *source, vector<uint>& target, uint offset);
 
@@ -146,7 +127,7 @@ private:
 	 * The resulting datastructure is not compressed, i.e. every node has 8 pointers even if they
 	 * are 0.
 	 * @see compress
-	 * @see mergeSubtrees
+	 * @see mergeCommonSubtrees
 	 * @return Returns offsets to all levels for further processing.
 	 */
 	vector<uint> constructSvo(const MinMaxHierarchy& minMax, const ivec3 rootOffset);
@@ -159,7 +140,7 @@ private:
 
 	/**
 	 * Merges common subtrees of an SVO to transform it into a directed acyclic graph (DAG).
-	 * @note Assumes an uncompressed SVO exists.
+	 * @note Assumes an uncompressed SVO.
 	 */
 	void mergeCommonSubtrees(const vector<uint>& levelOffsets);
 
@@ -181,7 +162,6 @@ private:
 	void compress();
 
 private:
-	/* Private class members */
 	uint m_numLevels;
 
 	vector<uint> m_dag;
