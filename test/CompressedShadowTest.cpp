@@ -125,6 +125,30 @@ TEST_F(CompressedShadowTest, testTraverse32x32) {
 	
 	auto vis = csPtr->traverse(vec3(1, 1, 0));
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = csPtr->traverse(vec3(-1.0 + 7 * step, 1.0 - 7 * step, 0.5));
+    ASSERT_EQ(CompressedShadow::VISIBLE, vis);	
+
+	vis = csPtr->traverse(vec3(-1.0 + 7 * step, 1.0 - 7 * step, 0.6));
+    ASSERT_EQ(CompressedShadow::SHADOW, vis);	
+	
+	vis = csPtr->traverse(vec3(-1.0 + 7 * step, -1.0 + 8 * step, 0.3));
+    ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	// Test some values below the minimum depth: must be visible everywhere
+	for (uint y = 0; y < 31; ++y) {
+		for (uint x = 0; x < 31; ++x) {
+			vis = csPtr->traverse(convertToNdc(vec3(x / 32.0f, y / 32.0f, 0.59f)));
+			ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+		}
+	}
+	// Test some values above the maximum depth: must be shadowed everywhere in the middle of the image
+	for (uint y = 8; y < 26; ++y) {
+		for (uint x = 7; x < 27; ++x) {
+			vis = csPtr->traverse(convertToNdc(vec3(x / 32.0f, y / 32.0f, 0.79f)));
+			ASSERT_EQ(CompressedShadow::SHADOW, vis);
+		}
+	}
 }
 
 unique_ptr<CompressedShadow> createShadow(const vector<float>& depths, uint size) {
