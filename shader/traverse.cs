@@ -2,6 +2,9 @@
 
 #define LOCAL_SIZE 32
 
+// If defined leafmasks are used. Also has to be modified in CompressedShadow.cpp
+#define LEAFMASKS
+
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
 
 uniform uint width;
@@ -28,13 +31,15 @@ ivec3 getPathFromNDC(vec3 ndc) {
 }
 
 float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
-	int index = (path.x & 0x3) + 4 * (path.y & 0x3) + 16 * (path.z & 0x3);
+	uint index = (path.x & 0x3) + 4 * (path.y & 0x3) + 16 * (path.z & 0x3);
 
-	if (index < 31) {
-		return float(lowerHalf & (1 << index));
+	uint vis;
+	if (index < 32) {
+		vis = lowerHalf & (1 << index);
 	} else {
-		return float(upperHalf & (1 << index));
+		vis = upperHalf & (1 << (index - 32));
 	}
+	return vis == 0 ? 0.0 : 1.0;
 }
 
 float traverse(const vec3 projPos) {
@@ -59,11 +64,13 @@ float traverse(const vec3 projPos) {
 		uint maskedChildmask = childmask & (0xAAAA >> (16 - childIndex));
 		uint childOffset = bitCount(maskedChildmask);
 
-//		if (level == 2) {
-//			// Test visibility using the 64-bit leafmask, encoded as two 32-bit values
-//			uint index = offset + childOffset * 2 + 1;
-//			return testLeafmask(path, dag[index], dag[index + 1]);
-//		}
+#ifdef LEAFMASKS
+		if (level == 2) {
+			// Test visibility using the 64-bit leafmask, encoded as two 32-bit values
+			uint index = offset + childOffset * 2 + 1;
+			return testLeafmask(path, dag[index], dag[index + 1]);
+		}
+#endif
 
 		offset = dag[offset + 1 + childOffset];
 

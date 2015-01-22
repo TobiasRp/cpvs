@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <future>
+#include <limits>
 using namespace cs;
 using namespace std;
 
@@ -16,12 +17,12 @@ using namespace std;
 #include <iostream>
 
 // Enable/disable leafmasks. Also has to be modified in traversal.cs
-//#define LEAFMASKS
+#define LEAFMASKS
 
 /* Decides whether to use 64-bit leafmaks */
-bool useLeafmasks(uint numLevels) {
+inline bool useLeafmasks(uint numLevels) {
 #ifdef LEAFMASKS
-	// Use leafmasks except when there arent't enough levels
+	// Use leafmasks except when there aren't enough levels
 	return (numLevels - 3) >= 2;
 #else
 	return false;
@@ -185,13 +186,15 @@ unique_ptr<CompressedShadow> CompressedShadow::combine(const vector<unique_ptr<C
  */
 inline void setChildrenOffsets(vector<uint>& dag, size_t nodeOffset, size_t childrenOffset, uint numChildren,
 		uint nodeSize) {
+	assert(childrenOffset + numChildren * nodeSize < std::numeric_limits<uint>::max());
+
 	for (uint i = 0; i < numChildren; ++i) {
 		dag[nodeOffset + 1 + i] = childrenOffset + i * nodeSize;
 	}
 }
 
 vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const ivec3 rootOffset) {
-	uint64 rootmask  = cs::createChildmask(minMax, m_numLevels - 2, rootOffset);
+	uint rootmask  = cs::createChildmask(minMax, m_numLevels - 2, rootOffset);
 	uint numChildren = cs::getNumChildren(rootmask);
  
 	// Resize so root and children fit in
@@ -209,14 +212,14 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const
 	levelOffsets[m_numLevels - 2] = 0;
 
 	int level = m_numLevels - 3;
-	int lastLevel = useLeafmasks(m_numLevels) ? 3 : 0; // if leafmask are used lastLevel is 3
+	int lastLevel = useLeafmasks(m_numLevels) ? 3 : 0; // for leafmasks stop at level 3 and do level 2 seperately
 
 	/* Create new levels from the highest to the lowest level */
 	while(level >= lastLevel && numLevelNodes > 0) {
 		levelOffsets[level] = levelOffset;
 
-		/* We now that the current node is of size NODE_SIZE, but the children could be leaves.
-		 * So always use this if the size of a child node is needed. */
+		/* We know that the current node are of size NODE_SIZE, but the children could be leafs.
+		 * So always use childNodeSize if the size of a child node is needed. */
 		const uint childNodeSize = getNodeSize(m_numLevels, level - 1);
 
 		// Offset to the beginning of the next level
@@ -230,7 +233,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const
 		 * Thereby set and save all masks so we don't have to calculate them twice */
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
 			size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
-			uint64 nodemask   = cs::createChildmask(minMax, level, childCoords[nodeNr]);
+			uint nodemask     = cs::createChildmask(minMax, level, childCoords[nodeNr]);
 			numChildren       = cs::getNumChildren(nodemask);
 
 			m_dag[nodeOffset] = nodemask;
@@ -242,7 +245,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const
 
 		for (size_t nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
 			size_t nodeOffset = levelOffset + nodeNr * NODE_SIZE;
-			uint64 nodemask   = m_dag[nodeOffset];
+			uint nodemask     = m_dag[nodeOffset];
 			numChildren       = cs::getNumChildren(nodemask);
 
 			if (numChildren > 0) {
@@ -264,8 +267,10 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const
 		level--;
 	}
 
-	/* Construct leave nodes if not done already */
+	/* Construct leaf nodes separately if leafmasks are used */
 	if (useLeafmasks(m_numLevels)) {
+		assert(level == 2);
+
 		levelOffsets[level]     = levelOffset;
 		levelOffsets[level - 1] = m_dag.size();
 
@@ -276,11 +281,11 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const
 
 void CompressedShadow::constructLastLevels(const MinMaxHierarchy& minMax, size_t levelOffset, size_t numNodes,
 		const vector<ivec3>& childCoords) {
-	const uint level = 2;
+	constexpr uint level = 2;
 
 	for (size_t nodeNr = 0; nodeNr < numNodes; ++nodeNr) {
-		size_t nodeOffset = levelOffset + nodeNr * LEAF_SIZE;
-		uint64 nodemask   = cs::createChildmask(minMax, level, childCoords[nodeNr]);
+		const size_t nodeOffset = levelOffset + nodeNr * LEAF_SIZE;
+		const uint nodemask = cs::createChildmask(minMax, level, childCoords[nodeNr]);
 		m_dag[nodeOffset] = nodemask;
 
 		size_t numChildren = cs::getNumChildren(nodemask);
@@ -537,7 +542,7 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position,
 
 				int maskIndex = maskedX + 4 * maskedY + 16 * maskedZ;
 				uint vis = 0;
-				if (maskIndex < 31) {
+				if (maskIndex < 32) {
 					uint leafmask1 = m_dag[index];
 					vis = leafmask1 & (1 << maskIndex);
 				} else {

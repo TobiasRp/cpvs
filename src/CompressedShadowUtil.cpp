@@ -7,7 +7,7 @@
 using namespace std;
 using namespace cs;
 
-uint depthOffset = 1;
+static uint depthOffset = 1;
 
 void cs::setDepthOffset(uint off) {
 	depthOffset = off;
@@ -25,7 +25,7 @@ uint cs::createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3&
 		for (uint y = 0; y < 2; ++y) {
 			for (uint x = 0; x < 2; ++x) {
 				uint offZ = z + offset.z;
-				uint offY = offset.y + y;
+				uint offY = y + offset.y;
 				uint offX = x + offset.x;
 
 				auto min = minMax.getMin(level, offX, offY);
@@ -63,12 +63,12 @@ uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
 		for (uint y = 0; y < 4; ++y) {
 			for (uint x = 0; x < 4; ++x) {
 				float offX = offCorrected.x + x;
-				float offY = offset.y + y;
+				float offY = offCorrected.y + y;
 				float offZ = offCorrected.z + z;
 
 				auto min = minMax.getMin(0, offX, offY);
-				uint64 bits = absoluteVisible(offZ, offZ + 1, min * levelHeight);
-				leafmask |= bits << (index);
+				uint64 bit = absoluteVisible(offZ, offZ + 1, min * levelHeight);
+				leafmask |= bit << index;
 
 				++index;
 			}
