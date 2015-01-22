@@ -174,7 +174,7 @@ TEST_F(CompressedShadowTest, testCombining8) {
 		shadows.push_back(CompressedShadow::create(mm));
 	}
 
-	auto combinedCS = CompressedShadow::combine(shadows);
+	auto combinedCS = CompressedShadow::combine(shadows.begin());
 
 	// Test (0, 0, 0) - should be visible everywhere
 	auto vis = combinedCS->traverse(vec3(-1, -1, -0.1), false);
@@ -211,7 +211,7 @@ TEST_F(CompressedShadowTest, testCombining16) {
 	for (uint i = 2; i < 8; ++i) {
 		shadows.push_back(createShadow(getDepths16x16(), 16));
 	}
-	auto cs = CompressedShadow::combine(shadows);
+	auto cs = CompressedShadow::combine(shadows.begin());
 
 	auto vis = cs->traverse(vec3(1, 1, -0.1), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
@@ -230,7 +230,7 @@ TEST_F(CompressedShadowTest, testCombining32) {
 	for (uint i = 0; i < 8; ++i) {
 		shadows.push_back(createShadow(getDepths32x32(), 32));
 	}
-	auto cs = CompressedShadow::combine(shadows);
+	auto cs = CompressedShadow::combine(shadows.begin());
 
 	auto vis = cs->traverse(vec3(1, -1, -0.5), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);

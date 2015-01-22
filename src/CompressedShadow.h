@@ -62,7 +62,7 @@ public:
 	 * @note The order of the shadows is important with the first shadow being at the
 	 * bottom-left in the front and the last shadow at the top-right in the back.
 	 */
-	static unique_ptr<CompressedShadow> combine(const vector<unique_ptr<CompressedShadow>>& shadows);
+	static unique_ptr<CompressedShadow> combine(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt);
 
 	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position
@@ -114,7 +114,7 @@ private:
 	 * Constructs a shadow by combining 8 existing CompressedShadows.
 	 * @param shadows Must be an iterator to at least 8 shadows.
 	 */
-	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadows);
+	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt);
 
 	/** (Helper function for combineShadows)
 	 * Copies the DAG from the given compressed shadow at the end of the specified target and

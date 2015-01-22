@@ -1,5 +1,4 @@
 #include "DeferredRenderer.h"
-
 #include "Scene.h"
 
 #include <glm/ext.hpp>
@@ -126,6 +125,24 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
+unique_ptr<CompressedShadow> renderWithTiles(const Scene* scene, RenderProperties& props,
+		const DirectionalLight& light, Fbo& shadowFbo, uint numTiles) {
+	vector<unique_ptr<CompressedShadow>> shadows(numTiles * numTiles * numTiles);
+
+	for (uint y = 0; y < numTiles; ++y) {
+		for (uint x = 0; x < numTiles; ++x) {
+			props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numTiles);
+
+			renderSceneForSM(scene, props);
+
+			ShadowMap sm(shadowFbo.getDepthTexture());
+			shadows[2*y + x] = std::move(CompressedShadow::create(&sm, 0, numTiles));
+			shadows[4 + 2*y + x] = std::move(CompressedShadow::create(&sm, 1, numTiles));
+		}
+	}
+	return CompressedShadow::combine(shadows.begin());
+}
+
 void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	GLint maxSize;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
@@ -137,15 +154,9 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 	if (size < maxSize) maxSize = size;
 
-	uint numTexs = size / maxSize;
+	const uint numTiles = size / maxSize;
 
 	glViewport(0, 0, maxSize, maxSize);
-
-	/* Init Fbo to render shadow map into */
-	Fbo shadowFbo(maxSize, maxSize, false);
-	shadowFbo.bind();
-	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
-	glDrawBuffer(GL_NONE);
 
 	RenderProperties smProps;
 	smProps.V = m_dirLight.getViewTransform();
@@ -154,29 +165,20 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 	setShadowMappingOpenGL();
 
-	vector<unique_ptr<CompressedShadow>> shadows(8);
+	// create FBO with fp depth
+	Fbo shadowFbo(maxSize, maxSize, false);
+	shadowFbo.bind();
+	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
+	glDrawBuffer(GL_NONE);
 
-	if (numTexs == 1) {
+	if (numTiles == 1) {
 		smProps.P = m_dirLight.getProjection();
 
 		renderSceneForSM(scene, smProps);
 		ShadowMap sm(shadowFbo.getDepthTexture());
 		m_shadowDag = CompressedShadow::create(&sm);
 	} else {
-		//TODO more than 8 tiles
-		for (uint y = 0; y < 2; ++y) {
-			for (uint x = 0; x < 2; ++x) {
-				smProps.P = m_dirLight.getSubProjection(scene->getBoundingBox(), smProps.V, x, y, numTexs);
-
-				renderSceneForSM(scene, smProps);
-
-				ShadowMap sm(shadowFbo.getDepthTexture());
-				shadows[2*y + x] = std::move(CompressedShadow::create(&sm, 0, 2));
-				shadows[4 + 2*y + x] = std::move(CompressedShadow::create(&sm, 1, 2));
-				//TODO parallize
-			}
-		}
-		m_shadowDag = CompressedShadow::combine(shadows);
+		m_shadowDag = renderWithTiles(scene, smProps, m_dirLight, shadowFbo, numTiles);
 	}
 
 	m_shadowDag->moveToGPU();

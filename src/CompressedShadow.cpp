@@ -169,13 +169,11 @@ void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::cons
 	}
 }
 
-unique_ptr<CompressedShadow> CompressedShadow::combine(const vector<unique_ptr<CompressedShadow>>& shadows) {
-	assert(shadows.size() == 8);
-
-	const uint numLevels = shadows[0]->m_numLevels + 1;
+unique_ptr<CompressedShadow> CompressedShadow::combine(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt) {
+	const uint numLevels = (*shadowIt)->m_numLevels + 1;
 	auto combinedCS = new CompressedShadow(numLevels);
 
-	combinedCS->combineShadows(shadows.begin());
+	combinedCS->combineShadows(shadowIt);
 
 	return unique_ptr<CompressedShadow>(combinedCS);
 }

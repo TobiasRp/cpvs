@@ -31,7 +31,7 @@ public:
 		return m_viewProj;
 	}
 
-	mat4 getSubProjection(const AABB& bbox, const mat4& viewTransform, uint x, uint y, uint numSubDivisions);
+	mat4 getSubProjection(const AABB& bbox, uint x, uint y, uint numSubDivisions) const;
 
 private:
 	void calcViewTransform(const AABB& bbox);
