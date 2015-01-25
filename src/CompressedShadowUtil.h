@@ -24,7 +24,7 @@ namespace cs {
 	/**
 	 * Combines 8 childmasks and creates a new (root) mask.
 	 */
-	extern uint createRootmask(const array<uint, 8>& childmasks);
+	extern uint createRootmask(const uint* childmasks);
 
 	/**
 	 * Given the parents childmask and coordinates, this returns the coordinates of all partially visible children.
@@ -48,10 +48,13 @@ namespace cs {
 
 	/**
 	 * Compares a min/max z value and a depth value and returns either visible or shadow, but not partial.
+	 * This is achieved by comparing the depth with the mid point of the given minZ and maxZ.
+	 *
 	 * @note Use this function for level 0.
 	 */
 	inline CompressedShadow::NodeVisibility absoluteVisible(float minZ, float maxZ, float depth) {
-		if (maxZ <= depth)
+		const float midZ = (minZ + maxZ) * 0.5f;
+		if (midZ <= depth)
 			return CompressedShadow::VISIBLE;
 		else
 			return CompressedShadow::SHADOW;
@@ -75,7 +78,6 @@ namespace cs {
 		return ivec3(ndc.x * resolution, ndc.y * resolution, ndc.z * resolution);
 	}
 
-
 	/**
 	 * Returns the number of partially visible children in a 16-bit childmask.
 	 */
@@ -90,16 +92,23 @@ namespace cs {
 	 * Returns true if the child is partially visible.
 	 * \param childIndex The number of the child, i.e. in the range [0-7]
 	 */
-	inline bool isPartial(uint64 childmask, uint childIndex) {
+	inline bool isPartial(uint childmask, uint childIndex) {
 		uint64 mask = 1 << (childIndex * 2 + 1);
 		return mask & childmask;
+	}
+
+	/**
+	 * Returns true if the given nodemask has at least one partial child
+	 */
+	inline bool hasPartialChildren(uint childmask) {
+		return getNumChildren(childmask) != 0;
 	}
 
 	/**
 	 * Returns true if the child is fully visible.
 	 * \param childIndex The number of the child, i.e. in the range [0-7]
 	 */
-	inline bool isVisible(uint64 childmask, uint childIndex) {
+	inline bool isVisible(uint childmask, uint childIndex) {
 		uint64 mask = 1 << (childIndex * 2);
 		return mask & childmask;
 	}
@@ -108,7 +117,7 @@ namespace cs {
 	 * Returns true if the child is fully in shadow.
 	 * \param childIndex The number of the child, i.e. in the range [0-7]
 	 */
-	inline bool isShadowed(uint64 childmask, uint childIndex) {
+	inline bool isShadowed(uint childmask, uint childIndex) {
 		return !isVisible(childmask, childIndex) && !isPartial(childmask, childIndex);
 	}
 
@@ -127,9 +136,9 @@ namespace cs {
 
 	/**
 	 * Merges all identical subtrees in one level and writes them to ItNew.
-	 * @result Maps the old offsets to the nodes to the new ones, so the parents can be updated.
+	 * @return Maps the old offsets to the nodes to the new offsets, so the parents can be updated.
 	 *
-	 * @note The mapping is in the range [0, number of nodes * NODE_SIZE); you may need
+	 * @note The resulting mapping is in the range [0, number of nodes * NODE_SIZE); you may need
 	 * to add the level offset.
 	 */
 	template<typename ItOld, typename ItNew>

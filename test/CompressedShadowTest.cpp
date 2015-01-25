@@ -158,7 +158,7 @@ unique_ptr<CompressedShadow> createShadow(const vector<float>& depths, uint size
 	return CompressedShadow::create(mm);
 }
 
-TEST_F(CompressedShadowTest, testCombining8) {
+TEST_F(CompressedShadowTest, testCombining8x8) {
 	vector<unique_ptr<CompressedShadow>> shadows;
 	shadows.reserve(8);
 
@@ -174,7 +174,7 @@ TEST_F(CompressedShadowTest, testCombining8) {
 		shadows.push_back(CompressedShadow::create(mm));
 	}
 
-	auto combinedCS = CompressedShadow::combine(shadows.begin());
+	auto combinedCS = CompressedShadow::combine(shadows);
 
 	// Test (0, 0, 0) - should be visible everywhere
 	auto vis = combinedCS->traverse(vec3(-1, -1, -0.1), false);
@@ -198,7 +198,7 @@ TEST_F(CompressedShadowTest, testCombining8) {
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 }
 
-TEST_F(CompressedShadowTest, testCombining16) {
+TEST_F(CompressedShadowTest, testCombining16x16) {
 	vector<unique_ptr<CompressedShadow>> shadows;
 	shadows.reserve(8);
 
@@ -211,9 +211,9 @@ TEST_F(CompressedShadowTest, testCombining16) {
 	for (uint i = 2; i < 8; ++i) {
 		shadows.push_back(createShadow(getDepths16x16(), 16));
 	}
-	auto cs = CompressedShadow::combine(shadows.begin());
+	auto cs = CompressedShadow::combine(shadows);
 
-	auto vis = cs->traverse(vec3(1, 1, -0.1), true);
+	auto vis = cs->traverse(vec3(1, 1, -1), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
 	vis = cs->traverse(vec3(1, -1, -0.1), true);
@@ -223,18 +223,47 @@ TEST_F(CompressedShadowTest, testCombining16) {
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 }
 
-TEST_F(CompressedShadowTest, testCombining32) {
+TEST_F(CompressedShadowTest, testCombining32x32) {
 	vector<unique_ptr<CompressedShadow>> shadows;
 	shadows.reserve(8);
 
 	for (uint i = 0; i < 8; ++i) {
 		shadows.push_back(createShadow(getDepths32x32(), 32));
 	}
-	auto cs = CompressedShadow::combine(shadows.begin());
+	auto cs = CompressedShadow::combine(shadows);
 
 	auto vis = cs->traverse(vec3(1, -1, -0.5), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
 
 	vis = cs->traverse(vec3(1, -1, 0.5), true);
 	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+}
+
+TEST_F(CompressedShadowTest, testCombine64) {
+	vector<unique_ptr<CompressedShadow>> shadows;
+	shadows.reserve(64);
+
+	for (uint i = 0; i < 16; ++i) {
+		shadows.push_back(createShadow(getZeroes(16), 16));
+	}
+
+	for (uint i = 16; i < 48; ++i) {
+		shadows.push_back(createShadow(getDepths16x16(), 16));
+	}
+
+	for (uint i = 48; i < 64; ++i) {
+		shadows.push_back(createShadow(getOnes(16), 16));
+	}
+
+	auto cs = CompressedShadow::combine(shadows);
+
+	auto vis = cs->traverse(vec3(-1, -1, -0.7));
+	ASSERT_EQ(CompressedShadow::SHADOW, vis);
+
+	vis = cs->traverse(vec3(-1, 1, 0.9));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
+	vis = cs->traverse(vec3(-1, 1, -0.9));
+	ASSERT_EQ(CompressedShadow::VISIBLE, vis);
+
 }

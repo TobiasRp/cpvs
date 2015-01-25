@@ -51,20 +51,21 @@ CompressedShadow::CompressedShadow(uint numLevels)
 
 // Is called when the DAG is copied to the GPU
 void CompressedShadow::initShader() {
+	m_traverseCS = make_unique<ShaderProgram>();
 	try {
-		m_traverseCS.addShaderFromFile(GL_COMPUTE_SHADER, "../shader/traverse.cs");
-		m_traverseCS.link();
+		m_traverseCS->addShaderFromFile(GL_COMPUTE_SHADER, "../shader/traverse.cs");
+		m_traverseCS->link();
 	} catch(ShaderException& exc) {
 		cout << exc.where() << " - " << exc.what() << endl;
 		std::terminate();
 	}
 
-	m_traverseCS.addUniform("lightViewProj");
-	m_traverseCS.addUniform("width");
-	m_traverseCS.addUniform("height");
-	m_traverseCS.addUniform("num_levels");
-	m_traverseCS.bind();
-	glUniform1i(m_traverseCS["num_levels"], m_numLevels);
+	m_traverseCS->addUniform("lightViewProj");
+	m_traverseCS->addUniform("width");
+	m_traverseCS->addUniform("height");
+	m_traverseCS->addUniform("num_levels");
+	m_traverseCS->bind();
+	glUniform1i((*m_traverseCS)["num_levels"], m_numLevels);
 }
 
 void CompressedShadow::copyToGPU() {
@@ -109,21 +110,23 @@ void CompressedShadow::copyDagAndApplyOffset(const CompressedShadow* source, vec
 		for (uint nodeNr = 0; nodeNr < numLevelNodes; ++nodeNr) {
 			uint nodemask = *sourceIt;
 			uint numChildren = cs::getNumChildren(nodemask);
+
 			target.push_back(nodemask);
 			++sourceIt;
 
-			// If we're on the last level were leafmasks are stored, there are 2x 32bit values stores.
+			// If we're on the last level where leafmasks are stored, there are 2x 32bit per child stored.
 			if (isLeafmaskLevel(minLevel, level))
 				numChildren *= 2;
+
+			// Do not apply an offset to a leafmask! Therefore correctedOffset is either 0 or offset
+			uint correctedOffset = 0;
+			if (!isLeafmaskLevel(minLevel, level))
+				correctedOffset = offset;
 
 			for (uint childNr = 0; childNr < numChildren; ++childNr) {
 				assert(sourceIt != source->m_dag.end());
 
-				// Do not apply an offset to a leafmask!
-				if (isLeafmaskLevel(minLevel, level))
-					target.push_back(*sourceIt);
-				else
-					target.push_back(*sourceIt + offset);
+				target.push_back(*sourceIt + correctedOffset);
 
 				childrenNodesIndices.emplace(*sourceIt);
 				++sourceIt;
@@ -137,43 +140,133 @@ void CompressedShadow::copyDagAndApplyOffset(const CompressedShadow* source, vec
 	assert(sourceIt == source->m_dag.end());
 }
 
-void CompressedShadow::combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt) {
-	auto sPos = shadowIt;
+vector<uint> CompressedShadow::combineRootmasks(const CsContainer& shadows) {
+	auto sPos = shadows.begin();
+	uint level = shadows.size() / 8;
 
-	array<uint, 8> childmasks;
-	for (uint child = 0; child < 8; ++child) {
-		childmasks[child] = (*sPos)->m_dag[0];
-		++sPos;
+	vector<uint> nodemasks;
+	nodemasks.reserve(level); // We have at least level elements, possibly more
+
+	for (uint i = 0; i < level; ++i) {
+		array<uint, 8> childmasks;
+		for (uint child = 0; child < 8; ++child) {
+			childmasks[child] = (*sPos)->m_dag[0];
+			++sPos;
+		}
+		nodemasks.push_back(cs::createRootmask(childmasks.data()));
 	}
-	uint rootmask = cs::createRootmask(childmasks);
-	uint numChildren = cs::getNumChildren(rootmask);
 
-	size_t currentOffset = 1 + numChildren;
-	m_dag.resize(m_dag.size() + currentOffset);
-
-	m_dag[0] = rootmask;
-	uint partialChildNr = 0;
-	sPos = shadowIt;
-
-	for (uint child = 0; child < 8; ++child, ++sPos) {
-		if (isPartial(rootmask, child)) {
-			// Set child offset and insert the child at currentOffset
-			m_dag[1 + partialChildNr] = currentOffset; 
-
-			copyDagAndApplyOffset(sPos->get(), m_dag, currentOffset);
-
-			size_t childDagSize = (*sPos)->m_dag.size();
-			currentOffset += childDagSize;
-			++partialChildNr;
+	while(level > 1) {
+		level /= 8;
+		for (uint i = 0; i < level; ++i) {
+			nodemasks.push_back(cs::createRootmask(&nodemasks[i * 8]));
 		}
 	}
+	return nodemasks;
 }
 
-unique_ptr<CompressedShadow> CompressedShadow::combine(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt) {
-	const uint numLevels = (*shadowIt)->m_numLevels + 1;
+/* (Helper function for combineShadows)
+ * Tries to save the current level if it is the second or last level.
+ */
+inline void tryToSaveOffsets(uint newLevels, uint level, uint offset, uint* secondLast, uint* last) {
+	if (level == newLevels - 2)
+		*secondLast = offset;
+	else if (level == newLevels - 1)
+		*last = offset;
+}
+
+/* (Helper function for combineShadows)
+ * Insert the offsets to the child nodes into the dag with respect to a given nodemask.
+ *
+ * @return the new progress into the next level, i.e. nextLevelProgress + progress made
+ */
+inline uint insertChildOffsets(vector<uint>& dag, uint mask, uint nextLevelOffset, uint nextLevelProgress) {
+	uint progress = nextLevelProgress;
+	uint numChildren = cs::getNumChildren(mask);
+
+	// Put the child offset at the beginning
+	for (uint childNr = 0; childNr < numChildren; ++childNr) {
+		dag.push_back(nextLevelOffset + progress);
+		progress += NODE_SIZE;
+	}
+	// Fill the rest with 0's
+	for (uint childNr = numChildren; childNr < 8; ++childNr)
+		dag.push_back(0);
+
+	return progress;
+}
+
+void CompressedShadow::insertShadowsInLevel(const CsContainer& shadows, vector<uint>& dag, vector<uint>& masks,
+		uint levelBegin, uint levelEnd) {
+	uint numMasks = shadows.size() / 8;
+
+	uint currentOffset = levelBegin;
+	uint nextLevelOffset = levelEnd;
+	uint nextLevelProgress = 0;
+	auto sPos = shadows.begin();
+
+	for (uint maskNr = 0; maskNr < numMasks; ++maskNr) {
+		uint mask = masks[maskNr];
+
+		for (uint childNr = 0; childNr < 8; ++childNr) {
+			if (isPartial(mask, childNr)) {
+				uint subDagPosition = nextLevelOffset + nextLevelProgress;
+				dag[currentOffset + 1 + childNr] =  subDagPosition;
+
+				copyDagAndApplyOffset(sPos->get(), dag, subDagPosition);
+
+				size_t subDagSize = (*sPos)->m_dag.size();
+				nextLevelProgress += subDagSize;
+			}
+			++sPos;
+		}
+		if (hasPartialChildren(mask))
+			currentOffset += NODE_SIZE;
+	}
+	assert(sPos == shadows.end());
+}
+
+void CompressedShadow::combineShadows(const CsContainer& shadows, uint newLevels) {
+	vector<uint> rootmasks = combineRootmasks(shadows);
+
+	uint beforeLastLevel = 0;
+	uint lastLevel = 0;
+
+	uint nextLevelOffset = NODE_SIZE;
+	uint maskPos = rootmasks.size() - 1;
+
+	for (uint level = 0; level < newLevels; ++level) {
+		uint numMasks = pow(8, level);
+		uint nextLevelProgress = 0;
+
+		tryToSaveOffsets(newLevels, level, nextLevelOffset, &beforeLastLevel, &lastLevel);
+
+		for (uint maskNr = 0; maskNr < numMasks; ++maskNr) {
+			uint mask = rootmasks[maskPos + maskNr];
+			if (!hasPartialChildren(mask))
+				continue;
+
+			m_dag.push_back(mask);
+
+			nextLevelProgress = insertChildOffsets(m_dag, mask, nextLevelOffset, nextLevelProgress);
+		}
+		nextLevelOffset += nextLevelProgress;
+		maskPos -= pow(8, level + 1);
+	}
+
+	//TODO compress newLevels of m_dag
+
+	insertShadowsInLevel(shadows, m_dag, rootmasks, beforeLastLevel, lastLevel);
+}
+
+unique_ptr<CompressedShadow> CompressedShadow::combine(const CsContainer& shadows) {
+	assert(shadows.size() % 8 == 0);
+
+	const uint newLevels = log8(shadows.size());
+	const uint numLevels = shadows[0]->m_numLevels + newLevels;
 	auto combinedCS = new CompressedShadow(numLevels);
 
-	combinedCS->combineShadows(shadowIt);
+	combinedCS->combineShadows(shadows, newLevels);
 
 	return unique_ptr<CompressedShadow>(combinedCS);
 }
@@ -266,9 +359,7 @@ vector<uint> CompressedShadow::constructSvo(const MinMaxHierarchy& minMax, const
 	}
 
 	/* Construct leaf nodes separately if leafmasks are used */
-	if (useLeafmasks(m_numLevels)) {
-		assert(level == 2);
-
+	if (useLeafmasks(m_numLevels) && level == 2) {
 		levelOffsets[level]     = levelOffset;
 		levelOffsets[level - 1] = m_dag.size();
 
@@ -562,7 +653,8 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position,
 void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightViewProj,
 		Texture2D* visibilities) {
 	GL_CHECK_ERROR("traverse - begin");
-	m_traverseCS.bind();
+	assert(m_traverseCS != nullptr);
+	m_traverseCS->bind();
 
 	// Bind WS positions
 	positionsWS->bindImageAt(0, GL_READ_ONLY);
@@ -573,13 +665,13 @@ void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightVi
 	// Bind dag
 	m_deviceDag->bindAt(2);
 
-	glUniformMatrix4fv(m_traverseCS["lightViewProj"], 1, GL_FALSE, glm::value_ptr(lightViewProj));
+	glUniformMatrix4fv((*m_traverseCS)["lightViewProj"], 1, GL_FALSE, glm::value_ptr(lightViewProj));
 
 	// Set width and height
 	const GLuint width = positionsWS->getWidth();
 	const GLuint height = positionsWS->getHeight();
-	glUniform1ui(m_traverseCS["width"], width);
-	glUniform1ui(m_traverseCS["height"], height);
+	glUniform1ui((*m_traverseCS)["width"], width);
+	glUniform1ui((*m_traverseCS)["height"], height);
 
 	// Now calculate work group size and dispatch!
 	const GLuint localSize = 32;
@@ -587,6 +679,6 @@ void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightVi
 	const GLuint numGroupsY = ceil(height / static_cast<float>(localSize));
 	glDispatchCompute(numGroupsX, numGroupsY, 1);
 
-	m_traverseCS.release();
+	m_traverseCS->release();
 	GL_CHECK_ERROR("traverse - end");
 }

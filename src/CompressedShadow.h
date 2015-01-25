@@ -9,6 +9,9 @@ class MinMaxHierarchy;
 class ShadowMap;
 class Texture2D;
 
+class CompressedShadow;
+using CsContainer = vector<unique_ptr<CompressedShadow>>;
+
 /**
  * This central datastructure of the CPVS represents the DAG of voxels
  * which is a compressed shadow of a light.
@@ -60,9 +63,10 @@ public:
 	 * Creates a new CompressedShadow by combining the given shadows.
 	 *
 	 * @note The order of the shadows is important with the first shadow being at the
-	 * bottom-left in the front and the last shadow at the top-right in the back.
+	 * bottom-left in the front and the last shadow at the top-right in the back for every
+	 * 8 shadows.
 	 */
-	static unique_ptr<CompressedShadow> combine(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt);
+	static unique_ptr<CompressedShadow> combine(const CsContainer& shadows);
 
 	/**
 	 * Traverses the sparse voxel DAG (on the CPU) for the given position
@@ -114,13 +118,27 @@ private:
 	 * Constructs a shadow by combining 8 existing CompressedShadows.
 	 * @param shadows Must be an iterator to at least 8 shadows.
 	 */
-	void combineShadows(vector<unique_ptr<CompressedShadow>>::const_iterator shadowIt);
+	void combineShadows(const CsContainer& shadows, uint newLevels);
 
 	/** (Helper function for combineShadows)
 	 * Copies the DAG from the given compressed shadow at the end of the specified target and
 	 * applies the offset if necessary.
 	 */
 	void copyDagAndApplyOffset(const CompressedShadow *source, vector<uint>& target, uint offset);
+
+	/** (Helper function for combineShadows)
+	 * Creates a vector of rootmasks by iteratevily combining every 8 nodes
+	 *
+	 * For example if shadows is of size 64 the result are 8 masks and the mask for these,
+	 * i.e. 9 masks in total with the single mask at the end.
+	 */
+	static vector<uint> combineRootmasks(const CsContainer& shadows);
+
+	/** (Helper function for combineShadows)
+	 * Insert the DAG's from 'shadows' into the level specified by [levelBegin, levelEnd).
+	 */
+	void insertShadowsInLevel(const CsContainer& shadows, vector<uint>& dag, vector<uint>& masks,
+			uint levelBegin, uint levelEnd);
 
 	/**
 	 * Constructs the sparse voxel octree in a 1-dimensional array.
@@ -168,7 +186,7 @@ private:
 
 	unique_ptr<SSBO> m_deviceDag;
 
-	ShaderProgram m_traverseCS;
+	unique_ptr<ShaderProgram> m_traverseCS;
 };
 
 #endif

@@ -54,8 +54,12 @@ inline constexpr bool isPowerOfTwo(int x) {
 }
 
 /** Computes the log of base 2 */
-inline double log2(const double x){
+inline double log2(double x) {
 	return log(x) * 1.44269504088896340736; //log(x) * log2(e)
+}
+
+inline double log8(double x) {
+	return log(x) / 2.07944154167983592825; //log(x) / log(8)
 }
 
 /* Some exception types */

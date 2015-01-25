@@ -1,6 +1,8 @@
 #include "DeferredRenderer.h"
 #include "Scene.h"
+#include "MinMaxHierarchy.h"
 
+#include <thread>
 #include <glm/ext.hpp>
 #include <iostream>
 using namespace std;
@@ -125,22 +127,52 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
+void createShadowTiles(CsContainer& shadows, const MinMaxHierarchy& minMax, uint x, uint y,
+		uint tileNr, uint numTiles) {
+
+	vector<std::thread> shadowThreads;
+	shadowThreads.reserve(numTiles);
+
+	for (uint tile = 0; tile < numTiles; tile += 2) {
+		const uint tileOffset = tileNr * 8 + (tile / 2) * numTiles * 8;
+
+		auto firstIt = shadows.begin() + tileOffset + 2 * y + x;
+		auto secondIt = firstIt + 4;
+
+		auto create = [&minMax, numTiles](auto it, uint tileNr) {
+				*it = std::move(CompressedShadow::create(minMax, tileNr, numTiles)); };
+
+		shadowThreads.emplace_back(std::thread(create, firstIt, tile));
+		shadowThreads.emplace_back(std::thread(create, secondIt, tile + 1));
+	}
+
+	for (auto& thread : shadowThreads)
+		thread.join();
+}
+
 unique_ptr<CompressedShadow> renderWithTiles(const Scene* scene, RenderProperties& props,
 		const DirectionalLight& light, Fbo& shadowFbo, uint numTiles) {
-	vector<unique_ptr<CompressedShadow>> shadows(numTiles * numTiles * numTiles);
 
-	for (uint y = 0; y < numTiles; ++y) {
-		for (uint x = 0; x < numTiles; ++x) {
-			props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numTiles);
+	uint size = numTiles * numTiles * numTiles; // numTiles is the number of tiles in only one direction
+	CsContainer shadows(size);
 
-			renderSceneForSM(scene, props);
+	uint tiles = size / (4 * numTiles); // number of 2x2xnumTiles
 
-			ShadowMap sm(shadowFbo.getDepthTexture());
-			shadows[2*y + x] = std::move(CompressedShadow::create(&sm, 0, numTiles));
-			shadows[4 + 2*y + x] = std::move(CompressedShadow::create(&sm, 1, numTiles));
+	for (uint tileNr = 0; tileNr < tiles; ++tileNr) {
+		for (uint y = 0; y < 2; ++y) {
+			for (uint x = 0; x < 2; ++x) {
+				props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numTiles);
+	
+				renderSceneForSM(scene, props);
+	
+				ShadowMap sm(shadowFbo.getDepthTexture());
+				MinMaxHierarchy mm(sm.createImageF());
+
+				createShadowTiles(shadows, mm, x, y, tileNr, numTiles);
+			}
 		}
 	}
-	return CompressedShadow::combine(shadows.begin());
+	return CompressedShadow::combine(shadows);
 }
 
 void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
@@ -148,8 +180,9 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
 
 	//DEBUGGING ONLY
+	//maxSize = 1024;
 	//maxSize = 2048;
-	maxSize = 4096;
+	//maxSize = 4096;
 	//maxSize = 8192;
 
 	if (size < maxSize) maxSize = size;

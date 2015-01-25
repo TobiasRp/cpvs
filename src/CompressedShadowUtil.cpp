@@ -100,7 +100,7 @@ uint getCombinedVisibility(uint mask) {
 	return 0x2;
 }
 
-uint cs::createRootmask(const array<uint, 8>& childmasks) {
+uint cs::createRootmask(const uint* childmasks) {
 	uint rootmask = 0;
 
 	for (uint childNr = 0; childNr < 8; ++childNr) {

@@ -16,9 +16,6 @@ TEST(testCreateChildmask, test8x8) {
 
 	uint mask1 = createChildmask(mm, 1, ivec3(2, 0, 0));
 	ASSERT_EQ(0x88aa, mask1);
-
-	uint mask2 = createChildmask(mm, 0, ivec3(4, 0, 0));
-	ASSERT_EQ(0, mask2);
 }
 
 TEST(getNumChildrenTest, testDifferentValues) {
