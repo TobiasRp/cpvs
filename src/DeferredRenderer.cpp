@@ -127,20 +127,27 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
-void createShadowTiles(CsContainer& shadows, const MinMaxHierarchy& minMax, uint x, uint y,
-		uint tileNr, uint numTiles) {
+/* Given a size and a number of slices, this returns the number of 2x2xnumSlices tiles */
+inline uint getRestOfTiles(uint size, uint numSlices) {
+	return size / (4 * numSlices);
+}
+
+void createShadowTiles(CsContainerIt shadowIt, const MinMaxHierarchy& minMax, uint x, uint y,
+		uint tileNr, uint numSlices, uint totalSize) {
 
 	vector<std::thread> shadowThreads;
-	shadowThreads.reserve(numTiles);
+	shadowThreads.reserve(numSlices);
 
-	for (uint tile = 0; tile < numTiles; tile += 2) {
-		const uint tileOffset = tileNr * 8 + (tile / 2) * numTiles * 8;
+	const uint distNextTile = totalSize / numSlices;
 
-		auto firstIt = shadows.begin() + tileOffset + 2 * y + x;
+	for (uint tile = 0; tile < numSlices; tile += 2) {
+		const uint tileOffset = tileNr * 8 + tile * distNextTile;
+
+		auto firstIt = shadowIt + tileOffset + 2 * y + x;
 		auto secondIt = firstIt + 4;
 
-		auto create = [&minMax, numTiles](auto it, uint tileNr) {
-				*it = std::move(CompressedShadow::create(minMax, tileNr, numTiles)); };
+		auto create = [&minMax, numSlices](auto it, uint t) {
+				*it = std::move(CompressedShadow::create(minMax, t, numSlices)); };
 
 		shadowThreads.emplace_back(std::thread(create, firstIt, tile));
 		shadowThreads.emplace_back(std::thread(create, secondIt, tile + 1));
@@ -151,24 +158,24 @@ void createShadowTiles(CsContainer& shadows, const MinMaxHierarchy& minMax, uint
 }
 
 unique_ptr<CompressedShadow> renderWithTiles(const Scene* scene, RenderProperties& props,
-		const DirectionalLight& light, Fbo& shadowFbo, uint numTiles) {
+		const DirectionalLight& light, Fbo& shadowFbo, uint numSlices) {
 
-	uint size = numTiles * numTiles * numTiles; // numTiles is the number of tiles in only one direction
+	const uint size = numSlices * numSlices * numSlices;
 	CsContainer shadows(size);
 
-	uint tiles = size / (4 * numTiles); // number of 2x2xnumTiles
+	const uint restOfTiles = getRestOfTiles(size, numSlices);
 
-	for (uint tileNr = 0; tileNr < tiles; ++tileNr) {
+	for (uint tileNr = 0; tileNr < restOfTiles; ++tileNr) {
 		for (uint y = 0; y < 2; ++y) {
 			for (uint x = 0; x < 2; ++x) {
-				props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numTiles);
+				props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numSlices);
 	
 				renderSceneForSM(scene, props);
 	
 				ShadowMap sm(shadowFbo.getDepthTexture());
 				MinMaxHierarchy mm(sm.createImageF());
 
-				createShadowTiles(shadows, mm, x, y, tileNr, numTiles);
+				createShadowTiles(shadows.begin(), mm, x, y, tileNr, numSlices, size);
 			}
 		}
 	}

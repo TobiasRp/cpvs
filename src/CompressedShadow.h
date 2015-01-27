@@ -11,6 +11,8 @@ class Texture2D;
 
 class CompressedShadow;
 using CsContainer = vector<unique_ptr<CompressedShadow>>;
+using CsContainerIt = vector<unique_ptr<CompressedShadow>>::iterator;
+using CsContainerCIt = vector<unique_ptr<CompressedShadow>>::const_iterator;
 
 /**
  * This central datastructure of the CPVS represents the DAG of voxels
