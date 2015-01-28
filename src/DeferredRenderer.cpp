@@ -168,7 +168,10 @@ unique_ptr<CompressedShadow> renderWithTiles(const Scene* scene, RenderPropertie
 	for (uint tileNr = 0; tileNr < restOfTiles; ++tileNr) {
 		for (uint y = 0; y < 2; ++y) {
 			for (uint x = 0; x < 2; ++x) {
-				props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numSlices);
+				const uint tileX = (tileNr * 2) % numSlices + x;
+				const uint tileY = (tileNr / (numSlices / 2)) * 2 + y;
+
+				props.P = light.getSubProjection(scene->getBoundingBox(), tileX, tileY, numSlices);
 	
 				renderSceneForSM(scene, props);
 	
@@ -187,6 +190,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
 
 	//DEBUGGING ONLY
+	//maxSize = 512;
 	//maxSize = 1024;
 	//maxSize = 2048;
 	//maxSize = 4096;
