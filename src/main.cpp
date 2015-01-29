@@ -28,7 +28,7 @@ const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
-const GLuint CPVS_SIZE      = 8192 * 1;
+const GLuint CPVS_SIZE      = 4096;//8192 * 1;
 const GLuint REF_SM_SIZE    = 8192;
 const vec3   lightDirection = {0.25, 1, 0};
 
@@ -40,13 +40,15 @@ unique_ptr<DeferredRenderer> renderSystem;
 struct Settings {
 	bool renderShadowMap;
 	bool useReferenceShadows;
+
+	float cameraSpeed;
 };
 
 Settings uiSettings;
 
 
 void initCamera() {
-	cam.setSpeed(3.0f);
+	uiSettings.cameraSpeed = 3.0f;
 	cam.setPosition(vec3(9, 5, 0));
 }
 
@@ -137,8 +139,10 @@ void initTweakBar() {
 
 	auto twBar = TwNewBar("CPVS Settings");
 	TwAddVarRW(twBar, "Render shadow map", TW_TYPE_BOOLCPP, &uiSettings.renderShadowMap, nullptr);
-
 	TwAddVarRW(twBar, "Reference shadow mapping", TW_TYPE_BOOLCPP, &uiSettings.useReferenceShadows, nullptr);
+
+	TwAddSeparator(twBar, nullptr, nullptr);
+	TwAddVarRW(twBar, "Camera speed", TW_TYPE_FLOAT, &uiSettings.cameraSpeed, " min=0.1 step=1");
 }
 
 inline void printDurationToNow(high_resolution_clock::time_point start) {
@@ -213,7 +217,8 @@ int main(int argc, char **argv) {
 			renderSystem->renderDepthTexture(refTex.get());
 		else
 			renderSystem->render(properties, scene.get());
-		
+
+		cam.setSpeed(uiSettings.cameraSpeed);
 		TwDraw();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
