@@ -3,21 +3,17 @@
 
 #include "cpvs.h"
 
-#include <iostream> //TODO remove
-using namespace std;
-
 /**
  * A shader storage buffer represents memory on the GPU which can be accessed from a shader.
  */
 class SSBO {
 public:
 	template<typename T>
-	SSBO(const vector<T>& data, GLenum usage) 
-		: m_size(data.size() * sizeof(data[0]))
-	{
+	SSBO(const vector<T>& data, GLenum usage) {
+		const size_t size = data.size() * sizeof(data[0]);
 		glGenBuffers(1, &m_bo);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bo);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, m_size, data.data(), usage);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, size, data.data(), usage);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 	~SSBO() {
@@ -39,7 +35,6 @@ public:
 
 private:
 	GLuint m_bo;
-	size_t m_size;
 };
 
 #endif
