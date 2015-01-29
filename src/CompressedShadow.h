@@ -77,11 +77,13 @@ public:
 	 */
 	NodeVisibility traverse(const vec3 position, bool tryLeafmasks = true);
 
-	uint getNumLevels() const {
+	NodeVisibility getTotalVisibility() const;
+
+	inline uint getNumLevels() const {
 		return m_numLevels;
 	}
 
-	const vector<uint>& getDAG() const {
+	inline const vector<uint>& getDAG() const {
 		return m_dag;
 	}
 	

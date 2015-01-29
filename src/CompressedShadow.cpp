@@ -244,6 +244,14 @@ unique_ptr<CompressedShadow> CompressedShadow::combine(const CsContainer& shadow
 	return unique_ptr<CompressedShadow>(combinedCS);
 }
 
+CompressedShadow::NodeVisibility CompressedShadow::getTotalVisibility() const {
+	if (isCompletelyVisible(m_dag[0]))
+		return VISIBLE;
+	else if (isCompletelyShadowed(m_dag[0]))
+		return SHADOW;
+	return PARTIAL;
+}
+
 /**
  * Given a node through it's offset and a pointer to the beginning of it's children, this helper
  * function sets the nodes pointers to it's children in the dag.

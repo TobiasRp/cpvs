@@ -105,12 +105,26 @@ namespace cs {
 	}
 
 	/**
+	 * Returns true if every child in the given nodemask is completely visible.
+	 */
+	inline bool isCompletelyVisible(uint childmask) {
+		return childmask == 0x5555;
+	}
+
+	/**
 	 * Returns true if the child is fully visible.
 	 * \param childIndex The number of the child, i.e. in the range [0-7]
 	 */
 	inline bool isVisible(uint childmask, uint childIndex) {
 		uint64 mask = 1 << (childIndex * 2);
 		return mask & childmask;
+	}
+
+	/**
+	 * Returns true if every child in the given nodemask is completely in shadow.
+	 */
+	inline bool isCompletelyShadowed(uint childmask) {
+		return childmask == 0x0;
 	}
 
 	/**
