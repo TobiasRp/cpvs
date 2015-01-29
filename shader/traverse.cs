@@ -26,7 +26,8 @@ layout (std430, binding = 3) buffer topLevelGrid {
 	uint grid[];
 };
 
-const int RESOLUTION = 1 << (dag_levels - 1);
+
+const int RESOLUTION = 1 << (dag_levels + grid_levels - 1);
 
 ivec3 getPathFromNDC(vec3 ndc) {
 	uint max = RESOLUTION - 1;
@@ -35,6 +36,7 @@ ivec3 getPathFromNDC(vec3 ndc) {
 	return ivec3(ndc.x * max, ndc.y * max, ndc.z * max);
 }
 
+/* Returns the visibility from the given Leafmask */
 float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
 	uint index = (path.x & 0x3) + 4 * (path.y & 0x3) + 16 * (path.z & 0x3);
 
@@ -47,11 +49,24 @@ float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
 	return vis == 0 ? 0.0 : 1.0;
 }
 
+/* Traverses the precomputed shadow for the given vector in NDC, i.e. in the range [-1,1]^3 */
 float traverse(const vec3 projPos) {
 	ivec3 path = getPathFromNDC(projPos);
 	uint offset = 0;
-	int level = dag_levels - 2;
 
+	uint grid_res = 1 << grid_levels;
+	ivec3 gridCoords = path >> (dag_levels - 1);
+	uint dagOffset = grid[gridCoords.z * grid_res * grid_res + gridCoords.y * grid_res + gridCoords.x];
+	offset = dagOffset;
+
+	// The grid stores two special values which indicate if the entire grid cell is
+	// visible or in shadow.
+	if (offset == 0xFFFFFFFF)
+		return 0.0; // shadow
+	if (offset == 0xFFFFFFFE)
+		return 1.0; // visible
+
+	int level = dag_levels - 2;
 	while(level >= 0) {
 		uint lvlBit = 1 << (level);
 		uint childIndex = (bool(path.x & lvlBit) ? 2 : 0) +
@@ -77,7 +92,7 @@ float traverse(const vec3 projPos) {
 		}
 #endif
 
-		offset = dag[offset + 1 + childOffset];
+		offset = dagOffset + dag[offset + 1 + childOffset];
 
 		level -= 1;
 	}

@@ -172,7 +172,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	GLint maxSize;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
 
-	//DEBUGGING ONLY
+	//DEBUGGING ONLY TODO remove
 	//maxSize = 512;
 	//maxSize = 1024;
 	//maxSize = 2048;

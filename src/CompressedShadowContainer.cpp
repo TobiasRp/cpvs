@@ -1,6 +1,13 @@
 #include "CompressedShadowContainer.h"
 #include "Texture.h"
 
+//TODO remove debugging stuff
+#include <iostream>
+using namespace std;
+
+static const uint GRID_CELL_SHADOWED = 0xFFFFFFF;
+static const uint GRID_CELL_VISIBLE = 0xFFFFFFE;
+
 // Is called when the DAG is copied to the GPU
 void CompressedShadowContainer::initShader() {
 	m_traverseCS = make_unique<ShaderProgram>();
@@ -12,15 +19,16 @@ void CompressedShadowContainer::initShader() {
 		std::terminate();
 	}
 
+	m_traverseCS->bind();
 	m_traverseCS->addUniform("lightViewProj");
 	m_traverseCS->addUniform("width");
 	m_traverseCS->addUniform("height");
 	m_traverseCS->addUniform("dag_levels");
 	m_traverseCS->addUniform("grid_levels");
-	m_traverseCS->bind();
 }
 
 void CompressedShadowContainer::copyToGPU() {
+	assert(m_data.size() > 0);
 	initShader();
 
 	m_deviceDag = make_unique<SSBO>(combineDAGs(), GL_STATIC_READ);
@@ -51,7 +59,17 @@ vector<uint> CompressedShadowContainer::createTopLevelGrid() {
 
 	uint offset = 0;
 	for (auto& csPtr : m_data) {
-		grid.push_back(offset);
+		auto visibility = csPtr->getTotalVisibility();
+
+		// Store a special value for shadow/visible if the entire grid cell is in shadow/visible.
+		// otherwise store the offset to the DAG
+		if (visibility == CompressedShadow::SHADOW)
+			grid.push_back(GRID_CELL_SHADOWED);
+		else if (visibility == CompressedShadow::VISIBLE)
+			grid.push_back(GRID_CELL_VISIBLE);
+		else
+			grid.push_back(offset);
+
 		offset += csPtr->getDAG().size();
 	}
 	return grid;
