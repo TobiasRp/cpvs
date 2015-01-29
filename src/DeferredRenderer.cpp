@@ -1,6 +1,7 @@
 #include "DeferredRenderer.h"
 #include "Scene.h"
 #include "MinMaxHierarchy.h"
+#include "CompressedShadowContainer.h"
 
 #include <thread>
 #include <glm/ext.hpp>
@@ -132,57 +133,39 @@ inline uint getRestOfTiles(uint size, uint numSlices) {
 	return size / (4 * numSlices);
 }
 
-void createShadowTiles(CsContainerIt shadowIt, const MinMaxHierarchy& minMax, uint x, uint y,
-		uint tileNr, uint numSlices, uint totalSize) {
+void createShadowTiles(CompressedShadowContainer* shadows, const MinMaxHierarchy& minMax,
+		uint x, uint y, uint numSlices) {
 
 	vector<std::thread> shadowThreads;
 	shadowThreads.reserve(numSlices);
 
-	const uint distNextTile = totalSize / numSlices;
-
-	for (uint tile = 0; tile < numSlices; tile += 2) {
-		const uint tileOffset = tileNr * 8 + tile * distNextTile;
-
-		auto firstIt = shadowIt + tileOffset + 2 * y + x;
-		auto secondIt = firstIt + 4;
-
-		auto create = [&minMax, numSlices](auto it, uint t) {
-				*it = std::move(CompressedShadow::create(minMax, t, numSlices)); };
-
-		shadowThreads.emplace_back(std::thread(create, firstIt, tile));
-		shadowThreads.emplace_back(std::thread(create, secondIt, tile + 1));
+	for (uint tile = 0; tile < numSlices; ++tile) {
+		shadowThreads.emplace_back(std::thread([shadows, &minMax, numSlices, x, y, tile]() {
+				shadows->set(CompressedShadow::create(minMax, tile, numSlices), x, y, tile); }));
 	}
 
 	for (auto& thread : shadowThreads)
 		thread.join();
 }
 
-unique_ptr<CompressedShadow> renderWithTiles(const Scene* scene, RenderProperties& props,
+unique_ptr<CompressedShadowContainer> renderWithTiles(const Scene* scene, RenderProperties& props,
 		const DirectionalLight& light, Fbo& shadowFbo, uint numSlices) {
 
-	const uint size = numSlices * numSlices * numSlices;
-	CsContainer shadows(size);
+	auto shadows = make_unique<CompressedShadowContainer>(numSlices);
 
-	const uint restOfTiles = getRestOfTiles(size, numSlices);
+	for (uint y = 0; y < numSlices; ++y) {
+		for (uint x = 0; x < numSlices; ++x) {
+			props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numSlices);
 
-	for (uint tileNr = 0; tileNr < restOfTiles; ++tileNr) {
-		for (uint y = 0; y < 2; ++y) {
-			for (uint x = 0; x < 2; ++x) {
-				const uint tileX = (tileNr * 2) % numSlices + x;
-				const uint tileY = (tileNr / (numSlices / 2)) * 2 + y;
+			renderSceneForSM(scene, props);
 
-				props.P = light.getSubProjection(scene->getBoundingBox(), tileX, tileY, numSlices);
-	
-				renderSceneForSM(scene, props);
-	
-				ShadowMap sm(shadowFbo.getDepthTexture());
-				MinMaxHierarchy mm(sm.createImageF());
+			ShadowMap sm(shadowFbo.getDepthTexture());
+			MinMaxHierarchy mm(sm.createImageF());
 
-				createShadowTiles(shadows.begin(), mm, x, y, tileNr, numSlices, size);
-			}
+			createShadowTiles(shadows.get(), mm, x, y, numSlices);
 		}
 	}
-	return CompressedShadow::combine(shadows);
+	return shadows;
 }
 
 void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
@@ -220,14 +203,13 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 
 		renderSceneForSM(scene, smProps);
 		ShadowMap sm(shadowFbo.getDepthTexture());
-		m_shadowDag = CompressedShadow::create(&sm);
+		m_precomputedShadow = make_unique<CompressedShadowContainer>(CompressedShadow::create(&sm));
 	} else {
-		m_shadowDag = renderWithTiles(scene, smProps, m_dirLight, shadowFbo, numTiles);
+		m_precomputedShadow = renderWithTiles(scene, smProps, m_dirLight, shadowFbo, numTiles);
 	}
+	m_precomputedShadow->moveToGPU();
 
-	m_shadowDag->moveToGPU();
 	glDisable(GL_POLYGON_OFFSET_FILL);
-
 	m_create_sm.release();
 	GL_CHECK_ERROR("DeferredRenderer::precomputeShadows - end: ");
 }
@@ -308,7 +290,7 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	if (!m_useReferenceShadow) {
 		glUniform1i(m_shade["renderShadow"], 1);
 
-		m_shadowDag->compute(m_gBuffer.getTexture(0).get(), m_dirLight.getViewProj(), m_visibilities.get());
+		m_precomputedShadow->evaluate(m_gBuffer.getTexture(0).get(), m_dirLight.getViewProj(), m_visibilities.get());
 		m_shade.bind();
 		m_visibilities->bindAt(3);
 	} else {

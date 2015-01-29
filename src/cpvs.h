@@ -4,6 +4,7 @@
 #include <cassert>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <memory>
 #include <exception>
 
@@ -15,6 +16,7 @@ using std::vector;
 using std::shared_ptr;
 using std::unique_ptr;
 using std::array;
+using std::unordered_map;
 
 using uint = unsigned int;
 using uint64 = uint64_t;

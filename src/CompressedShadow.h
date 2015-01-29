@@ -2,12 +2,9 @@
 #define COMPRESSED_SHADOW_H
 
 #include "cpvs.h"
-#include "Buffer.h"
-#include "ShaderProgram.h"
 
 class MinMaxHierarchy;
 class ShadowMap;
-class Texture2D;
 
 class CompressedShadow;
 using CsContainer = vector<unique_ptr<CompressedShadow>>;
@@ -19,6 +16,8 @@ using CsContainerCIt = vector<unique_ptr<CompressedShadow>>::const_iterator;
  * which is a compressed shadow of a light.
  *
  * The datastructure is built using a shadow map (actually it's min-max hierarchy).
+ *
+ * @see CompressedShadowContainer to evaluate one or more (tiled) precomputed shadows.
  *
  * @see 'Compact Precomputed Voxelized Shadows' by E. Sintorn, V. Kaempe, O. Olsson, U. Assarsson (2014)
  * and 'High Resolution Sparse Voxel DAGs' by V. Kaempe, E. Sintorn, U. Assarsson (2013)
@@ -54,7 +53,7 @@ public:
 	static unique_ptr<CompressedShadow> create(const MinMaxHierarchy& minMax,
 			uint zTileIndex = 0, uint zTileNum = 1);
 
-	/**
+	/*
 	 * Creates a CompressedShadow from a shadow map.
 	 * @note This will create a temporary min-max hierarchy.
 	 */
@@ -77,44 +76,17 @@ public:
 	 * @note Useful for testing purposes!
 	 */
 	NodeVisibility traverse(const vec3 position, bool tryLeafmasks = true);
+
+	uint getNumLevels() const {
+		return m_numLevels;
+	}
+
+	const vector<uint>& getDAG() const {
+		return m_dag;
+	}
 	
-	/**
-	 * Calculates the visibility/shadow of every world-space position in the given texture.
-	 * The result is a 2-dimensional texture of visibility values.
-	 */
-	void compute(const Texture2D* positionsWS, const mat4& lightViewProj, Texture2D* visibilities);
-
-	/**
-	 * Frees all dynamically allocated memory for the DAG on the cpu.
-	 * All operations evaluating the shadow on the GPU are still valid, but the DAG can't be traversed
-	 * on the CPU or otherwise changed.
-	 */
-	inline void freeDagOnCPU() {
-		// Use the 'swap trick' to free all dynamic memory
-		std::vector<uint> tmp;
-		m_dag.swap(tmp);
-	}
-
-	/**
-	 * Copy m_dag to m_deviceDag.
-	 */
-	void copyToGPU();
-
-	/**
-	 * Combines copyToGPU and freeDagOnCPU.
-	 */
-	inline void moveToGPU() {
-		copyToGPU();
-		freeDagOnCPU();
-	}
-
 private:
 	/* Private member and helper functions */
-
-	/**
-	 * Initialize traverse shader which evaluates the DAG on the GPU.
-	 */
-	void initShader();
 
 	/**
 	 * Constructs a shadow by combining 8 existing CompressedShadows.
@@ -185,10 +157,6 @@ private:
 	uint m_numLevels;
 
 	vector<uint> m_dag;
-
-	unique_ptr<SSBO> m_deviceDag;
-
-	unique_ptr<ShaderProgram> m_traverseCS;
 };
 
 #endif

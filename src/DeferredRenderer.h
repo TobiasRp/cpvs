@@ -9,6 +9,7 @@
 #include "Light.h"
 #include "ShadowMap.h"
 #include "CompressedShadow.h"
+#include "CompressedShadowContainer.h"
 
 class Scene;
 
@@ -68,7 +69,7 @@ private:
 	DirectionalLight m_dirLight;
 
 	bool m_useReferenceShadow;
-	unique_ptr<CompressedShadow> m_shadowDag;
+	unique_ptr<CompressedShadowContainer> m_precomputedShadow;
 	unique_ptr<Texture2D> m_visibilities;
 
 	shared_ptr<Texture2D> m_shadowMap;

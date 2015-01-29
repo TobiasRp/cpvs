@@ -7,8 +7,6 @@
 #include <numeric>
 #include <cmath>
 #include <unordered_set>
-#include <unordered_map>
-#include <future>
 #include <limits>
 using namespace cs;
 using namespace std;
@@ -47,31 +45,6 @@ CompressedShadow::CompressedShadow(uint numLevels)
 	: m_numLevels(numLevels)
 {
 	assert(m_numLevels > 3);
-}
-
-// Is called when the DAG is copied to the GPU
-void CompressedShadow::initShader() {
-	m_traverseCS = make_unique<ShaderProgram>();
-	try {
-		m_traverseCS->addShaderFromFile(GL_COMPUTE_SHADER, "../shader/traverse.cs");
-		m_traverseCS->link();
-	} catch(ShaderException& exc) {
-		cout << exc.where() << " - " << exc.what() << endl;
-		std::terminate();
-	}
-
-	m_traverseCS->addUniform("lightViewProj");
-	m_traverseCS->addUniform("width");
-	m_traverseCS->addUniform("height");
-	m_traverseCS->addUniform("num_levels");
-	m_traverseCS->bind();
-	glUniform1i((*m_traverseCS)["num_levels"], m_numLevels);
-}
-
-void CompressedShadow::copyToGPU() {
-	initShader();
-
-	m_deviceDag = make_unique<SSBO>(m_dag, GL_STATIC_READ);
 }
 
 unique_ptr<CompressedShadow> CompressedShadow::create(const MinMaxHierarchy& minMax,
@@ -648,37 +621,4 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position,
 	}
 
 	return PARTIAL;
-}
-
-void CompressedShadow::compute(const Texture2D* positionsWS, const mat4& lightViewProj,
-		Texture2D* visibilities) {
-	GL_CHECK_ERROR("traverse - begin");
-	assert(m_traverseCS != nullptr);
-	m_traverseCS->bind();
-
-	// Bind WS positions
-	positionsWS->bindImageAt(0, GL_READ_ONLY);
-
-	// Bind image for results
-	visibilities->bindImageAt(1, GL_WRITE_ONLY);
-
-	// Bind dag
-	m_deviceDag->bindAt(2);
-
-	glUniformMatrix4fv((*m_traverseCS)["lightViewProj"], 1, GL_FALSE, glm::value_ptr(lightViewProj));
-
-	// Set width and height
-	const GLuint width = positionsWS->getWidth();
-	const GLuint height = positionsWS->getHeight();
-	glUniform1ui((*m_traverseCS)["width"], width);
-	glUniform1ui((*m_traverseCS)["height"], height);
-
-	// Now calculate work group size and dispatch!
-	const GLuint localSize = 32;
-	const GLuint numGroupsX = ceil(width / static_cast<float>(localSize));
-	const GLuint numGroupsY = ceil(height / static_cast<float>(localSize));
-	glDispatchCompute(numGroupsX, numGroupsY, 1);
-
-	m_traverseCS->release();
-	GL_CHECK_ERROR("traverse - end");
 }
