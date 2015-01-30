@@ -22,11 +22,6 @@ namespace cs {
 	extern uint64 createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset);
 
 	/**
-	 * Combines 8 childmasks and creates a new (root) mask.
-	 */
-	extern uint createRootmask(const uint* childmasks);
-
-	/**
 	 * Given the parents childmask and coordinates, this returns the coordinates of all partially visible children.
 	 * Basically this returns the parents offset + minimum point of the childs AABB for all children.
 	 */
