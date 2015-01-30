@@ -33,7 +33,9 @@ public:
 			assert(checkBounds(m_root, x, y));
 			return m_root.get(x, y, 0);
 		}
-		assert(checkBounds(m_levels[level - 1], x, y));
+
+		// The assertion costs a lot of performance, so disable it since everything seems to work
+		//assert(checkBounds(m_levels[level - 1], x, y));
 		return m_levels[level - 1].get(x, y, MIN_CH);
 	}
 
@@ -47,7 +49,8 @@ public:
 			return m_root.get(x, y, 0);
 		}
 	
-		assert(checkBounds(m_levels[level - 1], x, y));
+		// see above
+		//assert(checkBounds(m_levels[level - 1], x, y));
 		return m_levels[level - 1].get(x, y, MAX_CH);
 	}
 

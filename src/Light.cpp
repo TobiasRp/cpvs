@@ -1,11 +1,9 @@
 #include "Light.h"
 #include <glm/ext.hpp>
-#include <iostream>
-using namespace std;
 
 const vec3 up(0, 1, 0);
 
-constexpr float margin = 1.005f;
+constexpr float margin = 1.2f;
 
 void DirectionalLight::calcViewTransform(const AABB& bbox) {
 	vec3 position = bbox.getCenter();
