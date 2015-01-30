@@ -89,8 +89,8 @@ inline void setShadowMappingOpenGL() {
 	glClearDepth(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+	glPolygonOffset(2.0f, 4.0f);
 	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1.1f, 4.0f);
 }
 
 inline void renderSceneForSM(const Scene* scene, RenderProperties& props) {
@@ -159,6 +159,10 @@ unique_ptr<CompressedShadowContainer> renderWithTiles(const Scene* scene, Render
 
 			createShadowTiles(shadows.get(), mm, x, y, numSlices);
 		}
+#ifdef PRINT_PROGRESS
+		cout << ((y + 1) / static_cast<float>(numSlices)) * 100 << "% ";
+		cout.flush();
+#endif
 	}
 	return shadows;
 }

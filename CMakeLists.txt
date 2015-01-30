@@ -12,6 +12,8 @@ set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-mo
 # clang CompilationDatabase for vim autocompletion (feel free to remove this)
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
+add_definitions(-DPRINT_PROGRESS)
+
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Assimp REQUIRED)

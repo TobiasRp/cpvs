@@ -28,7 +28,7 @@ const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
-const GLuint CPVS_SIZE      = 4096;//8192 * 1;
+const GLuint CPVS_SIZE      = 8192 * 1;
 const GLuint REF_SM_SIZE    = 8192;
 const vec3   lightDirection = {0.25, 1, 0};
 
@@ -185,7 +185,7 @@ void createPrecomputedShadows(const Scene* scene) {
 	cout << "Precomputing shadows... "; cout.flush();
 	auto t0 = chrono::high_resolution_clock::now();
 	renderSystem->precomputeShadows(scene, CPVS_SIZE);
-	cout << " done after ";
+	cout << "\n... done after ";
 	printDurationToNow(t0);
 }
 
