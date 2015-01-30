@@ -1,7 +1,6 @@
 #include "CompressedShadowContainer.h"
 #include "Texture.h"
 
-//TODO remove debugging stuff
 #include <iostream>
 using namespace std;
 

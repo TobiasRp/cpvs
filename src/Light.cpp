@@ -5,7 +5,7 @@ using namespace std;
 
 const vec3 up(0, 1, 0);
 
-constexpr float margin = 1.2f;
+constexpr float margin = 1.005f;
 
 void DirectionalLight::calcViewTransform(const AABB& bbox) {
 	vec3 position = bbox.getCenter();

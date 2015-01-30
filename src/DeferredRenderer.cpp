@@ -128,11 +128,6 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	return make_unique<ShadowMap>(shadowFbo.getDepthTexture());
 }
 
-/* Given a size and a number of slices, this returns the number of 2x2xnumSlices tiles */
-inline uint getRestOfTiles(uint size, uint numSlices) {
-	return size / (4 * numSlices);
-}
-
 void createShadowTiles(CompressedShadowContainer* shadows, const MinMaxHierarchy& minMax,
 		uint x, uint y, uint numSlices) {
 

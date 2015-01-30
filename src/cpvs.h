@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <memory>
 #include <exception>
+#include <cmath>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>

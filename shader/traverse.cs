@@ -46,7 +46,7 @@ float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
 	} else {
 		vis = upperHalf & (1 << (index - 32));
 	}
-	return vis == 0 ? 0.0 : 1.0;
+	return float(vis);
 }
 
 /* Traverses the precomputed shadow for the given vector in NDC, i.e. in the range [-1,1]^3 */
