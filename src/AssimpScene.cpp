@@ -139,8 +139,10 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 	mat4 MVP = props.getMVP();
 	auto program = props.getShaderProgram();
 
-	auto mvp = program->getUniformLoc("MVP");
-	glUniformMatrix4fv(mvp, 1, false, glm::value_ptr(MVP));
+	if (program->hasUniform("MVP")) {
+		auto mvp = program->getUniformLoc("MVP");
+		glUniformMatrix4fv(mvp, 1, false, glm::value_ptr(MVP));
+	}
 
 	if (program->hasUniform("M")) {
 		auto M = props.getM();
@@ -183,6 +185,17 @@ void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, co
 void AssimpScene::render(RenderProperties &props) const noexcept {
 	GL_CHECK_ERROR("AssimpScene::render - begin : ");
 	auto scene = m_importer.GetScene();
+
+	auto program = props.getShaderProgram();
+	if (program->hasUniform("V")) {
+		auto loc = program->getUniformLoc("V");
+		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(props.V));
+	}
+
+	if (program->hasUniform("P")) {
+		auto loc = program->getUniformLoc("P");
+		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(props.P));
+	}
 
 	recursiveRender(props, scene, scene->mRootNode);
 }

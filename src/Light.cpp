@@ -15,7 +15,9 @@ void DirectionalLight::calcProjection(const AABB& bbox) {
 	vec4 minLS = m_view * vec4(bbox.min * margin, 1.0);
 	vec4 maxLS = m_view * vec4(bbox.max * margin, 1.0);
 
-	m_proj = glm::ortho(minLS.x, maxLS.x, minLS.y, maxLS.y, minLS.z, maxLS.z);
+	m_near = minLS.z;
+	m_far = maxLS.z;
+	m_proj = glm::ortho(minLS.x, maxLS.x, minLS.y, maxLS.y, m_near, m_far);
 }
 
 mat4 DirectionalLight::getSubProjection(const AABB& bbox, uint x, uint y, uint numSubDivisions) const {

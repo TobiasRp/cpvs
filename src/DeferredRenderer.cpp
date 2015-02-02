@@ -63,7 +63,14 @@ void DeferredRenderer::loadShaders() {
 	m_shade.addUniform("renderShadow");
 	m_shade.addUniform("lightViewProj");
 
-	m_create_sm.addUniform("MVP");
+	m_create_sm.addUniform("M");
+	m_create_sm.addUniform("V");
+	m_create_sm.addUniform("P");
+	m_create_sm.addUniform("znear");
+	m_create_sm.addUniform("zfar");
+
+	m_writeSM.addUniform("znear");
+	m_writeSM.addUniform("zfar");
 }
 
 void DeferredRenderer::initFbos() {
@@ -85,14 +92,19 @@ void DeferredRenderer::resize(GLuint width, GLuint height) {
 	m_visibilities->resize(width, height);
 }
 
-inline void setShadowMappingOpenGL() {
+inline void setShadowMappingState() {
 	glClearDepth(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
 
-	glPolygonOffset(3.0f, 4.0f);
+	glPolygonOffset(1.1f, 4.0f);
 	glEnable(GL_POLYGON_OFFSET_FILL);
+}
+
+inline void setNearAndFarPlane(ShaderProgram& createSM, const DirectionalLight& light) {
+	glUniform1f(createSM["znear"], light.getNearPlane());
+	glUniform1f(createSM["zfar"], light.getFarPlane());
 }
 
 inline void renderSceneForSM(const Scene* scene, RenderProperties& props) {
@@ -118,7 +130,9 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
-	setShadowMappingOpenGL();
+	setNearAndFarPlane(m_create_sm, m_dirLight);
+
+	setShadowMappingState();
 
 	renderSceneForSM(scene, smProps);
 
@@ -193,7 +207,8 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
-	setShadowMappingOpenGL();
+	setNearAndFarPlane(m_create_sm, m_dirLight);
+	setShadowMappingState();
 
 	// create FBO with fp depth
 	Fbo shadowFbo(tileSize, tileSize, false);
@@ -232,6 +247,8 @@ void DeferredRenderer::renderDepthTexture(const Texture2D* tex) {
 	tex->bindAt(0);
 
 	m_writeSM.bind();
+	setNearAndFarPlane(m_writeSM, m_dirLight);
+
 	renderQuad(m_fullscreenQuad);
 	m_writeSM.release();
 

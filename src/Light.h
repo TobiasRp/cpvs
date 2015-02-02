@@ -19,6 +19,14 @@ public:
 		return m_direction;
 	}
 
+	inline float getNearPlane() const {
+		return m_near;
+	}
+
+	inline float getFarPlane() const {
+		return m_far;
+	}
+
 	inline mat4 getViewTransform() const {
 		return m_view;
 	}
@@ -43,6 +51,7 @@ private:
 	mat4 m_view;
 	mat4 m_proj;
 	mat4 m_viewProj;
+	float m_near, m_far;
 };
 
 #endif
