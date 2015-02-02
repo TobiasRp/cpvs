@@ -88,8 +88,10 @@ void DeferredRenderer::resize(GLuint width, GLuint height) {
 inline void setShadowMappingOpenGL() {
 	glClearDepth(1.0f);
 	glEnable(GL_DEPTH_TEST);
+	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
-	glPolygonOffset(2.0f, 4.0f);
+
+	glPolygonOffset(3.0f, 4.0f);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 }
 
@@ -167,22 +169,24 @@ unique_ptr<CompressedShadowContainer> renderWithTiles(const Scene* scene, Render
 	return shadows;
 }
 
-void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
-	GLint maxSize;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+inline uint getTileSize(uint size) {
+	GLint maxSize = 8192;
 
-	//DEBUGGING ONLY TODO remove
-	//maxSize = 512;
-	//maxSize = 1024;
-	//maxSize = 2048;
-	//maxSize = 4096;
-	//maxSize = 8192;
+	/* My GPU has a maximum texture size of 16K which could be useful for tiling
+	 * very high resolutions (> 128K), but otherwise seems to slow down performance for 
+	 * lower resolutions. As a heuristic 8K seems fine. */
+	//glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
 
 	if (size < maxSize) maxSize = size;
 
-	const uint numTiles = size / maxSize;
+	return maxSize;
+}
 
-	glViewport(0, 0, maxSize, maxSize);
+void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
+	const uint tileSize = getTileSize(size);
+	const uint numTiles = size / tileSize;
+
+	glViewport(0, 0, tileSize, tileSize);
 
 	RenderProperties smProps;
 	smProps.V = m_dirLight.getViewTransform();
@@ -192,7 +196,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	setShadowMappingOpenGL();
 
 	// create FBO with fp depth
-	Fbo shadowFbo(maxSize, maxSize, false);
+	Fbo shadowFbo(tileSize, tileSize, false);
 	shadowFbo.bind();
 	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
 	glDrawBuffer(GL_NONE);
