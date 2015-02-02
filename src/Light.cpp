@@ -24,7 +24,7 @@ mat4 DirectionalLight::getSubProjection(const AABB& bbox, uint x, uint y, uint n
 	vec4 minLS = m_view * vec4(bbox.min * margin, 1.0);
 	vec4 maxLS = m_view * vec4(bbox.max * margin, 1.0);
 
-	vec3 subSize = (vec3(maxLS) - vec3(minLS)) / numSubDivisions;
+	vec3 subSize = (vec3(maxLS) - vec3(minLS)) / static_cast<float>(numSubDivisions);
 	float subMinX = minLS.x + x * subSize.x;
 	float subMinY = minLS.y + y * subSize.y;
 

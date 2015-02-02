@@ -459,6 +459,5 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position,
 		return (vis == 0) ? SHADOW : VISIBLE;
 	}
 
-
 	return PARTIAL;
 }

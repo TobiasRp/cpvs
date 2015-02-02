@@ -54,8 +54,14 @@ float testLeafmask(ivec3 path, uint lowerHalf, uint upperHalf) {
 	return float(vis);
 }
 
+/* Calculates the offset to the given childIndex starting from the childmask.
+ * This offset is not equal to the child number since only partially visible children are stored.
+ */
 uint getChildOffset(uint childmask, uint childIndex) {
+	// 0xAAAA is a mask for partial visibility
 	uint maskedChildmask = childmask & (0xAAAA >> (16 - childIndex));
+
+	// Count the bits set: this is the correct offset
 	return bitCount(maskedChildmask);
 }
 
