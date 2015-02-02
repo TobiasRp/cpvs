@@ -53,28 +53,49 @@ uint cs::createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3&
 	return childmask;
 }
 
-uint64 cs::createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
-	const ivec3 offCorrected = offset * 2;
+/**
+ * Calculates a 64-bit leafmask which stores 8x8x1 visibility values (visible, shadow but not partial).
+ */
+inline uint64 createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset) {
 	auto levelHeight = getLevelHeight(minMax, 0);
 
 	uint64 leafmask = 0;
 	uint index = 0;
-	for (uint z = 0; z < 4; ++z) {
-		for (uint y = 0; y < 4; ++y) {
-			for (uint x = 0; x < 4; ++x) {
-				float offX = offCorrected.x + x;
-				float offY = offCorrected.y + y;
-				float offZ = offCorrected.z + z;
+	for (uint y = 0; y < 8; ++y) {
+		float offY = offset.y + y;
 
-				auto min = minMax.getMin(0, offX, offY);
-				uint64 bit = absoluteVisible(offZ, offZ + 1, min * levelHeight);
-				leafmask |= bit << index;
+		for (uint x = 0; x < 8; ++x) {
+			float offX = offset.x + x;
 
-				++index;
-			}
+			auto min = minMax.getMin(0, offX, offY);
+			uint64 bit = absoluteVisible(offset.z, offset.z + 1, min * levelHeight);
+			leafmask |= bit << index;
+
+			++index;
 		}
 	}
 	return leafmask;
+}
+
+std::pair<uint, vector<uint64>> cs::createChildmask1x1x8(const MinMaxHierarchy& minMax, const ivec3& offset) {
+	ivec3 offCorrected = offset * 4;
+
+	uint childmask = 0;
+	vector<uint64> masks;
+	for (uint z = 0; z < 8; ++z) {
+		uint64 leafmask = createLeafmask(minMax, offCorrected);
+		++offCorrected.z;
+
+		if (leafmask == 0xFFFFFFFFFFFFFFFF)
+			childmask |= 1 << (z * 2);
+		else if (leafmask == 0x0)
+			childmask |= 0 << (z * 2);
+		else {
+			childmask |= 0x2 << (z * 2);
+			masks.push_back(leafmask);
+		}
+	}
+	return make_pair(childmask, masks);
 }
 
 vector<ivec3> cs::getChildCoordinates(uint childmask, const ivec3& parentOffset) {

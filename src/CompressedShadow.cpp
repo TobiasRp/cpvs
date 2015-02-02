@@ -174,20 +174,17 @@ void CompressedShadow::constructLastLevels(const MinMaxHierarchy& minMax, size_t
 
 	for (size_t nodeNr = 0; nodeNr < numNodes; ++nodeNr) {
 		const size_t nodeOffset = levelOffset + nodeNr * LEAF_SIZE;
-		const uint nodemask = cs::createChildmask(minMax, level, childCoords[nodeNr]);
-		m_dag[nodeOffset] = nodemask;
 
-		size_t numChildren = cs::getNumChildren(nodemask);
-		if (numChildren > 0) {
-			auto coords = cs::getChildCoordinates(nodemask, childCoords[nodeNr]);
+		const auto res = cs::createChildmask1x1x8(minMax, childCoords[nodeNr]);
+		m_dag[nodeOffset] = res.first;
 
-			for (uint childNr = 0; childNr < numChildren; ++childNr) {
-				uint64 leafmask  = cs::createLeafmask(minMax, coords[childNr]);
-				const uint index = childNr * 2 + 1;
+		size_t numChildren = res.second.size();
+		for (uint childNr = 0; childNr < numChildren; ++childNr) {
+			uint64 leafmask  = res.second[childNr];
+			const uint index = childNr * 2 + 1;
 
-				m_dag[nodeOffset + index]     = leafmask;
-				m_dag[nodeOffset + index + 1] = leafmask >> 32;
-			}
+			m_dag[nodeOffset + index]     = leafmask;
+			m_dag[nodeOffset + index + 1] = leafmask >> 32;
 		}
 	}
 }
@@ -394,12 +391,24 @@ void CompressedShadow::compress() {
 	m_dag.shrink_to_fit();
 }
 
+uint getChildOffset(uint childmask, uint childIndex) {
+	uint childBits = childIndex * 2;
+
+	// 0xAAAA is a mask for partial visibility
+	uint maskedChildMask = childmask & (0xAAAA >> (16 - childBits));
+
+	// Count the bits set, this is the correct offset
+	return POPCOUNT(maskedChildMask);
+}
+
 CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position, bool tryLeafmasks) {
 	const ivec3 path = cs::getPathFromNDC(std::move(position), m_numLevels);
 
 	size_t offset = 0;
 	int level     = m_numLevels - 2;
-	while(level >= 0) {
+	int minLevel = tryLeafmasks ? 3 : 0;
+
+	while(level >= minLevel) {
 		int lvlBit = 1 << level;
 		int childIndex = ((path.x & lvlBit) ? 1 : 0) +
 		                 ((path.y & lvlBit) ? 2 : 0) +
@@ -413,39 +422,43 @@ CompressedShadow::NodeVisibility CompressedShadow::traverse(const vec3 position,
 			return SHADOW;
 		} else {
 			// We need the child index counting only partially visible children
-
-			uint childBits = childIndex * 2;
-			// 0xAAAA is a mask for partial visibility
-			uint maskedChildMask = childmask & (0xAAAA >> (16 - childBits));
-
-			// Count the bits set, this is the correct offset
-			uint childOffset = POPCOUNT(maskedChildMask);
-
-			// Read from leafmask
-			if (level == 2 && tryLeafmasks) {
-				uint index = offset + childOffset * 2 + 1;
-
-				int maskedX = (path.x & 0x3);
-				int maskedY = (path.y & 0x3);
-				int maskedZ = (path.z & 0x3);
-
-				int maskIndex = maskedX + 4 * maskedY + 16 * maskedZ;
-				uint vis = 0;
-				if (maskIndex < 32) {
-					uint leafmask1 = m_dag[index];
-					vis = leafmask1 & (1 << maskIndex);
-				} else {
-					uint leafmask2 = m_dag[index + 1];
-					vis = leafmask2 & (1 << (maskIndex - 32));
-				}
-				return (vis == 0) ? SHADOW : VISIBLE;
-			}
+			uint childOffset = getChildOffset(childmask, childIndex);
 
 			offset = m_dag[offset + 1 + childOffset];
 		}
-
 		level -= 1;
 	}
+
+	// Read from leafmask
+	if (tryLeafmasks) {
+		assert(level == 2);
+
+		int childIndex = (path.z & 0x7);
+		uint childmask = m_dag[offset];
+
+		if(isVisible(childmask, childIndex)) {
+			return VISIBLE;
+		} else if (isShadowed(childmask, childIndex)) {
+			return SHADOW;
+		}
+
+		// We need the child index counting only partially visible children
+		uint childOffset = getChildOffset(childmask, childIndex);
+
+		uint index = offset + childOffset * 2 + 1;
+
+		int maskIndex = (path.x & 0x7) + 8 * (path.y & 0x7);
+		uint vis = 0;
+		if (maskIndex < 32) {
+			uint leafmask1 = m_dag[index];
+			vis = leafmask1 & (1 << maskIndex);
+		} else {
+			uint leafmask2 = m_dag[index + 1];
+			vis = leafmask2 & (1 << (maskIndex - 32));
+		}
+		return (vis == 0) ? SHADOW : VISIBLE;
+	}
+
 
 	return PARTIAL;
 }

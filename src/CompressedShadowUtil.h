@@ -17,9 +17,10 @@ namespace cs {
 	extern uint createChildmask(const MinMaxHierarchy& minMax, uint level, const ivec3& offset);
 
 	/**
-	 * Calculates a 64-bit leafmask which stores 4x4x4 visibility values (visible, shadow but not partial)
+	 * Calculates a childmask which encodes 1x1x8 voxels in level 1 and returns the leafmasks encoding 8x8x1.
+	 * @return A pair containing the 16-bit childmask and 0..8 64-bit leafmasks.
 	 */
-	extern uint64 createLeafmask(const MinMaxHierarchy& minMax, const ivec3& offset);
+	extern std::pair<uint, vector<uint64>> createChildmask1x1x8(const MinMaxHierarchy& minMax, const ivec3& offset);
 
 	/**
 	 * Given the parents childmask and coordinates, this returns the coordinates of all partially visible children.
