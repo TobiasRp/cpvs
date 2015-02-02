@@ -13,6 +13,7 @@ set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-mo
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 add_definitions(-DPRINT_PROGRESS)
+add_definitions(-DPRINT_CPVS_SIZE)
 
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)

@@ -2,6 +2,7 @@
 #include "Texture.h"
 
 #include <iostream>
+#include <iomanip>
 using namespace std;
 
 static const uint GRID_CELL_SHADOWED = 0xFFFFFFF;
@@ -41,14 +42,26 @@ void CompressedShadowContainer::copyToGPU() {
 	glUniform1i((*m_traverseCS)["grid_levels"], gridLevels);
 }
 
+inline void printSize(size_t size) {
+	cout << "\nThe size of the compressed shadow is " << std::fixed << std::setprecision(1) << size / static_cast<float>(1024) << "kb ";
+}
+
 vector<uint> CompressedShadowContainer::combineDAGs() {
-	if (m_data.size() == 1)
+	if (m_data.size() == 1) {
+#ifdef PRINT_CPVS_SIZE
+		printSize(m_data[0]->getDAG().size() / 4.0f);
+#endif
 		return m_data[0]->getDAG();
+	}
 
 	vector<uint> combinedDAG;
 	for (auto& csPtr : m_data) {
 		combinedDAG.insert(combinedDAG.end(), csPtr->getDAG().begin(), csPtr->getDAG().end());
 	}
+
+#ifdef PRINT_CPVS_SIZE
+	printSize(combinedDAG.size() / 4.0f);
+#endif
 	return combinedDAG;
 }
 
