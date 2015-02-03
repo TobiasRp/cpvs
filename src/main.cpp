@@ -28,7 +28,8 @@ const GLuint WINDOW_WIDTH = 512;
 const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
-const GLuint CPVS_SIZE      = 8192 * 1;
+GLuint cpvs_size = 4096;
+
 const GLuint REF_SM_SIZE    = 8192;
 const vec3   lightDirection = {0.25, 1, 0};
 
@@ -150,17 +151,16 @@ inline void printDurationToNow(high_resolution_clock::time_point start) {
 	cout << duration_cast<milliseconds>(t1 - start).count() << "msec\n";
 }
 
+inline void closeApp(int returnCode) {
+	glfwTerminate();
+	std::exit(EXIT_FAILURE);
+}
+
 /**
  * If the process was started with an argument, this is assumed to be the scene name,
  * or else the default scene will be loaded
  */
-unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
-	string file;
-	if (argc <= 1) {
-		file = defaultSceneFile;
-	} else {
-		file = argv[1];
-	}
+inline unique_ptr<AssimpScene> loadSceneFromArguments(const string& file) {
 	try {
 		cout << "Loading scene... "; cout.flush();
 		auto t0 = high_resolution_clock::now();
@@ -170,9 +170,47 @@ unique_ptr<AssimpScene> loadSceneFromArguments(int argc, char **argv) {
 		return ptr;
 	} catch (FileNotFound& exc) {
 		cerr << "Specified scene file not found!\n";
-		glfwTerminate();
-		std::exit(EXIT_FAILURE);
+		closeApp(EXIT_FAILURE);
+		return nullptr; // avoid compiler warning
 	}
+}
+
+inline void printHelpAndExit() {
+	cout << "CPVS Usage:\n"
+		 << "\t-h Prints this help test and exits\n"
+		 << "\t--size=[size of precomputed shadow, e.g. 8196. Must be a power of two]\n"
+		 << "\tpath to scene file or default file will be loaded"
+	   	 << endl;
+	closeApp(EXIT_SUCCESS);
+}
+
+inline void parseSize(const string& sizeStr) {
+	try {
+		cpvs_size = std::stoul(sizeStr);
+		if (!isPowerOfTwo(cpvs_size) || cpvs_size < 8)
+			throw std::invalid_argument("Must be power of two and at least 8");
+	} catch (std::exception& exc) {
+		cerr << "Invalid size specified (" << exc.what() << ")\n";
+		closeApp(EXIT_FAILURE);
+	}
+}
+
+unique_ptr<AssimpScene> parseArguments(int argc, char **argv) {
+	string sceneFile = defaultSceneFile;
+
+	for (int paramNr = 1; paramNr < argc; ++paramNr) {
+		string param(argv[paramNr]);
+
+		if (param == "--help") {
+			printHelpAndExit();
+		} else if (param.substr(0, 6) == "--size") {
+			parseSize(&argv[paramNr][7]);
+		} else {
+			sceneFile = param;
+		}
+	}
+
+	return loadSceneFromArguments(sceneFile);
 }
 
 void initRenderSystem(const Scene* scene) {
@@ -184,7 +222,7 @@ void initRenderSystem(const Scene* scene) {
 void createPrecomputedShadows(const Scene* scene) {
 	cout << "Precomputing shadows... "; cout.flush();
 	auto t0 = chrono::high_resolution_clock::now();
-	renderSystem->precomputeShadows(scene, CPVS_SIZE);
+	renderSystem->precomputeShadows(scene, cpvs_size);
 	cout << "\n... done after ";
 	printDurationToNow(t0);
 }
@@ -196,7 +234,7 @@ int main(int argc, char **argv) {
 	initUiSettings();
 	initTweakBar();
 
-	auto scene = loadSceneFromArguments(argc, argv);
+	auto scene = parseArguments(argc, argv);
 
 	initCamera();
 	initRenderSystem(scene.get());
