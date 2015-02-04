@@ -10,31 +10,35 @@
 using namespace std;
 using namespace Assimp;
 
-AssimpScene::AssimpScene(const std::string file) {
+unique_ptr<Scene> AssimpScene::loadScene(const string file) {
 	ifstream is(file);
 	if (!is.is_open()) {
 		throw FileNotFound("Specified file not found");
 	}
-	
-	auto scene = m_importer.ReadFile(file, aiProcessPreset_TargetRealtime_Fast);
-	if (!scene) {
+
+	Assimp::Importer importer;
+	auto assimpScene = importer.ReadFile(file, aiProcessPreset_TargetRealtime_Fast);
+	if (!assimpScene) {
 		throw LoadFileException("Assimp couldn't load file");
 	}
 
-	genVAOsAndUniformBuffer(scene);
+	auto scene = make_unique<Scene>();
+	genVAOsAndUniformBuffer(assimpScene, scene.get());
+
+	return std::move(scene);
 }
 
-void setMaterial(AssimpMesh& mesh, const aiMaterial* mat) {
+void setMaterial(Mesh& mesh, const aiMaterial* mat) {
 	aiColor3D diffColor;
 	mat->Get(AI_MATKEY_COLOR_DIFFUSE, diffColor);
-	mesh.color = vec3(diffColor.r, diffColor.g, diffColor.b);
+	mesh.material.diffuseColor = vec3(diffColor.r, diffColor.g, diffColor.b);
 
-	mat->Get(AI_MATKEY_SHININESS, mesh.shininess);
+	mat->Get(AI_MATKEY_SHININESS, mesh.material.shininess);
 }
 
-void findBoundingBoxForNode(const aiScene* scene, const aiNode* node, aiVector3D* min, aiVector3D* max) {
+void findBoundingBoxForNode(const aiScene* aiscene, const aiNode* node, aiVector3D* min, aiVector3D* max) {
 	for (uint m = 0; m < node->mNumMeshes; ++m) {
-		const aiMesh* mesh = scene->mMeshes[node->mMeshes[m]];
+		const aiMesh* mesh = aiscene->mMeshes[node->mMeshes[m]];
 		for (uint v = 0; v < mesh->mNumVertices; ++v) {
 			aiVector3D vertex = mesh->mVertices[v];
 
@@ -48,15 +52,15 @@ void findBoundingBoxForNode(const aiScene* scene, const aiNode* node, aiVector3D
 		}
 	}
 	for (uint child = 0; child < node->mNumChildren; ++child) {
-		findBoundingBoxForNode(scene, node->mChildren[child], min, max);
+		findBoundingBoxForNode(aiscene, node->mChildren[child], min, max);
 	}
 }
 
-AABB findBoundingBox(const aiScene* scene, const aiNode* root) {
+AABB findBoundingBox(const aiScene* aiscene, const aiNode* root) {
 	aiVector3D min, max;
 	min.x = min.y = min.z = 0.1f;
 	max.x = max.y = max.z = 0.1f;
-	findBoundingBoxForNode(scene, root, &min, &max);
+	findBoundingBoxForNode(aiscene, root, &min, &max);
 
 	AABB result;
 	result.min = vec3(min.x, min.y, min.z);
@@ -64,15 +68,15 @@ AABB findBoundingBox(const aiScene* scene, const aiNode* root) {
 	return result;
 }
 
-void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
+void AssimpScene::genVAOsAndUniformBuffer(const aiScene* aiscene, Scene* resScene) {
 	GLuint buffer;
-	AssimpMesh mesh;
-	m_meshes.reserve(scene->mNumMeshes);
+	Mesh mesh;
+	resScene->meshes.reserve(aiscene->mNumMeshes);
 
-	for (unsigned n = 0; n < scene->mNumMeshes; ++n) {
-		aiMesh *aimesh = scene->mMeshes[n];
+	for (unsigned n = 0; n < aiscene->mNumMeshes; ++n) {
+		aiMesh *aimesh = aiscene->mMeshes[n];
 
-		auto mat = scene->mMaterials[aimesh->mMaterialIndex];
+		auto mat = aiscene->mMaterials[aimesh->mMaterialIndex];
 		setMaterial(mesh, mat);
 
 		glGenVertexArrays(1, &(mesh.vao));
@@ -120,82 +124,8 @@ void AssimpScene::genVAOsAndUniformBuffer(const aiScene *scene) {
 		//TODO texcoords
 		glBindVertexArray(0);
 
-		m_meshes.push_back(mesh);
+		resScene->meshes.push_back(mesh);
 	}
 
-	m_boundingBox = findBoundingBox(scene, scene->mRootNode);
-}
-
-void AssimpScene::recursiveRender(RenderProperties &props, const aiScene *sc, const aiNode *node) const noexcept {
-	aiMatrix4x4 mat = node->mTransformation;
-	mat.Transpose(); // OpenGL has column major matrices
-
-	auto stack = props.getModelStack();
-	auto glmMat = glm::make_mat4((float*) &mat);
-	stack->push(glmMat);
-
-	GL_CHECK_ERROR("recursiveRender (1): ");
-
-	mat4 MVP = props.getMVP();
-	auto program = props.getShaderProgram();
-
-	if (program->hasUniform("MVP")) {
-		auto mvp = program->getUniformLoc("MVP");
-		glUniformMatrix4fv(mvp, 1, false, glm::value_ptr(MVP));
-	}
-
-	if (program->hasUniform("M")) {
-		auto M = props.getM();
-		auto mLoc = program->getUniformLoc("M");
-		glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(M));
-	}
-
-	if (program->hasUniform("NormalMatrix")) {
-		auto normalMat = props.getNormalMatrix();
-		auto nm = program->getUniformLoc("NormalMatrix");
-		glUniformMatrix3fv(nm, 1, false, glm::value_ptr(normalMat));
-	}
-
-	for (unsigned n = 0; n < node->mNumMeshes; ++n) {
-		auto index = node->mMeshes[n];
-		auto mesh = m_meshes[index];
-		glBindVertexArray(m_meshes[index].vao);
-
-		if (props.renderMaterials()) {
-			auto diffCol = program->getUniformLoc("material.diffuse_color");
-			glUniform3fv(diffCol, 1, glm::value_ptr(mesh.color));
-
-			auto sh = program->getUniformLoc("material.shininess");
-			glUniform1i(sh, mesh.shininess);
-		}
-		glDrawElements(GL_TRIANGLES, mesh.numFaces * 3, GL_UNSIGNED_INT, 0);
-		GL_CHECK_ERROR("recursiveRender after draw: ");
-	}
-
-	for (unsigned n = 0; n < node->mNumChildren; ++n) {
-		GL_CHECK_ERROR("recursiveRender (before calling recursively): ");
-		recursiveRender(props, sc, node->mChildren[n]);
-	}
-
-	GL_CHECK_ERROR("recursiveRender (2): ");
-
-	stack->pop();
-}
-
-void AssimpScene::render(RenderProperties &props) const noexcept {
-	GL_CHECK_ERROR("AssimpScene::render - begin : ");
-	auto scene = m_importer.GetScene();
-
-	auto program = props.getShaderProgram();
-	if (program->hasUniform("V")) {
-		auto loc = program->getUniformLoc("V");
-		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(props.V));
-	}
-
-	if (program->hasUniform("P")) {
-		auto loc = program->getUniformLoc("P");
-		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(props.P));
-	}
-
-	recursiveRender(props, scene, scene->mRootNode);
+	resScene->boundingBox = findBoundingBox(aiscene, aiscene->mRootNode);
 }

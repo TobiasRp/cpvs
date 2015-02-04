@@ -4,18 +4,8 @@
 #include "cpvs.h"
 #include "Scene.h"
 #include <assimp/Importer.hpp>
-#include <unordered_map>
 
-class aiNode;
-
-struct AssimpMesh {
-	GLuint vao;
-	GLuint numFaces;
-	vec3 color;
-	int shininess;
-};
-
-class AssimpScene : public Scene {
+class AssimpScene {
 protected:
 	enum AttributeLog {
 		vPosLoc = 0,
@@ -24,19 +14,13 @@ protected:
 	};
 
 public:
-	AssimpScene(const string file);	
-	virtual ~AssimpScene() = default;
+	AssimpScene() = delete;	
+	~AssimpScene() = delete;
 
-	virtual void render(RenderProperties &props) const noexcept override;
+	static unique_ptr<Scene> loadScene(const string file);
 
 protected:
-	void genVAOsAndUniformBuffer(const aiScene *scene);
-
-	void recursiveRender(RenderProperties &props, const aiScene *scene, const aiNode *node) const noexcept;
-
-private:
-	Assimp::Importer m_importer;
-	std::vector<AssimpMesh> m_meshes;
+	static void genVAOsAndUniformBuffer(const aiScene* aiscene, Scene* resScene);
 };
 
 #endif

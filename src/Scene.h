@@ -2,7 +2,6 @@
 #define SCENE_H
 
 #include "cpvs.h"
-#include "RenderProperties.h"
 
 struct AABB {
 	vec3 min, max;
@@ -13,18 +12,41 @@ struct AABB {
 	}
 };
 
-class Scene {
-public:
-	virtual ~Scene() { }
+struct Material {
+	vec3 diffuseColor;
+	int shininess;
+};
 
-	virtual void render(RenderProperties&) const noexcept = 0;
+struct Mesh {
+	GLuint vao;
+	GLuint numFaces;
+	Material material;
 
-	inline AABB getBoundingBox() const {
-		return m_boundingBox;
+	inline void bind() const {
+		glBindVertexArray(vao);
 	}
 
-protected:
-	AABB m_boundingBox;
+	inline void draw() const {
+		glDrawElements(GL_TRIANGLES, numFaces * 3, GL_UNSIGNED_INT, 0);
+	}
+};
+
+struct Scene {
+	Scene() = default;
+
+	Scene(const Scene& rhs) = delete;
+	Scene& operator=(const Scene& rhs) = delete;
+
+	Scene(Scene&& rhs) = default;
+	Scene& operator=(Scene&& rhs) = default;
+
+	inline ~Scene() {
+		for (const auto& mesh : meshes)
+			glDeleteVertexArrays(1, &mesh.vao);
+	}
+
+	AABB boundingBox;
+	std::vector<Mesh> meshes;
 };
 
 #endif

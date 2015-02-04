@@ -107,10 +107,18 @@ inline void setNearAndFarPlane(ShaderProgram& createSM, const DirectionalLight& 
 	glUniform1f(createSM["zfar"], light.getFarPlane());
 }
 
-inline void renderSceneForSM(const Scene* scene, RenderProperties& props) {
+void DeferredRenderer::renderSceneForSM(const Scene* scene, const mat4& P, const mat4& V) {
 	GL_CHECK_ERROR("DeferredRenderer::renderSceneForSM: ");
 	glClear(GL_DEPTH_BUFFER_BIT);
-	scene->render(props);
+
+	// Assumes that m_create_sm program is bound
+	glUniformMatrix4fv(m_create_sm["V"], 1, GL_FALSE, glm::value_ptr(V));
+	glUniformMatrix4fv(m_create_sm["P"], 1, GL_FALSE, glm::value_ptr(P));
+
+	for (const auto& mesh : scene->meshes) {
+		mesh.bind();
+		mesh.draw();
+	}
 }
 
 unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint size) {
@@ -123,21 +131,16 @@ unique_ptr<ShadowMap> DeferredRenderer::renderShadowMap(const Scene* scene, uint
 	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
 	glDrawBuffer(GL_NONE);
 
-	mat4 lightView = m_dirLight.getViewTransform();
-	mat4 lightProj = m_dirLight.getProjection();
-
-	RenderProperties smProps(lightView, lightProj);
-	smProps.setShaderProgram(&m_create_sm);
 	m_create_sm.bind();
 
 	setNearAndFarPlane(m_create_sm, m_dirLight);
-
 	setShadowMappingState();
 
-	renderSceneForSM(scene, smProps);
+	mat4 lightView = m_dirLight.getViewTransform();
+	mat4 lightProj = m_dirLight.getProjection();
+	renderSceneForSM(scene, lightProj, lightView);
 
 	glDisable(GL_POLYGON_OFFSET_FILL);
-
 	m_create_sm.release();
 
 	GL_CHECK_ERROR("DeferredRenderer::renderShadowMap - end: ");
@@ -159,16 +162,16 @@ void createShadowTiles(CompressedShadowContainer* shadows, const MinMaxHierarchy
 		thread.join();
 }
 
-unique_ptr<CompressedShadowContainer> renderWithTiles(const Scene* scene, RenderProperties& props,
+unique_ptr<CompressedShadowContainer> DeferredRenderer::renderWithTiles(const Scene* scene, const mat4& V,
 		const DirectionalLight& light, Fbo& shadowFbo, uint numSlices) {
 
 	auto shadows = make_unique<CompressedShadowContainer>(numSlices);
 
 	for (uint y = 0; y < numSlices; ++y) {
 		for (uint x = 0; x < numSlices; ++x) {
-			props.P = light.getSubProjection(scene->getBoundingBox(), x, y, numSlices);
+			const auto P = light.getSubProjection(scene->boundingBox, x, y, numSlices);
 
-			renderSceneForSM(scene, props);
+			renderSceneForSM(scene, P, V);
 
 			ShadowMap sm(shadowFbo.getDepthTexture());
 			MinMaxHierarchy mm(sm.createImageF());
@@ -202,28 +205,26 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size, uint pcf
 
 	glViewport(0, 0, tileSize, tileSize);
 
-	RenderProperties smProps;
-	smProps.V = m_dirLight.getViewTransform();
-	smProps.setShaderProgram(&m_create_sm);
+	const auto V = m_dirLight.getViewTransform();
 	m_create_sm.bind();
 
 	setNearAndFarPlane(m_create_sm, m_dirLight);
 	setShadowMappingState();
 
-	// create FBO with fp depth
+	// create FBO with floating point depth
 	Fbo shadowFbo(tileSize, tileSize, false);
 	shadowFbo.bind();
 	shadowFbo.setDepthTexture(GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
 	glDrawBuffer(GL_NONE);
 
 	if (numTiles == 1) {
-		smProps.P = m_dirLight.getProjection();
+		const auto P = m_dirLight.getProjection();
+		renderSceneForSM(scene, P, V);
 
-		renderSceneForSM(scene, smProps);
 		ShadowMap sm(shadowFbo.getDepthTexture());
 		m_precomputedShadow = make_unique<CompressedShadowContainer>(CompressedShadow::create(&sm));
 	} else {
-		m_precomputedShadow = renderWithTiles(scene, smProps, m_dirLight, shadowFbo, numTiles);
+		m_precomputedShadow = renderWithTiles(scene, V, m_dirLight, shadowFbo, numTiles);
 	}
 	m_precomputedShadow->setFilterSize(pcfSize);
 	m_precomputedShadow->moveToGPU();
@@ -267,39 +268,51 @@ void DeferredRenderer::renderTexture(const Texture2D* tex) {
 	GL_CHECK_ERROR("DeferredRenderer::renderTexture - end: ");
 }
 
-void DeferredRenderer::render(RenderProperties& properties, const Scene* scene) {
+void DeferredRenderer::render(Camera* cam, const Scene* scene) {
 	glViewport(0, 0, m_gBuffer.getWidth(), m_gBuffer.getHeight());
 	glClearDepth(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	properties.setRenderingOfMaterials(true);
-	renderScene(properties, scene);
+	renderScene(cam, scene);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	doAllShading(properties, scene);
+	doAllShading();
 }
 
-void DeferredRenderer::renderScene(RenderProperties& properties, const Scene* scene) {
-	GL_CHECK_ERROR("DeferredRenderer::renderScene - begin");
+void DeferredRenderer::renderScene(Camera* cam, const Scene* scene) {
+	GL_CHECK_ERROR("DeferredRenderer::renderScene - begin: ");
 	m_gBuffer.bind();
 	m_gBuffer.clear();
 
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	
-	properties.setShaderProgram(&m_geometry);
 	m_geometry.bind();
 
-	scene->render(properties);
+	const auto MVP = cam->getProjection() * cam->getView();
+	glUniformMatrix4fv(m_geometry["MVP"], 1, false, glm::value_ptr(MVP));
+
+	const auto identity = mat4(1.0f); // model matrix M is identity
+	glUniformMatrix4fv(m_geometry["M"], 1, false, glm::value_ptr(identity));
+
+	const mat3 normalMat = mat3(1.0f); // if M is not identity use: inverse(transpose(M));
+	glUniformMatrix3fv(m_geometry["NormalMatrix"], 1, false, glm::value_ptr(normalMat));
+
+	for (const auto& mesh : scene->meshes) {
+		mesh.bind();
+		glUniform3fv(m_geometry["material.diffuse_color"], 1, glm::value_ptr(mesh.material.diffuseColor));
+		glUniform1i(m_geometry["material.shininess"], mesh.material.shininess);
+		mesh.draw();
+	}
 
 	m_geometry.release();
 	m_gBuffer.release();
-	GL_CHECK_ERROR("DeferredRenderer::renderScene - end");
+	GL_CHECK_ERROR("DeferredRenderer::renderScene - end: ");
 }
 
-void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* scene) {
-	GL_CHECK_ERROR("DeferredRenderer::doAllShading - begin");
+void DeferredRenderer::doAllShading() {
+	GL_CHECK_ERROR("DeferredRenderer::doAllShading - begin: ");
 	glViewport(0, 0, m_gBuffer.getWidth(), m_gBuffer.getHeight());
 
 	m_shade.bind();
@@ -324,5 +337,5 @@ void DeferredRenderer::doAllShading(RenderProperties& properties, const Scene* s
 	renderQuad(m_fullscreenQuad);
 
 	m_shade.release();
-	GL_CHECK_ERROR("DeferredRenderer::doAllShading - end");
+	GL_CHECK_ERROR("DeferredRenderer::doAllShading - end: ");
 }

@@ -2,7 +2,6 @@
 #define DEFERRED_RENDERER_H
 
 #include "cpvs.h"
-#include "RenderProperties.h"
 #include "ShaderProgram.h"
 #include "Quad.h"
 #include "Fbo.h"
@@ -10,6 +9,7 @@
 #include "ShadowMap.h"
 #include "CompressedShadow.h"
 #include "CompressedShadowContainer.h"
+#include "Camera.h"
 
 class Scene;
 
@@ -20,7 +20,7 @@ public:
 
 	void resize(GLuint width, GLuint height);
 
-	void render(RenderProperties& properties, const Scene* scene);
+	void render(Camera* cam, const Scene* scene);
 
 	/**
 	 * Renders a shadow map for the directional light source.
@@ -31,8 +31,6 @@ public:
 	void precomputeShadows(const Scene* scene, uint size, uint pcfSize);
 
 	void renderDepthTexture(const Texture2D* tex);
-
-	void renderDEBUG(uint x);
 
 	void renderTexture(const Texture2D* tex);
 
@@ -52,11 +50,16 @@ private:
 	void loadShaders();
 	void initFbos();
 
+	void renderSceneForSM(const Scene* scene, const mat4& P, const mat4& V);
+
+	unique_ptr<CompressedShadowContainer> renderWithTiles(const Scene* scene, const mat4& V,
+		const DirectionalLight& light, Fbo& shadowFbo, uint numSlices);
+
 	static void renderQuad(const Quad& quad);
 
-	void renderScene(RenderProperties& properties, const Scene* scene);
+	void renderScene(Camera* cam, const Scene* scene);
 
-	void doAllShading(RenderProperties& properties, const Scene* scene);
+	void doAllShading();
 
 private:
 	ShaderProgram m_geometry, m_shade;

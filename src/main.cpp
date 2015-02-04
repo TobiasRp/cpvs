@@ -161,11 +161,11 @@ inline void closeApp(int returnCode) {
  * If the process was started with an argument, this is assumed to be the scene name,
  * or else the default scene will be loaded
  */
-inline unique_ptr<AssimpScene> loadSceneFromArguments(const string& file) {
+inline unique_ptr<Scene> loadSceneFromArguments(const string& file) {
 	try {
 		cout << "Loading scene... "; cout.flush();
 		auto t0 = high_resolution_clock::now();
-		auto ptr = make_unique<AssimpScene>(file);
+		auto ptr = AssimpScene::loadScene(file);
 		cout << "done after ";
 		printDurationToNow(t0);
 		return ptr;
@@ -198,7 +198,7 @@ inline uint parseSize(const string& sizeStr, bool testPowerOfTwo) {
 	return res;
 }
 
-unique_ptr<AssimpScene> parseArguments(int argc, char **argv) {
+unique_ptr<Scene> parseArguments(int argc, char **argv) {
 	string sceneFile = defaultSceneFile;
 
 	for (int paramNr = 1; paramNr < argc; ++paramNr) {
@@ -220,7 +220,7 @@ unique_ptr<AssimpScene> parseArguments(int argc, char **argv) {
 
 void initRenderSystem(const Scene* scene) {
 	vec3 direction = glm::normalize(lightDirection);
-	DirectionalLight light(direction, scene->getBoundingBox());
+	DirectionalLight light(direction, scene->boundingBox);
 	renderSystem = make_unique<DeferredRenderer>(light, WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
@@ -252,14 +252,12 @@ int main(int argc, char **argv) {
 	renderSystem->setShadow(refTex);
 
 	while (!glfwWindowShouldClose(window)) {
-		RenderProperties properties(cam.getView(), cam.getProjection());
-
 		renderSystem->useReferenceShadows(uiSettings.useReferenceShadows);
 
 		if (uiSettings.renderShadowMap)
 			renderSystem->renderDepthTexture(refTex.get());
 		else
-			renderSystem->render(properties, scene.get());
+			renderSystem->render(&cam, scene.get());
 
 		cam.setSpeed(uiSettings.cameraSpeed);
 		TwDraw();
