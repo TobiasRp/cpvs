@@ -27,7 +27,7 @@ void main(void) {
 	float vis = 1.0f;
 	if (renderShadow != 0) {
 		vis = texture(visibilities, texcoord).r;
-		vis = max(vis, 0.2);
+		vis = max(vis, 0.0);
 	} else {
 		vec4 shadowCoord = lightViewProj * vec4(pos, 1.0);
 		shadowCoord /= shadowCoord.w;
@@ -35,7 +35,7 @@ void main(void) {
 		float d = texture(shadowMap, shadowCoord.xy).r;
 
 		if (d < shadowCoord.z)
-			vis = 0.2;
+			vis = 0.0;
 	}
 
 	vec4 normalTex = texture(normalBuffer, texcoord);
@@ -45,7 +45,7 @@ void main(void) {
 	vec4 diffuse_color = texture(diffuseBuffer, texcoord);
 	float diffuse = max(0.0, dot(N, L));
 
-	vec3 scatteredLight = ambient_color + diffuse;
+	vec3 scatteredLight = ambient_color + diffuse * vis;
 
-	fragColor = vec4(vis * scatteredLight * diffuse_color.rgb, diffuse_color.a);
+	fragColor = vec4(scatteredLight * diffuse_color.rgb, diffuse_color.a);
 }
