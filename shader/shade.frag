@@ -18,7 +18,18 @@ struct Light {
 
 uniform Light light;
 
-vec3 ambient_color = vec3(0.15, 0.15, 0.15);
+const vec3 ambient_color = vec3(0.15, 0.15, 0.15);
+
+float evaluateShadowMap(vec4 pos) {
+	vec4 shadowCoord = lightViewProj * pos;
+	shadowCoord /= shadowCoord.w;
+	shadowCoord.xyz = shadowCoord.xyz * vec3(0.5, 0.5, 0.5) + vec3(0.5, 0.5, 0.5);
+	float d = texture(shadowMap, shadowCoord.xy).r;
+
+	if (d < shadowCoord.z)
+		return 0.0;
+	return 1.0;
+}
 
 void main(void) {
 	vec4 positionTex = texture(positionBuffer, texcoord);
@@ -29,13 +40,7 @@ void main(void) {
 		vis = texture(visibilities, texcoord).r;
 		vis = max(vis, 0.0);
 	} else {
-		vec4 shadowCoord = lightViewProj * vec4(pos, 1.0);
-		shadowCoord /= shadowCoord.w;
-		shadowCoord.xyz = shadowCoord.xyz * vec3(0.5, 0.5, 0.5) + vec3(0.5, 0.5, 0.5);
-		float d = texture(shadowMap, shadowCoord.xy).r;
-
-		if (d < shadowCoord.z)
-			vis = 0.0;
+		vis = evaluateShadowMap(vec4(pos, 1.0));
 	}
 
 	vec4 normalTex = texture(normalBuffer, texcoord);
