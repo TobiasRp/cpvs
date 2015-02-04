@@ -2,15 +2,7 @@
 #define SCENE_H
 
 #include "cpvs.h"
-
-struct AABB {
-	vec3 min, max;
-
-	vec3 getCenter() const {
-		vec3 dist = max - min;
-		return min + (dist * 0.5f);
-	}
-};
+#include "BoundingVolumes.h"
 
 struct Material {
 	vec3 diffuseColor;
@@ -21,6 +13,7 @@ struct Mesh {
 	GLuint vao;
 	GLuint numFaces;
 	Material material;
+	AABB boundingBox;
 
 	inline void bind() const {
 		glBindVertexArray(vao);

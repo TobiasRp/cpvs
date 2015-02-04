@@ -36,36 +36,34 @@ void setMaterial(Mesh& mesh, const aiMaterial* mat) {
 	mat->Get(AI_MATKEY_SHININESS, mesh.material.shininess);
 }
 
-void findBoundingBoxForNode(const aiScene* aiscene, const aiNode* node, aiVector3D* min, aiVector3D* max) {
-	for (uint m = 0; m < node->mNumMeshes; ++m) {
-		const aiMesh* mesh = aiscene->mMeshes[node->mMeshes[m]];
-		for (uint v = 0; v < mesh->mNumVertices; ++v) {
-			aiVector3D vertex = mesh->mVertices[v];
+template<typename T_VEC1, typename T_VEC2>
+inline vec3 vecMin(const T_VEC1 a, const T_VEC2 b) {
+	return vec3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+}
 
-			min->x = std::min(min->x, vertex.x);
-			min->y = std::min(min->y, vertex.y);
-			min->z = std::min(min->z, vertex.z);
+template<typename T_VEC1, typename T_VEC2>
+inline vec3 vecMax(const T_VEC1 a, const T_VEC2 b) {
+	return vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+}
 
-			max->x = std::max(max->x, vertex.x);
-			max->y = std::max(max->y, vertex.y);
-			max->z = std::max(max->z, vertex.z);
-		}
-	}
-	for (uint child = 0; child < node->mNumChildren; ++child) {
-		findBoundingBoxForNode(aiscene, node->mChildren[child], min, max);
+void findBoundingBox(const aiMesh* mesh, AABB& boundingBox) {
+	boundingBox.min = vec3(0.01f, 0.01f, 0.01f);
+	boundingBox.max = vec3(0.01f, 0.01f, 0.01f);
+
+	for (uint v = 0; v < mesh->mNumVertices; ++v) {
+		const aiVector3D vertex = mesh->mVertices[v];
+		boundingBox.min = vecMin(boundingBox.min, vertex);
+		boundingBox.max = vecMax(boundingBox.max, vertex);
 	}
 }
 
-AABB findBoundingBox(const aiScene* aiscene, const aiNode* root) {
-	aiVector3D min, max;
-	min.x = min.y = min.z = 0.1f;
-	max.x = max.y = max.z = 0.1f;
-	findBoundingBoxForNode(aiscene, root, &min, &max);
-
-	AABB result;
-	result.min = vec3(min.x, min.y, min.z);
-	result.max = vec3(max.x, max.y, max.z);
-	return result;
+void findBoundingBox(const vector<Mesh>& meshes, AABB& boundingBox) {
+	boundingBox.min = vec3(0.01f, 0.01f, 0.01f);
+	boundingBox.max = vec3(0.01f, 0.01f, 0.01f);
+	for (const auto& mesh : meshes) {
+		boundingBox.min = vecMin(boundingBox.min, mesh.boundingBox.min);
+		boundingBox.max = vecMax(boundingBox.max, mesh.boundingBox.max);
+	}
 }
 
 void AssimpScene::genVAOsAndUniformBuffer(const aiScene* aiscene, Scene* resScene) {
@@ -124,8 +122,10 @@ void AssimpScene::genVAOsAndUniformBuffer(const aiScene* aiscene, Scene* resScen
 		//TODO texcoords
 		glBindVertexArray(0);
 
+		findBoundingBox(aimesh, mesh.boundingBox);
+
 		resScene->meshes.push_back(mesh);
 	}
 
-	resScene->boundingBox = findBoundingBox(aiscene, aiscene->mRootNode);
+	findBoundingBox(resScene->meshes, resScene->boundingBox);
 }

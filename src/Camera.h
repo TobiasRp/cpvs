@@ -2,6 +2,8 @@
 #define CAMERA_H
 
 #include <glm/gtc/matrix_transform.hpp>
+#include "BoundingVolumes.h"
+#include "Scene.h"
 
 class Camera {
 public:
@@ -61,9 +63,21 @@ public:
 		updateView();
 	}
 
+	inline vector<Mesh> cull(const vector<Mesh>& meshes) {
+		vector<Mesh> res;
+		for (const auto& mesh : meshes) {
+			if (m_viewFrustum.inside(mesh.boundingBox))
+				res.push_back(mesh);
+		}
+		return res;
+	}
+
 protected:
+	void updateViewFrustum();
+
 	void updateProjection() {
 		m_projection = glm::perspective(m_fov, m_aspectRatio, m_znear, m_zfar);
+		updateViewFrustum();
 	}
 
 	virtual void updateView() = 0;
@@ -74,6 +88,8 @@ protected:
 
 	glm::vec3 m_position;
 	glm::vec3 m_look, m_up, m_right;
+
+	Frustum m_viewFrustum;
 
 	float m_fov; // field of view in degrees
 	float m_aspectRatio, m_znear, m_zfar;

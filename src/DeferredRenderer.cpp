@@ -299,7 +299,8 @@ void DeferredRenderer::renderScene(Camera* cam, const Scene* scene) {
 	const mat3 normalMat = mat3(1.0f); // if M is not identity use: inverse(transpose(M));
 	glUniformMatrix3fv(m_geometry["NormalMatrix"], 1, false, glm::value_ptr(normalMat));
 
-	for (const auto& mesh : scene->meshes) {
+	auto visible = cam->cull(scene->meshes);
+	for (const auto& mesh : visible) {
 		mesh.bind();
 		glUniform3fv(m_geometry["material.diffuse_color"], 1, glm::value_ptr(mesh.material.diffuseColor));
 		glUniform1i(m_geometry["material.shininess"], mesh.material.shininess);

@@ -239,9 +239,10 @@ int main(int argc, char **argv) {
 	initUiSettings();
 	initTweakBar();
 
+	initCamera();
+
 	auto scene = parseArguments(argc, argv);
 
-	initCamera();
 	initRenderSystem(scene.get());
 
 	createPrecomputedShadows(scene.get());
