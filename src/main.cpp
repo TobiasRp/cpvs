@@ -29,6 +29,7 @@ const GLuint WINDOW_HEIGHT = 512;
 
 /* Shadow map and light settings */
 GLuint cpvs_size = 4096;
+GLuint pcf_size = 1;
 
 const GLuint REF_SM_SIZE    = 8192;
 const vec3   lightDirection = {0.25, 1, 0};
@@ -184,15 +185,17 @@ inline void printHelpAndExit() {
 	closeApp(EXIT_SUCCESS);
 }
 
-inline void parseSize(const string& sizeStr) {
+inline uint parseSize(const string& sizeStr, bool testPowerOfTwo) {
+	uint res;
 	try {
-		cpvs_size = std::stoul(sizeStr);
-		if (!isPowerOfTwo(cpvs_size) || cpvs_size < 8)
+		res = std::stoul(sizeStr);
+		if (testPowerOfTwo && (!isPowerOfTwo(res) || res < 8))
 			throw std::invalid_argument("Must be power of two and at least 8");
 	} catch (std::exception& exc) {
 		cerr << "Invalid size specified (" << exc.what() << ")\n";
 		closeApp(EXIT_FAILURE);
 	}
+	return res;
 }
 
 unique_ptr<AssimpScene> parseArguments(int argc, char **argv) {
@@ -204,8 +207,10 @@ unique_ptr<AssimpScene> parseArguments(int argc, char **argv) {
 		if (param == "--help") {
 			printHelpAndExit();
 		} else if (param.substr(0, 6) == "--size") {
-			parseSize(&argv[paramNr][7]);
-		} else {
+			cpvs_size = parseSize(&argv[paramNr][7], true);
+		} else if (param.substr(0, 5) == "--pcf") {
+			pcf_size = parseSize(&argv[paramNr][6], false);
+		}else {
 			sceneFile = param;
 		}
 	}
@@ -222,7 +227,7 @@ void initRenderSystem(const Scene* scene) {
 void createPrecomputedShadows(const Scene* scene) {
 	cout << "Precomputing shadows... "; cout.flush();
 	auto t0 = chrono::high_resolution_clock::now();
-	renderSystem->precomputeShadows(scene, cpvs_size);
+	renderSystem->precomputeShadows(scene, cpvs_size, pcf_size);
 	cout << "\n... done after ";
 	printDurationToNow(t0);
 }

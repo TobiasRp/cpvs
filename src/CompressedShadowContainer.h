@@ -19,14 +19,14 @@ class CompressedShadowContainer {
 public:
 	/** Creates a container with a fixed length in one dimension of the 3D container. */
 	CompressedShadowContainer(uint length)
-		: m_length(length)
+		: m_length(length), m_filterSize(1)
 	{
 		m_data.resize(length * length * length);
 	}
 
 	/** Creates a container with a length of 1 and initializes it with the given precomputed shadow. */
 	CompressedShadowContainer(unique_ptr<CompressedShadow> shadow)
-		: m_length(1)
+		: m_length(1), m_filterSize(1)
 	{
 		m_data.push_back(std::move(shadow));
 	}
@@ -67,6 +67,11 @@ public:
 		freeOnCPU();
 	}
 
+	/** Set the PCF filter size, i.e. it's width or height (which must be equal) */
+	inline void setFilterSize(uint size) {
+		m_filterSize = size;
+	}
+
 private:
 	void initShader();
 
@@ -82,6 +87,8 @@ private:
 	unique_ptr<SSBO> m_deviceGrid;
 
 	unique_ptr<ShaderProgram> m_traverseCS;
+
+	uint m_filterSize;
 };
 
 #endif

@@ -23,6 +23,7 @@ void CompressedShadowContainer::initShader() {
 	m_traverseCS->addUniform("lightViewProj");
 	m_traverseCS->addUniform("width");
 	m_traverseCS->addUniform("height");
+	m_traverseCS->addUniform("filterSize");
 	m_traverseCS->addUniform("dag_levels");
 	m_traverseCS->addUniform("grid_levels");
 }
@@ -40,6 +41,8 @@ void CompressedShadowContainer::copyToGPU() {
 
 	const uint gridLevels = log8(m_data.size());
 	glUniform1i((*m_traverseCS)["grid_levels"], gridLevels);
+
+	glUniform1ui((*m_traverseCS)["filterSize"], m_filterSize);
 }
 
 inline void printSize(size_t size) {

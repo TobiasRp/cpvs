@@ -28,7 +28,7 @@ public:
 	 */
 	unique_ptr<ShadowMap> renderShadowMap(const Scene* scene, uint size);
 
-	void precomputeShadows(const Scene* scene, uint size);
+	void precomputeShadows(const Scene* scene, uint size, uint pcfSize);
 
 	void renderDepthTexture(const Texture2D* tex);
 

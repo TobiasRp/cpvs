@@ -196,7 +196,7 @@ inline uint getTileSize(uint size) {
 	return maxSize;
 }
 
-void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
+void DeferredRenderer::precomputeShadows(const Scene* scene, uint size, uint pcfSize) {
 	const uint tileSize = getTileSize(size);
 	const uint numTiles = size / tileSize;
 
@@ -225,6 +225,7 @@ void DeferredRenderer::precomputeShadows(const Scene* scene, uint size) {
 	} else {
 		m_precomputedShadow = renderWithTiles(scene, smProps, m_dirLight, shadowFbo, numTiles);
 	}
+	m_precomputedShadow->setFilterSize(pcfSize);
 	m_precomputedShadow->moveToGPU();
 
 	glDisable(GL_POLYGON_OFFSET_FILL);

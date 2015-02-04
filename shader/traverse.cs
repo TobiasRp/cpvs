@@ -1,3 +1,6 @@
+/* This code was heaviliy inspired by the supplementary Traversal Code for the paper: 
+ * "Compact Precomputed Voxelized Shadows", by Erik Sintorn, Viktor Kämpe, Ola Olsson and Ulf Assarsson
+ */
 #version 440 core
 
 #define LOCAL_SIZE 32
@@ -9,6 +12,9 @@ layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE) in;
 
 uniform uint width;
 uniform uint height;
+
+/* PCF filtering is not yet implemented! The size of the kernel is therefore still unused */
+uniform uint filterSize;
 
 uniform int dag_levels;
 uniform int grid_levels;
@@ -66,8 +72,7 @@ uint getChildOffset(uint childmask, uint childIndex) {
 }
 
 /* Traverses the precomputed shadow for the given vector in NDC, i.e. in the range [-1,1]^3 */
-float traverse(const vec3 projPos) {
-	ivec3 path = getPathFromNDC(projPos);
+float traverse(const ivec3 path) {
 	uint offset = 0;
 
 	uint grid_res = 1 << grid_levels;
@@ -138,6 +143,7 @@ void main() {
 	vec4 projPos = lightViewProj * vec4(posWS, 1.0);
 	projPos = projPos / projPos.w;
 
-	float vis = traverse(projPos.xyz);
+	float vis = traverse(getPathFromNDC(projPos.xyz));
+
 	imageStore(visibilities, index, vec4(vis));
 }
