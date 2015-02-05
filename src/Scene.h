@@ -8,6 +8,8 @@ struct Material {
 	vec3 diffuseColor;
 	int shininess;
 
+	Material() : diffuseColor(0), shininess(0) { }
+
 	inline bool operator==(const Material& rhs) const {
 		return (diffuseColor == rhs.diffuseColor) && (shininess == rhs.shininess);
 	}

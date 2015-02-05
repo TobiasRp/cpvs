@@ -178,9 +178,10 @@ inline unique_ptr<Scene> loadSceneFromArguments(const string& file) {
 
 inline void printHelpAndExit() {
 	cout << "CPVS Usage:\n"
-		 << "\t-h Prints this help test and exits\n"
+		 << "\t--help Prints this help test and exits\n"
 		 << "\t--size=[size of precomputed shadow, e.g. 8196. Must be a power of two]\n"
-		 << "\tpath to scene file or default file will be loaded"
+		 << "\t--pcf=[size of PCF kernel]\n"
+		 << "\tpath to scene file or default file which will be loaded"
 	   	 << endl;
 	closeApp(EXIT_SUCCESS);
 }
