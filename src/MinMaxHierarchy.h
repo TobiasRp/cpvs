@@ -30,7 +30,7 @@ public:
 	 */
 	inline float getMin(size_t level, size_t x, size_t y) const {
 		if (level == 0) {
-			assert(checkBounds(m_root, x, y));
+			//assert(checkBounds(m_root, x, y));
 			return m_root.get(x, y, 0);
 		}
 
@@ -45,7 +45,7 @@ public:
 	 */
 	inline float getMax(size_t level, size_t x, size_t y) const {
 		if (level == 0) {
-			assert(checkBounds(m_root, x, y));
+			//assert(checkBounds(m_root, x, y));
 			return m_root.get(x, y, 0);
 		}
 	
