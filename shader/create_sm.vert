@@ -12,6 +12,6 @@ void main() {
 	gl_Position = P * posLV;
 
 	// Linearizes z-buffer (see Real-Time Shadows, p.37)
-	// ... but is not working correctly?
+	// ... but doesn't work for a directional light
 	//gl_Position.z = - ((posLV.z + znear) / (zfar - znear)) * gl_Position.w;
 }
