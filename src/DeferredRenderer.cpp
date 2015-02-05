@@ -300,10 +300,15 @@ void DeferredRenderer::renderScene(Camera* cam, const Scene* scene) {
 	glUniformMatrix3fv(m_geometry["NormalMatrix"], 1, false, glm::value_ptr(normalMat));
 
 	auto visible = cam->cull(scene->meshes);
+	Material currentMat;
 	for (const auto& mesh : visible) {
+		if (currentMat != mesh.material) {
+			glUniform3fv(m_geometry["material.diffuse_color"], 1, glm::value_ptr(mesh.material.diffuseColor));
+			glUniform1i(m_geometry["material.shininess"], mesh.material.shininess);
+			currentMat = mesh.material;
+		}
+
 		mesh.bind();
-		glUniform3fv(m_geometry["material.diffuse_color"], 1, glm::value_ptr(mesh.material.diffuseColor));
-		glUniform1i(m_geometry["material.shininess"], mesh.material.shininess);
 		mesh.draw();
 	}
 
