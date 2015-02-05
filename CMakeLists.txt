@@ -4,13 +4,10 @@ project (cpvs)
 set (CPVS_VERSION_MAJOR_0)
 set (CPVS_VERSION_MINOR_1)
 
-# Enable C++14 and debug informations are always useful!
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g")
+# Enable C++14
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
-
-# clang CompilationDatabase for vim autocompletion (feel free to remove this)
-set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 add_definitions(-DPRINT_PROGRESS)
 add_definitions(-DPRINT_CPVS_SIZE)
