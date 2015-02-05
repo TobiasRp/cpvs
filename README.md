@@ -46,3 +46,12 @@ Simply specify the scene to use as an argument.
  * 64-bit 'flat' leafmasks can be used, i.e. level 3 stores 1x1x8 nodes and the last levels encode 8x8x1 voxels
  * Light space transformation is calculated from the scene boundaries to reduce aliasing and artefacts
  * The precomputed shadow uses a top-level grid to store large shadows
+
+
+## Tips for working with the code ##
+
+ * Use the unit tests, but don't rely on them (it is hard to test the shadows)
+ * All rendering is done inside the DeferredRenderer class
+ * CompressedShadow and similar named modules contain all functionality related to the precomputed shadows
+ * The use of leafmasks can be enabled/disabled in CompressedShadow.cpp AND traverse.cs (do both!)
+ * To disable merging common subtrees or the compression simply remove the function call in CompressedsShadow::create (both can be disabled independent of each other)
